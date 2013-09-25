@@ -145,6 +145,7 @@ if ( $_REQUEST['modfunc'] === 'update'
 
 if ( UserStaffID()
 	&& ! $_REQUEST['modfunc'] )
+// if(UserStaffID() && (empty($_REQUEST['modfunc']) || $_REQUEST['modfunc'] == 'search_fnc'))
 {
 	$staff_RET = DBGet( "SELECT " . DisplayNameSQL() . " AS FULL_NAME,PROFILE,PROFILE_ID
 		FROM staff
