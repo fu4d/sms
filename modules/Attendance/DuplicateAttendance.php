@@ -100,7 +100,7 @@ if ( $_REQUEST['delete'] === 'true' )
 	}
 
 	if ( $note
-		|| $error )
+	     || $error )
 	{
 		// Unset delete & redirect URL.
 		RedirectURL( 'delete' );
@@ -108,8 +108,8 @@ if ( $_REQUEST['delete'] === 'true' )
 }
 
 if ( isset( $_REQUEST['search_modfunc'] )
-	&& $_REQUEST['search_modfunc'] === 'list'
-	&& $_REQUEST['delete'] !== 'true' )
+     && $_REQUEST['search_modfunc'] === 'list'
+     && $_REQUEST['delete'] !== 'true' )
 {
 	$RET = GetStuList( $extra );
 
@@ -179,10 +179,10 @@ if ( isset( $_REQUEST['search_modfunc'] )
 			}
 
 			if ( $studentid2
-				&& $studentidr == $studentid2
-				&& $courseidr == $courseid2
-				&& $schooldater == $schooldate2
-				&& $startr == $start2 )
+			     && $studentidr == $studentid2
+			     && $courseidr == $courseid2
+			     && $schooldater == $schooldate2
+			     && $startr == $start2 )
 			{
 				$totalrows++;
 			}
@@ -416,7 +416,7 @@ if ( isset( $_REQUEST['search_modfunc'] )
 }
 
 if ( ! $_REQUEST['search_modfunc']
-	&& $_REQUEST['delete'] !== 'true' )
+     && $_REQUEST['delete'] !== 'true' )
 {
 	echo ErrorMessage( $error );
 
