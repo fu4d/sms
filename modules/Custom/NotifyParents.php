@@ -203,6 +203,9 @@ if ( ! $_REQUEST['modfunc'] || $_REQUEST['search_modfunc'] === 'list' )
 	$extra['profile'] = 'parent';
 
 	$extra['search_title'] = _( 'Find Parents who never logged in' );
+	$extra['new'] = true;
+	
+	Search('staff_id',$extra);
 
 	$extra['new'] = true;
 
