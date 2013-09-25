@@ -82,7 +82,7 @@ if ( ! $_REQUEST['modfunc'] )
 			if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 			{
 				$header_left = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'address_group' => '' ] ) . '">' .
-					_( 'Ungroup by Family' ) . '</a>';
+				               _( 'Ungroup by Family' ) . '</a>';
 			}
 		}
 		else
@@ -94,7 +94,7 @@ if ( ! $_REQUEST['modfunc'] )
 			if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 			{
 				$header_left = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'address_group' => 'Y' ] ) . '">' .
-					_( 'Group by Family' ) . '</a>';
+				               _( 'Group by Family' ) . '</a>';
 			}
 		}
 
@@ -191,12 +191,12 @@ if ( ! $_REQUEST['modfunc'] )
 function _makeTV( $value, $column )
 {
 	global $maxTV,
-		$THIS_RET,
-		$person_id,
-		$person_RET;
+	       $THIS_RET,
+	       $person_id,
+	       $person_RET;
 
 	if ( isset( $THIS_RET['PERSON_ID'] )
-		&& $THIS_RET['PERSON_ID'] !== $person_id )
+	     && $THIS_RET['PERSON_ID'] !== $person_id )
 	{
 		$person_RET = DBGet( "SELECT TITLE,VALUE
 			FROM people_join_contacts
