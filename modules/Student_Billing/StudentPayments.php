@@ -11,9 +11,9 @@ if ( empty( $_REQUEST['print_statements'] ) )
 }
 
 if ( ! empty( $_REQUEST['values'] )
-	&& $_POST['values']
-	&& AllowEdit()
-	&& UserStudentID() )
+     && $_POST['values']
+     && AllowEdit()
+     && UserStudentID() )
 {
 	// Add eventual Dates to $_REQUEST['values'].
 	AddRequestedDates( 'values', 'post' );
@@ -42,8 +42,8 @@ if ( ! empty( $_REQUEST['values'] )
 			);
 		}
 		elseif ( isset( $columns['AMOUNT'] )
-			&& $columns['AMOUNT'] != ''
-			&& $columns['PAYMENT_DATE'] )
+		         && $columns['AMOUNT'] != ''
+		         && $columns['PAYMENT_DATE'] )
 		{
 			$insert_columns = [
 				'STUDENT_ID' => UserStudentID(),
@@ -70,8 +70,8 @@ if ( ! empty( $_REQUEST['values'] )
 }
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	// @since 8.5 Admin Student Payments Delete restriction.
-	&& AllowEdit( 'Student_Billing/StudentPayments.php&modfunc=remove' ) )
+     // @since 8.5 Admin Student Payments Delete restriction.
+     && AllowEdit( 'Student_Billing/StudentPayments.php&modfunc=remove' ) )
 {
 	if ( DeletePrompt( _( 'Payment' ) ) )
 	{
@@ -80,7 +80,7 @@ if ( $_REQUEST['modfunc'] === 'remove'
 			WHERE ID='" . (int) $_REQUEST['id'] . "'" );
 
 		if ( ! empty( $file_attached )
-			&& file_exists( $file_attached ) )
+		     && file_exists( $file_attached ) )
 		{
 			// Delete File Attached.
 			unlink( $file_attached );
@@ -96,8 +96,8 @@ if ( $_REQUEST['modfunc'] === 'remove'
 }
 
 if ( $_REQUEST['modfunc'] === 'refund'
-	// @since 8.5 Also exclude Refund.
-	&& AllowEdit( 'Student_Billing/StudentPayments.php&modfunc=remove' ) )
+     // @since 8.5 Also exclude Refund.
+     && AllowEdit( 'Student_Billing/StudentPayments.php&modfunc=remove' ) )
 {
 	if ( DeletePrompt( _( 'Payment' ), _( 'Refund' ) ) )
 	{
@@ -130,7 +130,7 @@ if ( $_REQUEST['modfunc'] === 'refund'
 }
 
 if ( UserStudentID()
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
 	echo ErrorMessage( $error );
 
@@ -181,9 +181,9 @@ if ( UserStudentID()
 	$columns = [];
 
 	if ( ! empty( $RET )
-		&& empty( $_REQUEST['print_statements'] )
-		&& AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && empty( $_REQUEST['print_statements'] )
+	     && AllowEdit()
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		$columns = [ 'REMOVE' => '<span class="a11y-hidden">' . _( 'Delete' ) . '</span>' ];
 	}
@@ -201,7 +201,7 @@ if ( UserStudentID()
 	}
 
 	if ( isset( $_REQUEST['expanded_view'] )
-		&& $_REQUEST['expanded_view'] === 'true' )
+	     && $_REQUEST['expanded_view'] === 'true' )
 	{
 		// @since 11.2 Expanded View: Add Created by & Created at columns.
 		$columns += [
@@ -213,7 +213,7 @@ if ( UserStudentID()
 	$link = [];
 
 	if ( empty( $_REQUEST['print_statements'] )
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		$link['add']['html'] = [
 			'REMOVE' => button( 'add' ),
@@ -236,15 +236,15 @@ if ( UserStudentID()
 		if ( AllowEdit() )
 		{
 			if ( ! isset( $_REQUEST['expanded_view'] )
-				|| $_REQUEST['expanded_view'] !== 'true' )
+			     || $_REQUEST['expanded_view'] !== 'true' )
 			{
 				$expanded_view_header = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'expanded_view' => 'true' ] ) . '">' .
-				_( 'Expanded View' ) . '</a>';
+				                        _( 'Expanded View' ) . '</a>';
 			}
 			else
 			{
 				$expanded_view_header = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'expanded_view' => 'false' ] ) . '">' .
-				_( 'Original View' ) . '</a>';
+				                        _( 'Original View' ) . '</a>';
 			}
 
 			DrawHeader( $expanded_view_header, SubmitButton() );
@@ -268,7 +268,7 @@ if ( UserStudentID()
 	);
 
 	if ( empty( $_REQUEST['print_statements'] )
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		echo '<div class="center">' . SubmitButton() . '</div>';
 	}
@@ -294,7 +294,7 @@ if ( UserStudentID()
 	DrawHeader( $table );
 
 	if ( empty( $_REQUEST['print_statements'] )
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		echo '</form>';
 	}

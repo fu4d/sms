@@ -11,9 +11,9 @@ if ( empty( $_REQUEST['print_statements'] ) )
 }
 
 if ( ! empty( $_REQUEST['values'] )
-	&& $_POST['values']
-	&& AllowEdit()
-	&& UserStudentID() )
+     && $_POST['values']
+     && AllowEdit()
+     && UserStudentID() )
 {
 	// Add eventual Dates to $_REQUEST['values'].
 	AddRequestedDates( 'values', 'post' );
@@ -44,7 +44,7 @@ if ( ! empty( $_REQUEST['values'] )
 
 		// New: check for Title & Amount.
 		elseif ( $columns['TITLE']
-			&& $columns['AMOUNT'] != '' )
+		         && $columns['AMOUNT'] != '' )
 		{
 			$insert_columns = [
 				'STUDENT_ID' => UserStudentID(),
@@ -72,7 +72,7 @@ if ( ! empty( $_REQUEST['values'] )
 }
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( DeletePrompt( _( 'Fee' ) ) )
 	{
@@ -81,7 +81,7 @@ if ( $_REQUEST['modfunc'] === 'remove'
 			WHERE ID='" . (int) $_REQUEST['id'] . "'" );
 
 		if ( ! empty( $file_attached )
-			&& file_exists( $file_attached ) )
+		     && file_exists( $file_attached ) )
 		{
 			// Delete File Attached.
 			unlink( $file_attached );
@@ -101,7 +101,7 @@ if ( $_REQUEST['modfunc'] === 'remove'
 }
 
 if ( $_REQUEST['modfunc'] === 'waive'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( DeletePrompt( _( 'Fee' ), _( 'Waive' ) ) )
 	{
@@ -133,7 +133,7 @@ if ( $_REQUEST['modfunc'] === 'waive'
 echo ErrorMessage( $error );
 
 if ( UserStudentID()
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
 	$fees_total = 0;
 
@@ -183,9 +183,9 @@ if ( UserStudentID()
 	$columns = [];
 
 	if ( ! empty( $RET )
-		&& empty( $_REQUEST['print_statements'] )
-		&& AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && empty( $_REQUEST['print_statements'] )
+	     && AllowEdit()
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		$columns = [ 'REMOVE' => '<span class="a11y-hidden">' . _( 'Delete' ) . '</span>' ];
 	}
@@ -204,7 +204,7 @@ if ( UserStudentID()
 	}
 
 	if ( isset( $_REQUEST['expanded_view'] )
-		&& $_REQUEST['expanded_view'] === 'true' )
+	     && $_REQUEST['expanded_view'] === 'true' )
 	{
 		// @since 11.2 Expanded View: Add Created by & Created at columns.
 		$columns += [
@@ -236,15 +236,15 @@ if ( UserStudentID()
 		if ( AllowEdit() )
 		{
 			if ( ! isset( $_REQUEST['expanded_view'] )
-				|| $_REQUEST['expanded_view'] !== 'true' )
+			     || $_REQUEST['expanded_view'] !== 'true' )
 			{
 				$expanded_view_header = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'expanded_view' => 'true' ] ) . '">' .
-				_( 'Expanded View' ) . '</a>';
+				                        _( 'Expanded View' ) . '</a>';
 			}
 			else
 			{
 				$expanded_view_header = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'expanded_view' => 'false' ] ) . '">' .
-				_( 'Original View' ) . '</a>';
+				                        _( 'Original View' ) . '</a>';
 			}
 
 			DrawHeader( $expanded_view_header, SubmitButton() );
@@ -263,7 +263,7 @@ if ( UserStudentID()
 	ListOutput( $RET, $columns, 'Fee', 'Fees', $link, [], $options );
 
 	if ( empty( $_REQUEST['print_statements'] )
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		echo '<div class="center">' . SubmitButton() . '</div>';
 	}
@@ -283,7 +283,7 @@ if ( UserStudentID()
 
 		$table .= '<tr><td>' . _( 'Balance' ) . ': </td>
 			<td><b>' . Currency(  ( $fees_total - $payments_total ), 'CR' ) .
-			'</b></td></tr></table>';
+		          '</b></td></tr></table>';
 
 		DrawHeader( $table );
 
