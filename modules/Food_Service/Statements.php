@@ -16,24 +16,24 @@ else
 }
 
 $header = '<a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-	'&day_start=' . $_REQUEST['day_start'] . '&month_start=' . $_REQUEST['month_start'] . '&year_start=' . $_REQUEST['year_start'] .
-	'&day_end=' . $_REQUEST['day_end'] . '&month_end=' . $_REQUEST['month_end'] . '&year_end=' . $_REQUEST['year_end'] .
-	'&type=student' ) . '">' .
-	( ! isset( $_REQUEST['type'] ) || $_REQUEST['type'] === 'student' ?
-	'<b>' . _( 'Students' ) . '</b>' : _( 'Students' ) ) . '</a>';
+                                   '&day_start=' . $_REQUEST['day_start'] . '&month_start=' . $_REQUEST['month_start'] . '&year_start=' . $_REQUEST['year_start'] .
+                                   '&day_end=' . $_REQUEST['day_end'] . '&month_end=' . $_REQUEST['month_end'] . '&year_end=' . $_REQUEST['year_end'] .
+                                   '&type=student' ) . '">' .
+          ( ! isset( $_REQUEST['type'] ) || $_REQUEST['type'] === 'student' ?
+	          '<b>' . _( 'Students' ) . '</b>' : _( 'Students' ) ) . '</a>';
 
 $header .= ' | <a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-	'&day_start=' . $_REQUEST['day_start'] . '&month_start=' . $_REQUEST['month_start'] . '&year_start=' . $_REQUEST['year_start'] .
-	'&day_end=' . $_REQUEST['day_end'] . '&month_end=' . $_REQUEST['month_end'] . '&year_end=' . $_REQUEST['year_end'] .
-	'&type=staff' ) . '">' .
-	( isset( $_REQUEST['type'] ) && $_REQUEST['type'] === 'staff' ?
-	'<b>' . _( 'Users' ) . '</b>' : _( 'Users' ) ) . '</a>';
+                                       '&day_start=' . $_REQUEST['day_start'] . '&month_start=' . $_REQUEST['month_start'] . '&year_start=' . $_REQUEST['year_start'] .
+                                       '&day_end=' . $_REQUEST['day_end'] . '&month_end=' . $_REQUEST['month_end'] . '&year_end=' . $_REQUEST['year_end'] .
+                                       '&type=staff' ) . '">' .
+           ( isset( $_REQUEST['type'] ) && $_REQUEST['type'] === 'staff' ?
+	           '<b>' . _( 'Users' ) . '</b>' : _( 'Users' ) ) . '</a>';
 
 DrawHeader(  ( $_REQUEST['type'] == 'staff' ? _( 'User' ) : _( 'Student' ) ) . ' &minus; ' . ProgramTitle() );
 User( 'PROFILE' ) === 'student' ? '' : DrawHeader( $header );
 
 if ( $_REQUEST['modfunc'] === 'delete'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( $_REQUEST['item_id'] != '' )
 	{
@@ -75,15 +75,15 @@ $type_select = ' &mdash; <label>' . _( 'Type' ) . ': <select name=type_select>
 foreach ( (array) $types as $short_name => $type )
 {
 	$type_select .= '<option value="' . AttrEscape( $short_name ) . '"' .
-		( isset( $_REQUEST['type_select'] ) && $_REQUEST['type_select'] == $short_name ? ' selected' : '' ) . '>' .
-		$type . '</option>';
+	                ( isset( $_REQUEST['type_select'] ) && $_REQUEST['type_select'] == $short_name ? ' selected' : '' ) . '>' .
+	                $type . '</option>';
 }
 
 foreach ( (array) $menus_RET as $menu )
 {
 	$type_select .= '<option value="' . AttrEscape( $menu['TITLE'] ) . '"' .
-		( isset( $_REQUEST['type_select'] ) && $_REQUEST['type_select'] == $menu['TITLE'] ? ' selected' : '' ) . '>' .
-		$menu['TITLE'] . '</option>';
+	                ( isset( $_REQUEST['type_select'] ) && $_REQUEST['type_select'] == $menu['TITLE'] ? ' selected' : '' ) . '>' .
+	                $menu['TITLE'] . '</option>';
 }
 
 $type_select .= '</select></label>';
