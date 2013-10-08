@@ -10,7 +10,7 @@ DrawHeader( ProgramTitle() );
 AddRequestedDates( 'values', 'post' );
 
 if ( ! empty( $_POST['values'] )
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	$categories_RET = DBGet( "SELECT df.ID,df.DATA_TYPE,du.TITLE,du.SELECT_OPTIONS
 		FROM discipline_fields df,discipline_field_usage du
@@ -26,8 +26,8 @@ if ( ! empty( $_POST['values'] )
 		$column_data_type = issetVal( $categories_RET[str_replace( 'CATEGORY_', '', $column_name )][1]['DATA_TYPE'] );
 
 		if ( $column_data_type === 'numeric'
-			&& $value !== ''
-			&& ! is_numeric( $value ) )
+		     && $value !== ''
+		     && ! is_numeric( $value ) )
 		{
 			// Check numeric fields.
 			$error[] = _( 'Please enter valid Numeric data.' );
@@ -72,7 +72,7 @@ if ( ! empty( $_POST['values'] )
 echo ErrorMessage( $error );
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( DeletePrompt( _( 'Referral' ) ) )
 	{
@@ -128,7 +128,7 @@ $extra['link']['remove']['variables'] = [ 'id' => 'ID' ];
 $extra['ASSOCIATED'] = User( 'STAFF_ID' );
 
 if ( ! $_REQUEST['modfunc']
-	&& ! empty( $_REQUEST['referral_id'] ) )
+     && ! empty( $_REQUEST['referral_id'] ) )
 {
 	// FJ prevent referral ID hacking.
 
@@ -185,9 +185,9 @@ if ( ! $_REQUEST['modfunc']
 			WHERE STUDENT_ID='" . (int) $RET['STUDENT_ID'] . "'" );
 
 		echo '<tr><td>' . NoInput(
-			MakeStudentPhotoTipMessage( $RET['STUDENT_ID'], $student_full_name ),
-			_( 'Student' )
-		) . '</td></tr>';
+				MakeStudentPhotoTipMessage( $RET['STUDENT_ID'], $student_full_name ),
+				_( 'Student' )
+			) . '</td></tr>';
 
 		$users_RET = DBGet( "SELECT STAFF_ID," . DisplayNameSQL() . " AS FULL_NAME,
 			EMAIL,PROFILE
@@ -205,26 +205,26 @@ if ( ! $_REQUEST['modfunc']
 		}
 
 		echo '<tr><td>' . SelectInput(
-			$RET['STAFF_ID'],
-			'values[STAFF_ID]',
-			_( 'Reporter' ),
-			$users_options,
-			false,
-			'required',
-			true
-		) . '</td></tr>';
+				$RET['STAFF_ID'],
+				'values[STAFF_ID]',
+				_( 'Reporter' ),
+				$users_options,
+				false,
+				'required',
+				true
+			) . '</td></tr>';
 
 		echo '<tr><td>' .
-		DateInput( $RET['ENTRY_DATE'], 'values[ENTRY_DATE]', _( 'Incident Date' ) ) .
-			'</td></tr>';
+		     DateInput( $RET['ENTRY_DATE'], 'values[ENTRY_DATE]', _( 'Incident Date' ) ) .
+		     '</td></tr>';
 
 		foreach ( (array) $categories_RET as $category )
 		{
 			echo '<tr><td>' . ReferralInput(
-				$category,
-				$RET['CATEGORY_' . $category['ID']],
-				false
-			) . '</td></tr>';
+					$category,
+					$RET['CATEGORY_' . $category['ID']],
+					false
+				) . '</td></tr>';
 		}
 
 		echo '</table>';
@@ -247,7 +247,7 @@ if ( ! $_REQUEST['modfunc']
 }
 
 if ( empty( $_REQUEST['referral_id'] )
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
 	echo ErrorMessage( $error );
 
@@ -266,7 +266,7 @@ function _make( $value, $column )
 	}
 
 	if ( mb_substr_count( $value, '-' ) === 2
-		&& VerifyDate( $value ) )
+	     && VerifyDate( $value ) )
 	{
 		$value = ProperDate( $value );
 	}
