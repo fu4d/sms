@@ -8,9 +8,9 @@ DrawHeader( ProgramTitle() );
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( ! empty( $_REQUEST['values'] )
-		&& ! empty( $_POST['values'] )
-		&& AllowEdit()
-		&& $_REQUEST['tab_id'] != '' )
+	     && ! empty( $_POST['values'] )
+	     && AllowEdit()
+	     && $_REQUEST['tab_id'] != '' )
 	{
 		if ( $_REQUEST['tab_id'] !== 'new' || ! empty( $_REQUEST['course_id'] ) )
 		{
@@ -79,7 +79,7 @@ if ( $_REQUEST['modfunc'] === 'update' )
 }
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( $_REQUEST['tab_id'] == 'new' )
 	{
@@ -154,20 +154,20 @@ if ( ! $_REQUEST['modfunc'] )
 		}
 
 		$subject_onchange_URL = URLEscape( "Modules.php?modname=" . $_REQUEST['modname'] .
-			"&subject_id=" );
+		                                   "&subject_id=" );
 
 		$subject_select = '<label for="subject_id" class="a11y-hidden">' . _( 'Subject' ) . '</label>
 		<select name="subject_id" onchange="' .
-		AttrEscape( 'ajaxLink(' . json_encode( $subject_onchange_URL ) . ' + this.value);' ) . '">';
+		                  AttrEscape( 'ajaxLink(' . json_encode( $subject_onchange_URL ) . ' + this.value);' ) . '">';
 
 		//FJ Add No Courses were found error
 
 		if ( empty( $subjects_RET ) )
 		{
 			$subject_select .= '<option value="">' . sprintf(
-				_( 'No %s were found.' ),
-				mb_strtolower( ngettext( 'Course', 'Courses', 0 ) )
-			) . '</option>';
+					_( 'No %s were found.' ),
+					mb_strtolower( ngettext( 'Course', 'Courses', 0 ) )
+				) . '</option>';
 		}
 		else
 		{
@@ -180,21 +180,21 @@ if ( ! $_REQUEST['modfunc'] )
 		$subject_select .= '</select>';
 
 		$course_onchange_URL = URLEscape( "Modules.php?modname=" . $_REQUEST['modname'] .
-			'&subject_id=' . $_REQUEST['subject_id'] .
-			"&course_id=" );
+		                                  '&subject_id=' . $_REQUEST['subject_id'] .
+		                                  "&course_id=" );
 
 		$course_select  = '<label for="course_id" class="a11y-hidden">' . _( 'Course' ) . '</label>
 		<select name="course_id" onchange="' .
-		AttrEscape( 'ajaxLink(' . json_encode( $course_onchange_URL ) . ' + this.value);' ) . '">';
+		                  AttrEscape( 'ajaxLink(' . json_encode( $course_onchange_URL ) . ' + this.value);' ) . '">';
 
 		//FJ Add No Courses were found error
 
 		if ( empty( $courses_RET ) )
 		{
 			$course_select .= '<option value="">' . sprintf(
-				_( 'No %s were found.' ),
-				mb_strtolower( ngettext( 'Course', 'Courses', 0 ) )
-			) . '</option>';
+					_( 'No %s were found.' ),
+					mb_strtolower( ngettext( 'Course', 'Courses', 0 ) )
+				) . '</option>';
 		}
 		else
 		{
@@ -243,9 +243,9 @@ if ( ! $_REQUEST['modfunc'] )
 	ORDER BY 4,SORT_ORDER", [], [ 'ID' ] );
 
 	if ( ! isset( $_REQUEST['tab_id'] )
-		|| $_REQUEST['tab_id'] == ''
-		|| $_REQUEST['tab_id'] !== 'new' && ! $categories_RET[$_REQUEST['tab_id']] )
-	//$_REQUEST['tab_id'] = key($categories_RET).'';
+	     || $_REQUEST['tab_id'] == ''
+	     || $_REQUEST['tab_id'] !== 'new' && ! $categories_RET[$_REQUEST['tab_id']] )
+		//$_REQUEST['tab_id'] = key($categories_RET).'';
 	{
 		$_REQUEST['tab_id'] = '-1';
 	}
@@ -258,11 +258,11 @@ if ( ! $_REQUEST['modfunc'] )
 		if ( $category[1]['COUNT'] || AllowEdit() )
 		{
 			$tabs[] = [
-				'title' => $category[1]['TITLE'],
-				'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&subject_id=' .
-				$_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=' . $id
-			] +
-			( $category[1]['COLOR'] ? [ 'color' => $category[1]['COLOR'] ] : [] );
+				          'title' => $category[1]['TITLE'],
+				          'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&subject_id=' .
+				                    $_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=' . $id
+			          ] +
+			          ( $category[1]['COLOR'] ? [ 'color' => $category[1]['COLOR'] ] : [] );
 
 			if ( $id > 0 )
 			{
@@ -299,8 +299,8 @@ if ( ! $_REQUEST['modfunc'] )
 		];
 
 		$link['remove']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&modfunc=remove&subject_id=' . $_REQUEST['subject_id'] .
-			'&course_id=' . $_REQUEST['course_id'] . '&tab_id=new';
+		                          '&modfunc=remove&subject_id=' . $_REQUEST['subject_id'] .
+		                          '&course_id=' . $_REQUEST['course_id'] . '&tab_id=new';
 
 		$link['remove']['variables'] = [ 'id' => 'ID' ];
 		$link['add']['html']['remove'] = button( 'add' );
@@ -308,7 +308,7 @@ if ( ! $_REQUEST['modfunc'] )
 		$tabs[] = [
 			'title' => button( 'add', '', '', 'smaller' ),
 			'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&subject_id=' .
-				$_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=new',
+			          $_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=new',
 		];
 	}
 	elseif ( $_REQUEST['tab_id'] == '-1' )
@@ -329,8 +329,8 @@ if ( ! $_REQUEST['modfunc'] )
 		];
 
 		$link['remove']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&modfunc=remove&subject_id=' . $_REQUEST['subject_id'] .
-			'&course_id=' . $_REQUEST['course_id'] . '&tab_id=-1';
+		                          '&modfunc=remove&subject_id=' . $_REQUEST['subject_id'] .
+		                          '&course_id=' . $_REQUEST['course_id'] . '&tab_id=-1';
 
 		$link['remove']['variables'] = [ 'id' => 'ID' ];
 		$link['add']['html']['remove'] = button( 'add' );
@@ -340,7 +340,7 @@ if ( ! $_REQUEST['modfunc'] )
 			$tabs[] = [
 				'title' => button( 'add', '', '', 'smaller' ),
 				'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&subject_id=' .
-					$_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=new',
+				          $_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=new',
 			];
 		}
 	}
@@ -401,8 +401,8 @@ if ( ! $_REQUEST['modfunc'] )
 		];
 
 		$link['remove']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&modfunc=remove&subject_id=' . $_REQUEST['subject_id'] . '&course_id=' .
-			$_REQUEST['course_id'] . '&tab_id=' . $_REQUEST['tab_id'];
+		                          '&modfunc=remove&subject_id=' . $_REQUEST['subject_id'] . '&course_id=' .
+		                          $_REQUEST['course_id'] . '&tab_id=' . $_REQUEST['tab_id'];
 
 		$link['remove']['variables'] = [ 'id' => 'ID' ];
 		$link['add']['html']['remove'] = button( 'add' );
@@ -412,7 +412,7 @@ if ( ! $_REQUEST['modfunc'] )
 			$tabs[] = [
 				'title' => button( 'add', '', '', 'smaller' ),
 				'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&subject_id=' .
-					$_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=new',
+				          $_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=new',
 			];
 		}
 	}
@@ -420,7 +420,7 @@ if ( ! $_REQUEST['modfunc'] )
 	$LO_ret = DBGet( $sql, $functions );
 
 	echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=update&course_id=' .
-		$_REQUEST['course_id'] . '&tab_id=' . $_REQUEST['tab_id']  ) . '" method="POST">';
+	                                   $_REQUEST['course_id'] . '&tab_id=' . $_REQUEST['tab_id']  ) . '" method="POST">';
 
 	DrawHeader( $subject_select . ' : ' . $course_select, SubmitButton() );
 	echo '<br />';
@@ -433,7 +433,7 @@ if ( ! $_REQUEST['modfunc'] )
 		'search' => false,
 		'header_color' => issetVal( $categories_RET[$_REQUEST['tab_id']][1]['COLOR'], '' ),
 		'header' => WrapTabs( $tabs, 'Modules.php?modname=' . $_REQUEST['modname'] . '&subject_id=' .
-			$_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=' . $_REQUEST['tab_id'] ),
+		                             $_REQUEST['subject_id'] . '&course_id=' . $_REQUEST['course_id'] . '&tab_id=' . $_REQUEST['tab_id'] ),
 	];
 
 	//ListOutput($LO_ret,$LO_columns,$singular,$plural,$link,array(),$LO_options);
@@ -466,8 +466,8 @@ if ( ! $_REQUEST['modfunc'] )
 function _makeCommentsInput( $value, $name )
 {
 	global $THIS_RET,
-	$category_select,
-		$code_select;
+	       $category_select,
+	       $code_select;
 
 	if ( ! empty( $THIS_RET['ID'] ) )
 	{
