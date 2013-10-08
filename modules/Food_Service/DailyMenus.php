@@ -77,9 +77,9 @@ else
 $menu_title = $menus_RET[$_REQUEST['menu_id']][1]['TITLE'];
 
 if ( ! empty( $_REQUEST['submit']['save'] )
-	&& $_REQUEST['food_service']
-	&& $_POST['food_service']
-	&& AllowEdit() )
+     && $_REQUEST['food_service']
+     && $_POST['food_service']
+     && AllowEdit() )
 {
 	$events_RET = DBGet( "SELECT ID,SCHOOL_DATE
 	FROM calendar_events
@@ -167,12 +167,12 @@ if ( ! empty( $_REQUEST['submit']['print'] ) )
 	echo '<table id="calendar" class="width-100p valign-top"><thead><tr class="center">';
 
 	echo '<th>' . _( 'Sunday' ) . '</th>' .
-	'<th>' . _( 'Monday' ) . '</th>' .
-	'<th>' . _( 'Tuesday' ) . '</th>' .
-	'<th>' . _( 'Wednesday' ) . '</th>' .
-	'<th>' . _( 'Thursday' ) . '</th>' .
-	'<th>' . _( 'Friday' ) . '</th>' .
-	'<th>' . _( 'Saturday' ) . '</th>';
+	     '<th>' . _( 'Monday' ) . '</th>' .
+	     '<th>' . _( 'Tuesday' ) . '</th>' .
+	     '<th>' . _( 'Wednesday' ) . '</th>' .
+	     '<th>' . _( 'Thursday' ) . '</th>' .
+	     '<th>' . _( 'Friday' ) . '</th>' .
+	     '<th>' . _( 'Saturday' ) . '</th>';
 
 	echo '</tr></thead><tbody>';
 
@@ -206,7 +206,7 @@ if ( ! empty( $_REQUEST['submit']['print'] ) )
 		// Thursdays, Fridays, Saturdays.
 
 		if (  ( $i + 1 ) % 7 === 0
-			|| ( $i + 1 ) % 7 > 4 )
+		      || ( $i + 1 ) % 7 > 4 )
 		{
 			$day_classes .= ' thu-fri-sat';
 		}
@@ -316,10 +316,10 @@ else
 			'ID' => '',
 			'SCHOOL_DATE' => ProperDate( $school_date ),
 			'DESCRIPTION' => TextInput( '', 'food_service[' . $school_date . '][text]', '', 'size=20' ) .
-			( $description_select ?
-				'<select name="' . AttrEscape( 'food_service[' . $school_date . '][select]' ) . '" style="width: 217px">' .
-				$description_select :
-				'' ),
+			                 ( $description_select ?
+				                 '<select name="' . AttrEscape( 'food_service[' . $school_date . '][select]' ) . '" style="width: 217px">' .
+				                 $description_select :
+				                 '' ),
 		];
 	}
 
@@ -328,7 +328,7 @@ else
 	$LO_columns = [ 'ID' => _( 'ID' ), 'SCHOOL_DATE' => _( 'Date' ), 'DESCRIPTION' => _( 'Description' ) ];
 
 	echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&menu_id=' . $_REQUEST['menu_id'] .
-		'&month=' . $_REQUEST['month'] . '&year=' . $_REQUEST['year']  ) . '" method="POST">';
+	                                   '&month=' . $_REQUEST['month'] . '&year=' . $_REQUEST['year']  ) . '" method="POST">';
 
 	DrawHeader(
 		PrepareDate(
@@ -354,7 +354,7 @@ else
 		$tabs[] = [
 			'title' => $meal[1]['TITLE'],
 			'link' => 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&menu_id=' . $id . '&month=' . $_REQUEST['month'] . '&year=' . $_REQUEST['year'],
+			          '&menu_id=' . $id . '&month=' . $_REQUEST['month'] . '&year=' . $_REQUEST['year'],
 		];
 	}
 
@@ -362,7 +362,7 @@ else
 		'save' => false,
 		'search' => false,
 		'header' => WrapTabs( $tabs, 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&menu_id=' . $_REQUEST['menu_id'] . '&month=' . $_REQUEST['month'] . '&year=' . $_REQUEST['year'] ),
+		                             '&menu_id=' . $_REQUEST['menu_id'] . '&month=' . $_REQUEST['month'] . '&year=' . $_REQUEST['year'] ),
 	];
 
 	$singular = sprintf( _( '%s Day' ), $menu_title );
