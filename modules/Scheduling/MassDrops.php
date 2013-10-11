@@ -3,7 +3,7 @@
 DrawHeader( ProgramTitle() );
 
 if ( ! $_REQUEST['modfunc']
-	&& $_REQUEST['search_modfunc'] !== 'list' )
+     && $_REQUEST['search_modfunc'] !== 'list' )
 {
 	unset( $_SESSION['MassDrops.php'] );
 }
@@ -13,7 +13,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 	if ( ! empty( $_SESSION['MassDrops.php'] ) )
 	{
 		if ( isset( $_REQUEST['student'] )
-			&& is_array( $_REQUEST['student'] ) )
+		     && is_array( $_REQUEST['student'] ) )
 		{
 			$drop_date = RequestedDate( 'drop', '' );
 
@@ -37,7 +37,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 					foreach ( (array) $_REQUEST['student'] as $student_id )
 					{
 						if ( ! empty( $current_RET[$student_id] )
-							&& empty( $schedule_deletion_pending ) )
+						     && empty( $schedule_deletion_pending ) )
 						{
 							DBQuery( "UPDATE schedule
 								SET END_DATE='" . $drop_date . "'
@@ -186,12 +186,12 @@ if ( $_REQUEST['modfunc'] != 'choose_course' )
 			); return false;' ) . '">' . _( 'Choose a Course' ) . '</a></td></tr>';
 
 		echo '<tr><td><br />' . DateInput(
-			DBDate(),
-			'drop',
-			_( 'Drop Date' ),
-			false,
-			false
-		) . '</td></tr>';
+				DBDate(),
+				'drop',
+				_( 'Drop Date' ),
+				false,
+				false
+			) . '</td></tr>';
 
 		echo '<tr><td><select name="marking_period_id" id="marking_period_id">';
 
@@ -204,7 +204,7 @@ if ( $_REQUEST['modfunc'] != 'choose_course' )
 		}
 
 		$mp_RET = DBGet( "SELECT MARKING_PERIOD_ID,TITLE," .
-			db_case( [ 'MP', "'FY'", "'0'", "'SEM'", "'1'", "'QTR'", "'2'" ] ) . " AS TBL
+		                 db_case( [ 'MP', "'FY'", "'0'", "'SEM'", "'1'", "'QTR'", "'2'" ] ) . " AS TBL
 			FROM school_marking_periods
 			WHERE (MP='FY' OR MP='SEM' OR MP='QTR')
 			AND MARKING_PERIOD_ID IN(" . $fy_and_children_mp . ")
@@ -276,6 +276,6 @@ if ( $_REQUEST['modfunc'] === 'choose_course' )
 			WHERE COURSE_PERIOD_ID='" . (int) $_SESSION['MassDrops.php']['course_period_id'] . "'" );
 
 		echo '<script>opener.document.getElementById("course_div").innerHTML = ' .
-			json_encode( $course_title . '<br />' . $period_title ) . '; window.close();</script>';
+		     json_encode( $course_title . '<br />' . $period_title ) . '; window.close();</script>';
 	}
 }
