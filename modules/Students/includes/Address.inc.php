@@ -49,7 +49,7 @@ if ( ! empty( $_POST['values'] )
 				}
 			}
 		}
-		elseif ( ! empty( $_REQUEST['values']['EXISTING']['person_id'] ) && $_REQUEST['person_id'] == 'old' )
+        elseif ( ! empty( $_REQUEST['values']['EXISTING']['person_id'] ) && $_REQUEST['person_id'] == 'old' )
 		{
 			$_REQUEST['person_id'] = $_REQUEST['values']['EXISTING']['person_id'];
 
@@ -272,7 +272,7 @@ if ( ! empty( $_POST['values'] )
 					[ 'ID' => (int) $id ]
 				);
 			}
-			elseif ( $values['TITLE'] && $values['VALUE'] != '' )
+            elseif ( $values['TITLE'] && $values['VALUE'] != '' )
 			{
 				DBInsert(
 					'people_join_contacts',
@@ -325,7 +325,7 @@ if ( $_REQUEST['modfunc'] === 'delete_address'
 			RedirectURL( [ 'modfunc', 'contact_id' ] );
 		}
 	}
-	elseif ( ! empty( $_REQUEST['person_id'] ) )
+    elseif ( ! empty( $_REQUEST['person_id'] ) )
 	{
 		if ( DeletePrompt( _( 'Contact' ) ) )
 		{
@@ -359,7 +359,7 @@ if ( $_REQUEST['modfunc'] === 'delete_address'
 			RedirectURL( [ 'modfunc', 'person_id' ] );
 		}
 	}
-	elseif ( ! empty( $_REQUEST['address_id'] ) )
+    elseif ( ! empty( $_REQUEST['address_id'] ) )
 	{
 		if ( DeletePrompt( _( 'Address' ) ) )
 		{
@@ -533,7 +533,7 @@ if ( ! $_REQUEST['modfunc'] )
 			{
 				$button_title = _( 'Bus Pickup' ) . ' - ' . _( 'Bus Dropoff' );
 			}
-			elseif ( $address['BUS_PICKUP'] == 'Y' )
+            elseif ( $address['BUS_PICKUP'] == 'Y' )
 			{
 				$button_title = _( 'Bus Pickup' );
 			}
@@ -1420,7 +1420,7 @@ if ( ! $_REQUEST['modfunc'] )
 					echo '</td>';
 				}
 			}
-			elseif ( $_REQUEST['person_id'] === 'old' )
+            elseif ( $_REQUEST['person_id'] === 'old' )
 			{
 				$limit_current_school_sql = '';
 
@@ -1459,7 +1459,7 @@ if ( ! $_REQUEST['modfunc'] )
 				);
 			}
 		}
-		elseif ( $_REQUEST['address_id'] != '0' && $_REQUEST['address_id'] != 'old' )
+        elseif ( $_REQUEST['address_id'] != '0' && $_REQUEST['address_id'] != 'old' )
 		{
 			$categories_RET = DBGet( "SELECT c.ID AS CATEGORY_ID,c.TITLE AS CATEGORY_TITLE,
 				c.RESIDENCE,c.MAILING,c.BUS,f.ID,f.TITLE,f.TYPE,f.SELECT_OPTIONS,f.DEFAULT_SELECTION,f.REQUIRED
@@ -1642,7 +1642,7 @@ function _makeAutoSelect( $column, $table, $values = '', $options = [] )
 			}
 		}
 	}
-	elseif ( $values != ''
+    elseif ( $values != ''
 	         && ! isset( $options[$values] ) )
 	{
 		$options[$values] = [ $values, $values ];
@@ -1694,12 +1694,12 @@ function _makeAutoSelectInputX( $value, $column, $table, $title, $select, $id = 
 
 		$select_options = 'style="max-width:140px"';
 	}
-	elseif ( $column === 'ZIPCODE'
+    elseif ( $column === 'ZIPCODE'
 	         || $column === 'MAIL_ZIPCODE' )
 	{
 		$options = 'size=5 maxlength=10';
 	}
-	elseif ( $column === 'TITLE' )
+    elseif ( $column === 'TITLE' )
 	{
 		$options = 'maxlength=100';
 
@@ -1729,7 +1729,7 @@ function _makeAutoSelectInputX( $value, $column, $table, $title, $select, $id = 
 			$js_included = true;
 
 			ob_start();?>
-			<script>
+            <script>
                 function maybeEditTextInput(el) {
 
                     // -Edit- option's value is ---.
@@ -1748,7 +1748,7 @@ function _makeAutoSelectInputX( $value, $column, $table, $title, $select, $id = 
                         $( '[name="' + el.name + '_text"]' ).prop('name', el.name).prop('disabled', false).show().focus();
                     }
                 }
-			</script>
+            </script>
 			<?php $return = ob_get_clean();
 		}
 
