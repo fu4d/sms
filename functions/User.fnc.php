@@ -37,11 +37,11 @@ function User( $item )
 
 	// Get User Info or Update it if Syear changed.
 	if ( ! isset( $_ROSARIO['User'] )
-		|| UserSyear() !== $_ROSARIO['User'][1]['SYEAR'] )
+	     || UserSyear() !== $_ROSARIO['User'][1]['SYEAR'] )
 	{
 		// Get User Info.
 		if ( ! empty( $_SESSION['STAFF_ID'] )
-			&& $_SESSION['STAFF_ID'] > 0 )
+		     && $_SESSION['STAFF_ID'] > 0 )
 		{
 			$sql = "SELECT STAFF_ID,USERNAME," . DisplayNameSQL() . " AS NAME,
 				PROFILE,PROFILE_ID,SCHOOLS,CURRENT_SCHOOL_ID,EMAIL,SYEAR,LAST_LOGIN,ROLLOVER_ID
@@ -56,7 +56,7 @@ function User( $item )
 		}
 		// Get Student Info.
 		elseif ( ! empty( $_SESSION['STUDENT_ID'] )
-			&& $_SESSION['STUDENT_ID'] > 0 )
+		         && $_SESSION['STUDENT_ID'] > 0 )
 		{
 			$email_column = "''";
 
@@ -79,7 +79,7 @@ function User( $item )
 			$_ROSARIO['User'] = DBGet( $sql );
 
 			if ( ! empty( $_ROSARIO['User'][1]['SCHOOL_ID'] )
-				&& $_ROSARIO['User'][1]['SCHOOL_ID'] !== UserSchool() )
+			     && $_ROSARIO['User'][1]['SCHOOL_ID'] !== UserSchool() )
 			{
 				$_SESSION['UserSchool'] = $_ROSARIO['User'][1]['SCHOOL_ID'];
 			}
@@ -111,17 +111,17 @@ function User( $item )
 function Preferences( $item, $program = 'Preferences' )
 {
 	global $_ROSARIO,
-		$locale;
+	       $locale;
 
 	if ( ! $item
-		|| ! $program )
+	     || ! $program )
 	{
 		return '';
 	}
 
 	// Get User Preferences.
 	if ( User( 'STAFF_ID' )
-		&& ! isset( $_ROSARIO['Preferences'][ $program ] ) )
+	     && ! isset( $_ROSARIO['Preferences'][ $program ] ) )
 	{
 		$_ROSARIO['Preferences'][ $program ] = DBGet( "SELECT TITLE,VALUE
 			FROM program_user_config
@@ -160,9 +160,9 @@ function Preferences( $item, $program = 'Preferences' )
 	 * for Parents & Students.
 	 */
 	if ( $item === 'SEARCH'
-		&& ! empty( $_SESSION['STAFF_ID'] )
-		&& User( 'PROFILE' ) === 'parent'
-		|| ! empty( $_SESSION['STUDENT_ID'] ) )
+	     && ! empty( $_SESSION['STAFF_ID'] )
+	     && User( 'PROFILE' ) === 'parent'
+	     || ! empty( $_SESSION['STUDENT_ID'] ) )
 	{
 		$_ROSARIO['Preferences'][ $program ]['SEARCH'][1]['VALUE'] = 'N';
 	}
@@ -170,7 +170,7 @@ function Preferences( $item, $program = 'Preferences' )
 	if ( $item === 'THEME' )
 	{
 		if ( Config( 'THEME_FORCE' )
-			&& ! empty( $_SESSION['STAFF_ID'] ) )
+		     && ! empty( $_SESSION['STAFF_ID'] ) )
 		{
 			/**
 			 * Force Default Theme.
@@ -204,7 +204,7 @@ function UserImpersonateTeacher( $teacher_id = 0 )
 	global $_ROSARIO;
 
 	if ( ! $teacher_id
-		&& ! UserCoursePeriod() )
+	     && ! UserCoursePeriod() )
 	{
 		return false;
 	}
