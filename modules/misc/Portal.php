@@ -22,7 +22,7 @@ if ( $_REQUEST['modfunc'] === 'redirect_take_attendance' )
 // AJAX poll vote call.
 
 if ( $_REQUEST['modfunc'] === 'poll_vote'
-	&& ! empty( $_POST['votes'] ) )
+     && ! empty( $_POST['votes'] ) )
 {
 	// Fix #308 Unauthenticated SQL injection. Use sanitized $_REQUEST.
 	foreach ( (array) $_REQUEST['votes'] as $poll_id => $votes_array )
@@ -43,16 +43,16 @@ DrawHeader( ProgramTitle() );
 DrawHeader( '<span id="salute"></span>' );
 
 ?>
-<script>
-var hours = new Date().getHours(),
-	salute = document.getElementById("salute");
-	if (hours < 12)
-		salute.innerHTML=<?php echo json_encode( sprintf( _( 'Good Morning, %s.' ), User( 'NAME' ) ) ); ?>;
-	else if (hours < 18)
-		salute.innerHTML=<?php echo json_encode( sprintf( _( 'Good Afternoon, %s.' ), User( 'NAME' ) ) ); ?>;
-	else
-		salute.innerHTML=<?php echo json_encode( sprintf( _( 'Good Evening, %s.' ), User( 'NAME' ) ) ); ?>;
-</script>
+    <script>
+        var hours = new Date().getHours(),
+            salute = document.getElementById("salute");
+        if (hours < 12)
+            salute.innerHTML=<?php echo json_encode( sprintf( _( 'Good Morning, %s.' ), User( 'NAME' ) ) ); ?>;
+        else if (hours < 18)
+            salute.innerHTML=<?php echo json_encode( sprintf( _( 'Good Afternoon, %s.' ), User( 'NAME' ) ) ); ?>;
+        else
+            salute.innerHTML=<?php echo json_encode( sprintf( _( 'Good Evening, %s.' ), User( 'NAME' ) ) ); ?>;
+    </script>
 <?php
 
 $welcome = [];
@@ -140,7 +140,7 @@ $missing_attendance_LO_columns = [
 ];
 
 if ( User( 'PROFILE' ) !== 'student'
-	|| SchoolInfo( 'SCHOOLS_NB' ) > 1 )
+     || SchoolInfo( 'SCHOOLS_NB' ) > 1 )
 {
 	// More than 1 school, display School column.
 	$notes_LO_columns['SCHOOL'] = _( 'School' );
@@ -151,7 +151,7 @@ if ( User( 'PROFILE' ) !== 'student'
 }
 
 if ( User( 'PROFILE' ) === 'admin'
-	&& SchoolInfo( 'SCHOOLS_NB' ) > 1 )
+     && SchoolInfo( 'SCHOOLS_NB' ) > 1 )
 {
 	$missing_attendance_LO_columns['SCHOOL'] = _( 'School' );
 }
@@ -165,7 +165,7 @@ $assignments_LO_columns = [
 ];
 
 if ( User( 'PROFILE' ) === 'student'
-	|| User( 'PROFILE' ) === 'parent' )
+     || User( 'PROFILE' ) === 'parent' )
 {
 	// Student or Parent, add Teacher & Submitted columns.
 	$assignments_LO_columns['STAFF_ID'] = _( 'Teacher' );
@@ -269,7 +269,7 @@ switch ( User( 'PROFILE' ) )
 		}
 
 		if ( Preferences( 'HIDE_ALERTS' ) != 'Y'
-			&& AllowEdit( 'School_Setup/Rollover.php' ) )
+		     && AllowEdit( 'School_Setup/Rollover.php' ) )
 		{
 			// Add Do Rollover warning when School Year has ended.
 			$do_rollover = DBGetOne( "SELECT 1 AS DO_ROLLOVER
@@ -347,7 +347,7 @@ switch ( User( 'PROFILE' ) )
 							AND SYEAR=acc.SYEAR)
 						AND CALENDAR_ID=cp.CALENDAR_ID)
 						" . ( $DatabaseType === 'mysql' ? "AS UNSIGNED)" : "AS INT)" ) .
-						" FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
+					                                 " FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
 					AND NOT EXISTS(SELECT 1
 						FROM attendance_completed ac
 						WHERE ac.SCHOOL_DATE=acc.SCHOOL_DATE
@@ -386,10 +386,10 @@ switch ( User( 'PROFILE' ) )
 					AND cp.MARKING_PERIOD_ID IN (SELECT MARKING_PERIOD_ID FROM school_marking_periods WHERE (MP<>'PRO') AND SCHOOL_ID=acc.SCHOOL_ID AND acc.SCHOOL_DATE BETWEEN START_DATE AND END_DATE)
 					AND sp.PERIOD_ID=cpsp.PERIOD_ID
 					AND (sp.BLOCK IS NULL AND position(substring('UMTWHFS' FROM " .
-					( $DatabaseType === 'mysql' ?
-						"DAYOFWEEK(acc.SCHOOL_DATE)" :
-						"cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
-					" FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
+					                                 ( $DatabaseType === 'mysql' ?
+						                                 "DAYOFWEEK(acc.SCHOOL_DATE)" :
+						                                 "cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
+					                                 " FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
 					AND NOT EXISTS(SELECT 1
 						FROM attendance_completed ac
 						WHERE ac.SCHOOL_DATE=acc.SCHOOL_DATE
@@ -421,7 +421,7 @@ switch ( User( 'PROFILE' ) )
 		}
 
 		if ( $RosarioModules['Food_Service']
-			&& Preferences( 'HIDE_ALERTS' ) !== 'Y' )
+		     && Preferences( 'HIDE_ALERTS' ) !== 'Y' )
 		{
 			$FS_config = ProgramConfig( 'food_service' );
 
@@ -438,7 +438,7 @@ switch ( User( 'PROFILE' ) )
 			$staff = $staff[1];
 
 			if ( $staff['BALANCE']
-				&& $staff['BALANCE'] < 0 )
+			     && $staff['BALANCE'] < 0 )
 			{
 				echo ErrorMessage(
 					[ sprintf( _( 'You have a <b>negative</b> food service balance of <span style="color:red">%s</span>' ), $staff['BALANCE'] ) ],
@@ -592,8 +592,8 @@ switch ( User( 'PROFILE' ) )
 			] );
 
 		if ( $assignments_RET
-			&& $RosarioModules['Grades']
-			&& AllowUse( 'Grades/Assignments.php' ) )
+		     && $RosarioModules['Grades']
+		     && AllowUse( 'Grades/Assignments.php' ) )
 		{
 			ListOutput(
 				$assignments_RET,
@@ -659,7 +659,7 @@ switch ( User( 'PROFILE' ) )
 							AND SYEAR=acc.SYEAR)
 						AND CALENDAR_ID=acc.CALENDAR_ID)
 						" . ( $DatabaseType === 'mysql' ? "AS UNSIGNED)" : "AS INT)" ) .
-						" FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
+					                                 " FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
 					AND NOT EXISTS(SELECT 1
 						FROM attendance_completed ac
 						WHERE ac.SCHOOL_DATE=acc.SCHOOL_DATE
@@ -696,10 +696,10 @@ switch ( User( 'PROFILE' ) )
 					AND cp.MARKING_PERIOD_ID IN (SELECT MARKING_PERIOD_ID FROM school_marking_periods WHERE (MP<>'PRO') AND SCHOOL_ID=acc.SCHOOL_ID AND acc.SCHOOL_DATE BETWEEN START_DATE AND END_DATE)
 					AND sp.PERIOD_ID=cpsp.PERIOD_ID
 					AND (sp.BLOCK IS NULL AND position(substring('UMTWHFS' FROM " .
-					( $DatabaseType === 'mysql' ?
-						"DAYOFWEEK(acc.SCHOOL_DATE)" :
-						"cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
-					" FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
+					                                 ( $DatabaseType === 'mysql' ?
+						                                 "DAYOFWEEK(acc.SCHOOL_DATE)" :
+						                                 "cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
+					                                 " FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
 					AND NOT EXISTS(SELECT 1
 						FROM attendance_completed ac
 						WHERE ac.SCHOOL_DATE=acc.SCHOOL_DATE
@@ -832,7 +832,7 @@ switch ( User( 'PROFILE' ) )
 		// FJ Portal Assignments.
 
 		if ( $RosarioModules['Grades']
-			&& AllowUse( 'Grades/StudentAssignments.php' ) )
+		     && AllowUse( 'Grades/StudentAssignments.php' ) )
 		{
 			require_once 'modules/Grades/includes/StudentAssignments.fnc.php';
 
@@ -879,13 +879,13 @@ switch ( User( 'PROFILE' ) )
 		}
 
 		if ( $RosarioModules['Food_Service']
-			&& Preferences( 'HIDE_ALERTS' ) !== 'Y' )
+		     && Preferences( 'HIDE_ALERTS' ) !== 'Y' )
 		{
 			$FS_config = ProgramConfig( 'food_service' );
 
 			// Warn if students with low food service balances.
 			$extra['SELECT'] = ',fssa.STATUS,fsa.ACCOUNT_ID,fsa.BALANCE AS BALANCE,' .
-				(float) $FS_config['FOOD_SERVICE_BALANCE_TARGET'][1]['VALUE'] . '-fsa.BALANCE AS DEPOSIT';
+			                   (float) $FS_config['FOOD_SERVICE_BALANCE_TARGET'][1]['VALUE'] . '-fsa.BALANCE AS DEPOSIT';
 			$extra['FROM'] = ',food_service_accounts fsa,food_service_student_accounts fssa';
 			$extra['WHERE'] = " AND fssa.STUDENT_ID=s.STUDENT_ID
 				AND fsa.ACCOUNT_ID=fssa.ACCOUNT_ID
@@ -1016,7 +1016,7 @@ switch ( User( 'PROFILE' ) )
 		// FJ Portal Assignments.
 
 		if ( $RosarioModules['Grades']
-			&& AllowUse( 'Grades/StudentAssignments.php' ) )
+		     && AllowUse( 'Grades/StudentAssignments.php' ) )
 		{
 			require_once 'modules/Grades/includes/StudentAssignments.fnc.php';
 
@@ -1149,7 +1149,7 @@ function _makeTakeAttendanceLink( $value, $column )
 			return $proper_date;
 		}
 	}
-	elseif ( ! AllowUse( $modname ) )
+    elseif ( ! AllowUse( $modname ) )
 	{
 		// Teacher cannot take attendance?
 		return $proper_date;
@@ -1185,10 +1185,10 @@ function _makeTakeAttendanceLink( $value, $column )
 function _redirectTakeAttendance()
 {
 	if ( empty( $_REQUEST['period'] )
-		|| empty( $_REQUEST['school_period'] )
-		|| ! isset( $_REQUEST['table'] )
-		|| empty( $_REQUEST['school_date'] )
-		|| ! VerifyDate( $_REQUEST['school_date'] ) )
+	     || empty( $_REQUEST['school_period'] )
+	     || ! isset( $_REQUEST['table'] )
+	     || empty( $_REQUEST['school_date'] )
+	     || ! VerifyDate( $_REQUEST['school_date'] ) )
 	{
 		// Not enough parameters to redirect.
 		return false;
@@ -1223,9 +1223,9 @@ function _redirectTakeAttendance()
 		// Admin: Teacher Programs.
 		$modname .= '&staff_id=' . $cp_RET[1]['TEACHER_ID'];
 	}
-	elseif ( ! AllowUse( $modname )
-		|| ( User( 'STAFF_ID' ) !== $cp_RET[1]['TEACHER_ID']
-			&& User( 'STAFF_ID' ) !== $cp_RET[1]['SECONDARY_TEACHER_ID'] ) )
+    elseif ( ! AllowUse( $modname )
+	         || ( User( 'STAFF_ID' ) !== $cp_RET[1]['TEACHER_ID']
+	              && User( 'STAFF_ID' ) !== $cp_RET[1]['SECONDARY_TEACHER_ID'] ) )
 	{
 		// Teacher cannot take attendance?
 		// Teachers cannot take others attendance?
@@ -1237,7 +1237,7 @@ function _redirectTakeAttendance()
 	if ( UserSchool() != $cp_RET[1]['SCHOOL_ID'] )
 	{
 		if ( User( 'SCHOOLS' )
-			&& mb_strpos( User( 'SCHOOLS' ), ',' . $cp_RET[1]['SCHOOL_ID'] . ',' ) === false )
+		     && mb_strpos( User( 'SCHOOLS' ), ',' . $cp_RET[1]['SCHOOL_ID'] . ',' ) === false )
 		{
 			// User does not belong to this school...
 			return false;
@@ -1259,7 +1259,7 @@ function _redirectTakeAttendance()
 	$date = ExplodeDate( $_REQUEST['school_date'] );
 
 	$take_attendance_url = 'Modules.php?modname=' . $modname . '&table=' . $_REQUEST['table'] .
-		'&month_date=' . $date['month'] . '&day_date=' . $date['day'] . '&year_date=' . $date['year'];
+	                       '&month_date=' . $date['month'] . '&day_date=' . $date['day'] . '&year_date=' . $date['year'];
 
 	header( 'Location: ' . URLEscape( $take_attendance_url ) );
 
