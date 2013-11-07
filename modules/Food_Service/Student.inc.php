@@ -5,8 +5,8 @@ require_once 'ProgramFunctions/TipMessage.fnc.php';
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( UserStudentID()
-		&& AllowEdit()
-		&& ! empty( $_REQUEST['food_service'] ) )
+	     && AllowEdit()
+	     && ! empty( $_REQUEST['food_service'] ) )
 	{
 		$sql = "UPDATE food_service_student_accounts SET ";
 
@@ -27,7 +27,7 @@ if ( $_REQUEST['modfunc'] === 'update' )
 }
 
 if ( ! $_REQUEST['modfunc']
-	&& UserStudentID() )
+     && UserStudentID() )
 {
 	$student = DBGet( "SELECT s.STUDENT_ID," . DisplayNameSQL( 's' ) . " AS FULL_NAME,
 		(SELECT BALANCE FROM food_service_accounts WHERE ACCOUNT_ID=(SELECT ACCOUNT_ID

@@ -3,8 +3,8 @@
 require_once 'modules/Attendance/includes/UpdateAttendanceDaily.fnc.php';
 
 if ( ! empty( $_REQUEST['month_date'] )
-	&& ! empty( $_REQUEST['day_date'] )
-	&& ! empty( $_REQUEST['year_date'] ) )
+     && ! empty( $_REQUEST['day_date'] )
+     && ! empty( $_REQUEST['year_date'] ) )
 {
 	$date = $_REQUEST['year_date'] . '-' . $_REQUEST['month_date'] . '-' . $_REQUEST['day_date'];
 }
@@ -110,7 +110,7 @@ else
 	$extra['WHERE'] = " AND EXISTS (SELECT '' FROM attendance_period ap,attendance_codes ac WHERE ap.SCHOOL_DATE='" . $date . "' AND ap.STUDENT_ID=ssm.STUDENT_ID AND ap.ATTENDANCE_CODE=ac.ID AND ac.SCHOOL_ID=ssm.SCHOOL_ID AND ac.SYEAR=ssm.SYEAR ";
 
 	if ( isset( $_REQUEST['codes'] )
-		&& ! empty( $_REQUEST['codes'] ) )
+	     && ! empty( $_REQUEST['codes'] ) )
 	{
 		$REQ_codes = $_REQUEST['codes'];
 
@@ -208,8 +208,8 @@ else
 	if ( UserStudentID() )
 	{
 		$current_student_link = '<a href="' .
-			URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=student&month_date=' . $_REQUEST['month_date'] . '&day_date=' . $_REQUEST['day_date'] . '&year_date=' . $_REQUEST['year_date'] . '&student_id=' . UserStudentID() ) .
-			'">' . _( 'Current Student' ) . '</a></td><td>';
+		                        URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=student&month_date=' . $_REQUEST['month_date'] . '&day_date=' . $_REQUEST['day_date'] . '&year_date=' . $_REQUEST['year_date'] . '&student_id=' . UserStudentID() ) .
+		                        '">' . _( 'Current Student' ) . '</a></td><td>';
 	}
 
 	DrawHeader(
