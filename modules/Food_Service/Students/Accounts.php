@@ -5,9 +5,9 @@ require_once 'ProgramFunctions/TipMessage.fnc.php';
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( UserStudentID()
-		&& AllowEdit()
-		&& ! empty( $_REQUEST['food_service'] )
-		&& ! empty( $_POST['food_service'] ) )
+	     && AllowEdit()
+	     && ! empty( $_REQUEST['food_service'] )
+	     && ! empty( $_POST['food_service'] ) )
 	{
 		if ( ! empty( $_REQUEST['food_service']['BARCODE'] ) )
 		{
@@ -26,10 +26,10 @@ if ( $_REQUEST['modfunc'] === 'update' )
 					AND fssa.ACCOUNT_ID='" . (int) $account_id . "'" );
 
 				$message = sprintf(
-					_( "That barcode is already assigned to Student <b>%s</b>." ),
-					$student_full_name
-				) . ' ' .
-				_( "Hit OK to reassign it to the current student or Cancel to cancel all changes." );
+					           _( "That barcode is already assigned to Student <b>%s</b>." ),
+					           $student_full_name
+				           ) . ' ' .
+				           _( "Hit OK to reassign it to the current student or Cancel to cancel all changes." );
 			}
 			else
 			{
@@ -44,20 +44,20 @@ if ( $_REQUEST['modfunc'] === 'update' )
 						WHERE STAFF_ID='" . (int) $account_id . "'" );
 
 					$message = sprintf(
-						_( "That barcode is already assigned to User <b>%s</b>." ),
-						$staff_full_name
-					) . ' ' .
-					_( "Hit OK to reassign it to the current student or Cancel to cancel all changes." );
+						           _( "That barcode is already assigned to User <b>%s</b>." ),
+						           $staff_full_name
+					           ) . ' ' .
+					           _( "Hit OK to reassign it to the current student or Cancel to cancel all changes." );
 				}
 			}
 		}
 
 		if ( empty( $account_id )
-			|| Prompt( 'Confirm', $question, $message ) )
+		     || Prompt( 'Confirm', $question, $message ) )
 		{
 			if ( ! isset( $_REQUEST['food_service']['ACCOUNT_ID'] )
-				|| ( (string) (int) $_REQUEST['food_service']['ACCOUNT_ID'] === $_REQUEST['food_service']['ACCOUNT_ID']
-					&& $_REQUEST['food_service']['ACCOUNT_ID'] > 0 ) )
+			     || ( (string) (int) $_REQUEST['food_service']['ACCOUNT_ID'] === $_REQUEST['food_service']['ACCOUNT_ID']
+			          && $_REQUEST['food_service']['ACCOUNT_ID'] > 0 ) )
 			{
 				$sql = "UPDATE food_service_student_accounts SET ";
 
@@ -95,13 +95,13 @@ if ( $_REQUEST['modfunc'] === 'update' )
 if ( $_REQUEST['modfunc'] === 'create' )
 {
 	if ( UserStudentID()
-		&& AllowEdit()
-		&& ! DBGet( "SELECT 1
+	     && AllowEdit()
+	     && ! DBGet( "SELECT 1
 			FROM food_service_student_accounts
 			WHERE STUDENT_ID='" . UserStudentID() . "'" ) )
 	{
 		if ( (string) (int) $_REQUEST['food_service']['ACCOUNT_ID'] === $_REQUEST['food_service']['ACCOUNT_ID']
-				&& $_REQUEST['food_service']['ACCOUNT_ID'] > 0 )
+		     && $_REQUEST['food_service']['ACCOUNT_ID'] > 0 )
 		{
 			DBInsert(
 				'food_service_student_accounts',
@@ -176,8 +176,8 @@ if ( UserStudentID() && ! $_REQUEST['modfunc'] )
 	WHERE fssa.ACCOUNT_ID='" . (int) $student['ACCOUNT_ID'] . "'
 	AND s.STUDENT_ID=fssa.STUDENT_ID
 	AND s.STUDENT_ID!='" . UserStudentID() . "'" .
-		( ! empty( $_REQUEST['include_inactive'] ) ? '' :
-			" AND exists(SELECT ''
+	                    ( ! empty( $_REQUEST['include_inactive'] ) ? '' :
+		                    " AND exists(SELECT ''
 		FROM student_enrollment
 		WHERE STUDENT_ID=s.STUDENT_ID
 		AND SYEAR='" . UserSyear() . "'
@@ -229,10 +229,10 @@ if ( UserStudentID() && ! $_REQUEST['modfunc'] )
 	if ( $student['BALANCE'] == '' )
 	{
 		echo ' ' . MakeTipMessage(
-			_( 'Non-existent account!' ),
-			_( 'Warning' ),
-			button( 'warning' )
-		);
+				_( 'Non-existent account!' ),
+				_( 'Warning' ),
+				button( 'warning' )
+			);
 	}
 
 	// warn if other students associated with the same account
@@ -258,29 +258,29 @@ if ( UserStudentID() && ! $_REQUEST['modfunc'] )
 	$options = [ 'Inactive' => _( 'Inactive' ), 'Disabled' => _( 'Disabled' ), 'Closed' => _( 'Closed' ) ];
 
 	echo '<td>' . SelectInput(
-		$student['STATUS'],
-		'food_service[STATUS]',
-		_( 'Status' ),
-		$options,
-		_( 'Active' )
-	) . '</td></tr>';
+			$student['STATUS'],
+			'food_service[STATUS]',
+			_( 'Status' ),
+			$options,
+			_( 'Active' )
+		) . '</td></tr>';
 
 	$options = [ 'Reduced' => _( 'Reduced' ), 'Free' => _( 'Free' ) ];
 
 	echo '<tr><td>' . SelectInput(
-		$student['DISCOUNT'],
-		'food_service[DISCOUNT]',
-		_( 'Discount' ),
-		$options,
-		_( 'Full' )
-	) . '</td>';
+			$student['DISCOUNT'],
+			'food_service[DISCOUNT]',
+			_( 'Discount' ),
+			$options,
+			_( 'Full' )
+		) . '</td>';
 
 	echo '<td>' . TextInput(
-		$student['BARCODE'],
-		'food_service[BARCODE]',
-		_( 'Barcode' ),
-		'size=12 maxlength=25'
-	) . '</td></tr></table>';
+			$student['BARCODE'],
+			'food_service[BARCODE]',
+			_( 'Barcode' ),
+			'size=12 maxlength=25'
+		) . '</td></tr></table>';
 
 	PopTable( 'footer' );
 

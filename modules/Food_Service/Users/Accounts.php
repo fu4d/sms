@@ -5,7 +5,7 @@ require_once 'ProgramFunctions/TipMessage.fnc.php';
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( UserStaffID()
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		if ( ! empty( $_REQUEST['submit']['delete'] ) )
 		{
@@ -38,10 +38,10 @@ if ( $_REQUEST['modfunc'] === 'update' )
 						WHERE STAFF_ID='" . (int) $account_id . "'" );
 
 					$message = sprintf(
-						_( "That barcode is already assigned to User <b>%s</b>." ),
-						$staff_full_name
-					) . ' ' .
-					_( "Hit OK to reassign it to the current user or Cancel to cancel all changes." );
+						           _( "That barcode is already assigned to User <b>%s</b>." ),
+						           $staff_full_name
+					           ) . ' ' .
+					           _( "Hit OK to reassign it to the current user or Cancel to cancel all changes." );
 				}
 				else
 				{
@@ -57,16 +57,16 @@ if ( $_REQUEST['modfunc'] === 'update' )
 							AND fssa.ACCOUNT_ID='" . (int) $account_id . "'" );
 
 						$message = sprintf(
-							_( "That barcode is already assigned to Student <b>%s</b>." ),
-							$student_full_name
-						) . ' ' .
-						_( "Hit OK to reassign it to the user student or Cancel to cancel all changes." );
+							           _( "That barcode is already assigned to Student <b>%s</b>." ),
+							           $student_full_name
+						           ) . ' ' .
+						           _( "Hit OK to reassign it to the user student or Cancel to cancel all changes." );
 					}
 				}
 			}
 
 			if ( empty( $account_id )
-				|| Prompt( 'Confirm', $question, $message ) )
+			     || Prompt( 'Confirm', $question, $message ) )
 			{
 				$sql = 'UPDATE food_service_staff_accounts SET ';
 
@@ -100,8 +100,8 @@ if ( $_REQUEST['modfunc'] === 'update' )
 if ( $_REQUEST['modfunc'] === 'create' )
 {
 	if ( UserStaffID()
-		&& AllowEdit()
-		&& ! DBGet( "SELECT 1
+	     && AllowEdit()
+	     && ! DBGet( "SELECT 1
 			FROM food_service_staff_accounts
 			WHERE STAFF_ID='" . UserStaffID() . "'" ) )
 	{
@@ -175,10 +175,10 @@ if ( UserStaffID() && ! $_REQUEST['modfunc'] )
 	if ( ! $staff['ACCOUNT_ID'] )
 	{
 		echo ' ' . MakeTipMessage(
-			_( 'This user does not have a Meal Account.' ),
-			_( 'Warning' ),
-			button( 'warning' )
-		);
+				_( 'This user does not have a Meal Account.' ),
+				_( 'Warning' ),
+				button( 'warning' )
+			);
 	}
 
 	echo '</td><td>';
@@ -192,19 +192,19 @@ if ( UserStaffID() && ! $_REQUEST['modfunc'] )
 	$options = [ 'Inactive' => _( 'Inactive' ), 'Disabled' => _( 'Disabled' ), 'Closed' => _( 'Closed' ) ];
 
 	echo SelectInput(
-		$staff['STATUS'],
-		'food_service[STATUS]',
-		_( 'Status' ),
-		$options,
-		_( 'Active' )
-	) . '</td><td>';
+		     $staff['STATUS'],
+		     'food_service[STATUS]',
+		     _( 'Status' ),
+		     $options,
+		     _( 'Active' )
+	     ) . '</td><td>';
 
 	echo TextInput(
-		$staff['BARCODE'],
-		'food_service[BARCODE]',
-		_( 'Barcode' ),
-		'size=12 maxlength=25'
-	) . '</td></tr></table>';
+		     $staff['BARCODE'],
+		     'food_service[BARCODE]',
+		     _( 'Barcode' ),
+		     'size=12 maxlength=25'
+	     ) . '</td></tr></table>';
 
 	PopTable( 'footer' );
 

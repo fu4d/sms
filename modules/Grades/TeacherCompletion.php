@@ -8,7 +8,7 @@ DrawHeader( ProgramTitle() );
 $all_mp_ids = explode( "','", trim( GetAllMP( 'PRO', UserMP() ), "'" ) );
 
 if ( ! empty( $_REQUEST['mp'] )
-	&& ! in_array( $_REQUEST['mp'], $all_mp_ids ) )
+     && ! in_array( $_REQUEST['mp'], $all_mp_ids ) )
 {
 	// Requested MP not found, reset.
 	RedirectURL( 'mp' );
@@ -39,8 +39,8 @@ $_REQUEST['school_period'] = issetVal( $_REQUEST['school_period'], false );
 foreach ( (array) $periods_RET as $id => $period )
 {
 	$period_select .= '<option value="' . AttrEscape( $id ) . '"' .
-		(  ( $_REQUEST['school_period'] == $id ) ? ' selected' : '' ) . '>' .
-		$period[1]['TITLE'] . '</option>';
+	                  (  ( $_REQUEST['school_period'] == $id ) ? ' selected' : '' ) . '>' .
+	                  $period[1]['TITLE'] . '</option>';
 }
 
 $period_select .= '</select>
@@ -53,7 +53,7 @@ foreach ( (array) $all_mp_ids as $mp_id )
 	if ( GetMP( $mp_id, 'DOES_GRADES' ) == 'Y' || $mp_id == UserMP() )
 	{
 		$mp_select .= '<option value="' . AttrEscape( $mp_id ) . '"' .
-			( $mp_id == $_REQUEST['mp'] ? ' selected' : '' ) . '>' . GetMP( $mp_id ) . '</option>';
+		              ( $mp_id == $_REQUEST['mp'] ? ' selected' : '' ) . '>' . GetMP( $mp_id ) . '</option>';
 
 		if ( $mp_id === $_REQUEST['mp'] )
 		{
@@ -97,8 +97,8 @@ $RET = DBGet( "SELECT s.STAFF_ID," . DisplayNameSQL( 's' ) . " AS FULL_NAME,s.RO
 	AND cp.SCHOOL_ID='" . UserSchool() . "'
 	AND c.COURSE_ID=cp.COURSE_ID
 	AND s.PROFILE='teacher'" .
-	( $_REQUEST['school_period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['school_period'] . "'" : '' ) .
-	" ORDER BY FULL_NAME", [ 'FULL_NAME' => 'makePhotoTipMessage' ], [ 'STAFF_ID' ] );
+              ( $_REQUEST['school_period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['school_period'] . "'" : '' ) .
+              " ORDER BY FULL_NAME", [ 'FULL_NAME' => 'makePhotoTipMessage' ], [ 'STAFF_ID' ] );
 
 if ( empty( $_REQUEST['school_period'] ) )
 {
@@ -120,16 +120,16 @@ if ( empty( $_REQUEST['school_period'] ) )
 				}
 
 				$staff_RET[$i][$period['PERIOD_ID']] .= MakeTipMessage(
-					$period['CP_TITLE'],
-					$period['COURSE_TITLE'],
-					button( $period['COMPLETED'] === 'Y' ? 'check' : 'x' )
-				) . ' ';
+					                                        $period['CP_TITLE'],
+					                                        $period['COURSE_TITLE'],
+					                                        button( $period['COMPLETED'] === 'Y' ? 'check' : 'x' )
+				                                        ) . ' ';
 			}
 			else
 			{
 				$staff_RET[$i][$period['PERIOD_ID']] = $period['COMPLETED'] === 'Y' ?
-				_( 'Yes' ) . ' ' :
-				_( 'No' ) . ' ';
+					_( 'Yes' ) . ' ' :
+					_( 'No' ) . ' ';
 			}
 		}
 	}

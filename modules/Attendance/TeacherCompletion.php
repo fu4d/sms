@@ -17,12 +17,12 @@ $categories_RET = DBGet( "SELECT ID,TITLE
 	ORDER BY SORT_ORDER IS NULL,SORT_ORDER,TITLE" );
 
 $category_select = '<select name="table" onChange="ajaxPostForm(this.form,true);"><option value="0"' .
-	( $_REQUEST['table'] == '0' ? ' selected' : '' ) . '>' . _( 'Attendance' ) . '</option>';
+                   ( $_REQUEST['table'] == '0' ? ' selected' : '' ) . '>' . _( 'Attendance' ) . '</option>';
 
 foreach ( (array) $categories_RET as $category )
 {
 	$category_select .= '<option value="' . AttrEscape( $category['ID'] ) . '"' .
-		( ( $_REQUEST['table'] == $category['ID'] ) ? ' selected' : '' ) . ">" . $category['TITLE'] . "</option>";
+	                    ( ( $_REQUEST['table'] == $category['ID'] ) ? ' selected' : '' ) . ">" . $category['TITLE'] . "</option>";
 }
 
 $category_select .= '</select>';
@@ -98,7 +98,7 @@ if ( SchoolInfo( 'NUMBER_DAYS_ROTATION' ) !== null )
 				AND SYEAR=acc.SYEAR)
 			AND CALENDAR_ID=cp.CALENDAR_ID)
 		" . ( $DatabaseType === 'mysql' ? "AS UNSIGNED)" : "AS INT)" ) .
-		" FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
+	       " FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
 	ORDER BY FULL_NAME";
 }
 else
@@ -123,17 +123,17 @@ else
 		AND cp.SCHOOL_ID='" . UserSchool() . "'
 		AND c.COURSE_ID=cp.COURSE_ID
 		AND s.PROFILE='teacher'" .
-	( $_REQUEST['school_period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['school_period'] . "'" : '' ) .
-	" AND acc.CALENDAR_ID=cp.CALENDAR_ID
+	       ( $_REQUEST['school_period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['school_period'] . "'" : '' ) .
+	       " AND acc.CALENDAR_ID=cp.CALENDAR_ID
 		AND acc.SCHOOL_DATE='" . $date . "'
 		AND acc.SYEAR='" . UserSyear() . "'
 		AND (acc.MINUTES IS NOT NULL AND acc.MINUTES>0)
 		AND (sp.BLOCK IS NULL
 			AND position(substring('UMTWHFS' FROM " .
-			( $DatabaseType === 'mysql' ?
-				"DAYOFWEEK(acc.SCHOOL_DATE)" :
-				"cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
-			" FOR 1) IN cpsp.DAYS)>0
+	       ( $DatabaseType === 'mysql' ?
+		       "DAYOFWEEK(acc.SCHOOL_DATE)" :
+		       "cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
+	       " FOR 1) IN cpsp.DAYS)>0
 			OR sp.BLOCK IS NOT NULL
 			AND acc.BLOCK IS NOT NULL
 			AND sp.BLOCK=acc.BLOCK)
@@ -170,10 +170,10 @@ if ( empty( $_REQUEST['school_period'] ) )
 			}
 
 			$staff_RET[$i][$period['PERIOD_ID']] .= MakeTipMessage(
-				$period['CP_TITLE'],
-				$period['COURSE_TITLE'],
-				button( $period['COMPLETED'] === 'Y' ? 'check' : 'x' )
-			) . ' ';
+				                                        $period['CP_TITLE'],
+				                                        $period['COURSE_TITLE'],
+				                                        button( $period['COMPLETED'] === 'Y' ? 'check' : 'x' )
+			                                        ) . ' ';
 		}
 	}
 
