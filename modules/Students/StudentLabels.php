@@ -51,21 +51,21 @@ if ( ! $_REQUEST['modfunc'] )
 	if ( $_REQUEST['search_modfunc'] === 'list' )
 	{
 		$action = 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=save' .
-			( empty( $_REQUEST['include_inactive'] ) ?
-				'' :
-				'&include_inactive=' . $_REQUEST['include_inactive'] ) .
-			( empty( $_REQUEST['_search_all_schools'] ) ?
-				'' :
-				'&_search_all_schools=' . $_REQUEST['_search_all_schools'] ) .
-			( User( 'PROFILE' ) === 'admin' ?
-				( empty( $_REQUEST['w_course_period_id_which'] ) ?
-					'' :
-					'&w_course_period_id_which=' . $_REQUEST['w_course_period_id_which'] ) .
-				( empty( $_REQUEST['w_course_period_id'] ) ?
-					'' :
-					'&w_course_period_id=' . $_REQUEST['w_course_period_id'] ) :
-				'' ) .
-			'&_ROSARIO_PDF=true';
+		          ( empty( $_REQUEST['include_inactive'] ) ?
+			          '' :
+			          '&include_inactive=' . $_REQUEST['include_inactive'] ) .
+		          ( empty( $_REQUEST['_search_all_schools'] ) ?
+			          '' :
+			          '&_search_all_schools=' . $_REQUEST['_search_all_schools'] ) .
+		          ( User( 'PROFILE' ) === 'admin' ?
+			          ( empty( $_REQUEST['w_course_period_id_which'] ) ?
+				          '' :
+				          '&w_course_period_id_which=' . $_REQUEST['w_course_period_id_which'] ) .
+			          ( empty( $_REQUEST['w_course_period_id'] ) ?
+				          '' :
+				          '&w_course_period_id=' . $_REQUEST['w_course_period_id'] ) :
+			          '' ) .
+		          '&_ROSARIO_PDF=true';
 
 		echo '<form action="' . URLEscape( $action ) . '" method="POST">';
 
