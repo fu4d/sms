@@ -25,7 +25,7 @@
 function Widgets( $item, &$myextra = null )
 {
 	global $extra,
-		$_ROSARIO;
+	       $_ROSARIO;
 
 	static $widgets;
 
@@ -61,7 +61,7 @@ function Widgets( $item, &$myextra = null )
 
 	// If insufficient rights, exit.
 	if ( User( 'PROFILE' ) !== 'admin'
-		&& User( 'PROFILE' ) !== 'teacher' )
+	     && User( 'PROFILE' ) !== 'teacher' )
 	{
 		return false;
 	}
@@ -81,7 +81,7 @@ function Widgets( $item, &$myextra = null )
 				}
 			}
 
-		break;
+			break;
 
 		// All Widgets (or almost).
 		case 'all':
