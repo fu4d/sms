@@ -45,11 +45,11 @@ if ( $_REQUEST['modfunc'] === 'save' )
 	$inactive = "'" . DBEscapeString( _( 'Inactive' ) ) . "'";
 
 	$extra['SELECT'] .= ',' . db_case( [
-		"(ssm.SYEAR='" . UserSyear() . "' AND ('" . DBDate() . "'>=ssm.START_DATE AND ('" . DBDate() . "'<=ssm.END_DATE OR ssm.END_DATE IS NULL)))",
-		'TRUE',
-		$active,
-		$inactive,
-	] ) . ' AS STATUS';
+			"(ssm.SYEAR='" . UserSyear() . "' AND ('" . DBDate() . "'>=ssm.START_DATE AND ('" . DBDate() . "'<=ssm.END_DATE OR ssm.END_DATE IS NULL)))",
+			'TRUE',
+			$active,
+			$inactive,
+		] ) . ' AS STATUS';
 
 	$RET = GetStuList( $extra );
 
@@ -64,11 +64,11 @@ if ( $_REQUEST['modfunc'] === 'save' )
 	$handle = PDFStart();
 
 	?>
-	<style>
-		body {
-			font-size: larger;
-		}
-	</style>
+    <style>
+        body {
+            font-size: larger;
+        }
+    </style>
 	<?php
 
 	foreach ( (array) $RET as $student )
@@ -79,9 +79,9 @@ if ( $_REQUEST['modfunc'] === 'save' )
 		{
 			// @since 11.2 Dynamic Daily Attendance calculation based on total course period minutes
 			$full_day_minutes = "(" . AttendanceDailyTotalMinutesSQL(
-				$student['STUDENT_ID'],
-				'ac.SCHOOL_DATE'
-			) . ")";
+					$student['STUDENT_ID'],
+					'ac.SCHOOL_DATE'
+				) . ")";
 		}
 		else
 		{
@@ -92,13 +92,13 @@ if ( $_REQUEST['modfunc'] === 'save' )
 		// @since 9.2.1 SQL use extract() instead of to_char() for MySQL compatibility
 		$calendar_RET = DBGet( "SELECT CASE WHEN
 			MINUTES>=" . $full_day_minutes .
-				" THEN '1.0' ELSE '0.5' END AS POS,
+		                       " THEN '1.0' ELSE '0.5' END AS POS,
 			extract(MONTH from SCHOOL_DATE) AS MON,
 			extract(DAY from SCHOOL_DATE) AS DAY
 			FROM attendance_calendar ac
 			WHERE CALENDAR_ID='" . (int) $student['CALENDAR_ID'] . "'
 			AND SCHOOL_DATE>='" . $student['START_DATE'] . "'" .
-			( $student['END_DATE'] ? " AND SCHOOL_DATE<='" . $student['END_DATE'] . "'" : '' ),
+		                       ( $student['END_DATE'] ? " AND SCHOOL_DATE<='" . $student['END_DATE'] . "'" : '' ),
 			[],
 			[ 'MON', 'DAY' ] );
 
@@ -116,16 +116,16 @@ if ( $_REQUEST['modfunc'] === 'save' )
 
 		echo '<table class="width-100p">
 		<tr><td>' . NoInput(
-			$student['FULL_NAME'],
-			_( 'Student Name' )
-		) . '</td><td>' . NoInput(
-			$student['STUDENT_ID'],
-			sprintf( _( '%s ID' ), Config( 'NAME' ) )
-		) . '</td><td>' . NoInput(
-			( SchoolInfo( 'SCHOOL_NUMBER' ) ? SchoolInfo( 'SCHOOL_NUMBER' ) : SchoolInfo( 'TITLE' ) ) .
-				' &mdash; ' . FormatSyear( UserSyear(), Config( 'SCHOOL_SYEAR_OVER_2_YEARS' ) ),
-			_( 'School' ) . ' &mdash; ' . _( 'Year' )
-		) . '</td></tr>';
+				$student['FULL_NAME'],
+				_( 'Student Name' )
+			) . '</td><td>' . NoInput(
+			     $student['STUDENT_ID'],
+			     sprintf( _( '%s ID' ), Config( 'NAME' ) )
+		     ) . '</td><td>' . NoInput(
+			     ( SchoolInfo( 'SCHOOL_NUMBER' ) ? SchoolInfo( 'SCHOOL_NUMBER' ) : SchoolInfo( 'TITLE' ) ) .
+			     ' &mdash; ' . FormatSyear( UserSyear(), Config( 'SCHOOL_SYEAR_OVER_2_YEARS' ) ),
+			     _( 'School' ) . ' &mdash; ' . _( 'Year' )
+		     ) . '</td></tr>';
 
 		// HTML remove "Demographics" header to gain space on PDF (if has header or footer).
 		// echo '<tr><td colspan="3"><hr><h3>' . _( 'Demographics' ) . '</h3></td></tr><tr>';
@@ -134,19 +134,19 @@ if ( $_REQUEST['modfunc'] === 'save' )
 		foreach ( (array) $custom_RET as $id => $custom )
 		{
 			echo '<td>' . NoInput(
-				$student['CUSTOM_' . $id],
-				ParseMLField( $custom_RET[$id][1]['TITLE'] )
-			) . '</td>';
+					$student['CUSTOM_' . $id],
+					ParseMLField( $custom_RET[$id][1]['TITLE'] )
+				) . '</td>';
 		}
 
 		echo '</tr><tr>
 		<td>' . NoInput(
-			$student['STATUS'],
-			_( 'Status' )
-		) . '</td><td>' . NoInput(
-			$student['GRADE_ID'],
-			_( 'Grade Level' )
-		) . '</td></tr>';
+				$student['STATUS'],
+				_( 'Status' )
+			) . '</td><td>' . NoInput(
+			     $student['GRADE_ID'],
+			     _( 'Grade Level' )
+		     ) . '</td></tr>';
 
 		echo '<tr><td colspan="3"><hr><h3>' . _( 'Attendance' ) . '</h3>
 		<table class="width-100p cellspacing-0 center">';
@@ -156,7 +156,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 		for ( $day = 1; $day <= 31; $day++ )
 		{
 			echo '<td><b>' . ( $day < 10 ? '&nbsp;' : '' ) . $day .
-				( $day < 10 ? '&nbsp;' : '' ) . '</b></td>';
+			     ( $day < 10 ? '&nbsp;' : '' ) . '</b></td>';
 		}
 
 		echo '<td><b>' . _( 'Absences' ) . '</b></td>
@@ -212,7 +212,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 		for ( $month = $first_month; $month <= $last_month_tmp; $month++ )
 		{
 			if ( ! empty( $calendar_RET[$month] )
-				|| ! empty( $attendance_RET[$month] ) )
+			     || ! empty( $attendance_RET[$month] ) )
 			{
 				echo '<tr class="center"><td>' . $months[$month] . '</td>';
 
@@ -229,9 +229,9 @@ if ( $_REQUEST['modfunc'] === 'save' )
 							$attendance = $attendance_RET[$month][$day][1];
 
 							echo '<td class="attendance-code ' .
-								$attendance_code_classes[ $attendance['STATE_VALUE'] ] . '"
+							     $attendance_code_classes[ $attendance['STATE_VALUE'] ] . '"
 								style="display: table-cell; padding: 0;">' .
-								mb_substr( $attendance_codes_locale[ $attendance['STATE_VALUE'] ], 0, 1 ) . '</td>';
+							     mb_substr( $attendance_codes_locale[ $attendance['STATE_VALUE'] ], 0, 1 ) . '</td>';
 
 							$abs += ( $attendance['STATE_VALUE'] == '0.0' ?
 								$calendar['POS'] :
@@ -239,7 +239,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 							);
 						}
 						else
-						//green box
+							//green box
 						{
 							echo '<td style="background-color:#dfd;">&nbsp;</td>';
 						}
@@ -256,12 +256,12 @@ if ( $_REQUEST['modfunc'] === 'save' )
 
 							//red box
 							echo '<td class="attendance-code ' .
-								$attendance_code_classes[ $attendance['STATE_VALUE'] ] . '"
+							     $attendance_code_classes[ $attendance['STATE_VALUE'] ] . '"
 								style="display: table-cell; padding: 0;">' .
-								mb_substr( $attendance_codes_locale[ $attendance['STATE_VALUE'] ], 0, 1 ) . '</td>';
+							     mb_substr( $attendance_codes_locale[ $attendance['STATE_VALUE'] ], 0, 1 ) . '</td>';
 						}
 						else
-						//pink box
+							//pink box
 						{
 							echo '<td style="background-color:#fdd;">&nbsp;</td>';
 						}
@@ -284,7 +284,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 		}
 
 		echo '<tr class="center"><td colspan="32" class="align-right"><b>' .
-			_( 'Year to Date Totals' ) . '</b></td>';
+		     _( 'Year to Date Totals' ) . '</b></td>';
 
 		echo '<td>' . (float) number_format( $abs_tot, 1 ) . '</td>
 		<td>' . (float) number_format( $pos_tot, 1 ) . '</td></tr>';
@@ -304,8 +304,8 @@ if ( ! $_REQUEST['modfunc'] )
 	if ( $_REQUEST['search_modfunc'] === 'list' )
 	{
 		echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&modfunc=save&include_inactive=' . issetVal( $_REQUEST['include_inactive'], '' ) .
-			'&_ROSARIO_PDF=true' ) . '" method="POST">';
+		                                   '&modfunc=save&include_inactive=' . issetVal( $_REQUEST['include_inactive'], '' ) .
+		                                   '&_ROSARIO_PDF=true' ) . '" method="POST">';
 
 		$extra['header_right'] = SubmitButton( _( 'Create Attendance Report for Selected Students' ) );
 	}
