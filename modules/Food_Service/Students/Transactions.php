@@ -2,11 +2,11 @@
 require_once 'ProgramFunctions/TipMessage.fnc.php';
 
 if ( ! empty( $_REQUEST['values'] )
-	&& $_POST['values']
-	&& $_REQUEST['modfunc'] === 'save' )
+     && $_POST['values']
+     && $_REQUEST['modfunc'] === 'save' )
 {
 	if ( UserStudentID()
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		$account_id = DBGetOne( "SELECT ACCOUNT_ID
 			FROM food_service_student_accounts
@@ -19,7 +19,7 @@ if ( ! empty( $_REQUEST['values'] )
 			$values = "'" . UserSyear() . "','" . UserSchool() . "','" . $account_id . "',
 				(SELECT BALANCE FROM food_service_accounts WHERE ACCOUNT_ID='" . (int) $account_id . "'),
 				CURRENT_TIMESTAMP,'" . mb_strtoupper( $_REQUEST['values']['TYPE'] ) . "','" .
-				$_REQUEST['values']['TYPE'] . "','" . User( 'STAFF_ID' ) . "'";
+			          $_REQUEST['values']['TYPE'] . "','" . User( 'STAFF_ID' ) . "'";
 
 			$sql = "INSERT INTO food_service_transactions (" . $fields . ") values (" . $values . ")";
 
@@ -79,7 +79,7 @@ Search( 'student_id', $extra );
 echo ErrorMessage( $error );
 
 if ( UserStudentID()
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
 	$student = DBGet( "SELECT s.STUDENT_ID," . DisplayNameSQL( 's' ) . " AS FULL_NAME,
 		(SELECT BALANCE FROM food_service_accounts WHERE ACCOUNT_ID=(SELECT ACCOUNT_ID
@@ -176,7 +176,7 @@ if ( UserStudentID()
 			];
 
 			$link['add']['html']['DESCRIPTION'] = SelectInput( '', 'values[OPTION]', '', $options, false ) . ' ' .
-				TextInput( '', 'values[DESCRIPTION]', '', 'size=20 maxlength=50' );
+			                                      TextInput( '', 'values[DESCRIPTION]', '', 'size=20 maxlength=50' );
 
 			$link['add']['html']['AMOUNT'] = TextInput(
 				'',
