@@ -34,10 +34,10 @@ function Search( $type, $extra = null )
 		case 'student_id':
 
 			if ( ! empty( $_REQUEST['bottom_back'] )
-				|| ( User( 'PROFILE' ) !== 'student'
-					&& User( 'PROFILE' ) !== 'parent'
-					&& ! empty( $_REQUEST['search_modfunc'] )
-					&& $_REQUEST['search_modfunc'] === 'list' ) )
+			     || ( User( 'PROFILE' ) !== 'student'
+			          && User( 'PROFILE' ) !== 'parent'
+			          && ! empty( $_REQUEST['search_modfunc'] )
+			          && $_REQUEST['search_modfunc'] === 'list' ) )
 			{
 				unset( $_SESSION['student_id'] );
 			}
@@ -45,10 +45,10 @@ function Search( $type, $extra = null )
 			if ( ! empty( $_REQUEST['student_id'] ) )
 			{
 				if ( $_REQUEST['student_id'] !== 'new'
-					&& $_REQUEST['student_id'] != UserStudentID() )
+				     && $_REQUEST['student_id'] != UserStudentID() )
 				{
 					if ( ! empty( $_REQUEST['school_id'] )
-						&& $_REQUEST['school_id'] != UserSchool() )
+					     && $_REQUEST['school_id'] != UserSchool() )
 					{
 						$_SESSION['UserSchool'] = DBGetOne( "SELECT ID FROM schools
 							WHERE SYEAR='" . UserSyear() . "'
@@ -58,19 +58,19 @@ function Search( $type, $extra = null )
 					SetUserStudentID( $_REQUEST['student_id'] );
 				}
 				elseif ( $_REQUEST['student_id'] === 'new'
-					&& UserStudentID() )
+				         && UserStudentID() )
 				{
 					unset( $_SESSION['student_id'] );
 				}
 			}
 			elseif ( ! UserStudentID()
-				|| ! empty( $extra['new'] ) )
+			         || ! empty( $extra['new'] ) )
 			{
 				if ( UserStudentID() )
 				{
 					// FJ fix bug no student found when student/parent logged in.
 					if ( User( 'PROFILE' ) !== 'student'
-						&& User( 'PROFILE' ) !== 'parent' )
+					     && User( 'PROFILE' ) !== 'parent' )
 					{
 						unset( $_SESSION['student_id'] );
 					}
@@ -81,7 +81,7 @@ function Search( $type, $extra = null )
 				require_once 'modules/Students/Search.inc.php';
 			}
 
-		break;
+			break;
 
 		case 'staff_id':
 
@@ -92,9 +92,9 @@ function Search( $type, $extra = null )
 			}
 
 			if ( ! empty( $_REQUEST['bottom_back'] )
-				|| ( User( 'PROFILE' ) !== 'parent'
-					&& ! empty( $_REQUEST['search_modfunc'] )
-					&& $_REQUEST['search_modfunc'] === 'list' ) )
+			     || ( User( 'PROFILE' ) !== 'parent'
+			          && ! empty( $_REQUEST['search_modfunc'] )
+			          && $_REQUEST['search_modfunc'] === 'list' ) )
 			{
 				unset( $_SESSION['staff_id'] );
 			}
@@ -102,18 +102,18 @@ function Search( $type, $extra = null )
 			if ( ! empty( $_REQUEST['staff_id'] ) )
 			{
 				if ( $_REQUEST['staff_id'] !== 'new'
-					&& $_REQUEST['staff_id'] != UserStaffID() )
+				     && $_REQUEST['staff_id'] != UserStaffID() )
 				{
 					SetUserStaffID( $_REQUEST['staff_id'] );
 				}
 				elseif ( $_REQUEST['staff_id'] === 'new'
-					&& UserStaffID() )
+				         && UserStaffID() )
 				{
 					unset( $_SESSION['staff_id'] );
 				}
 			}
 			elseif ( ! UserStaffID()
-				|| ! empty( $extra['new'] ) )
+			         || ! empty( $extra['new'] ) )
 			{
 				if ( UserStaffID() )
 				{
@@ -125,7 +125,7 @@ function Search( $type, $extra = null )
 				require_once 'modules/Users/Search.inc.php';
 			}
 
-		break;
+			break;
 
 		// Find a Student form General Info & Grade Level.
 		case 'general_info':
@@ -140,7 +140,7 @@ function Search( $type, $extra = null )
 				</td></tr>';
 
 			echo '<tr><td><label for="stuid">' . sprintf( _( '%s ID' ), Config( 'NAME' ) ) .
-				'</label></td><td>
+			     '</label></td><td>
 				<input type="text" name="stuid" id="stuid" size="24" maxlength="5000">
 				</td></tr>';
 
@@ -155,14 +155,14 @@ function Search( $type, $extra = null )
 				ORDER BY SORT_ORDER IS NULL,SORT_ORDER" );
 
 			if ( isset( $_REQUEST['advanced'] )
-				&& $_REQUEST['advanced'] === 'Y'
-				|| ! empty( $extra ) && is_array( $extra ) )
+			     && $_REQUEST['advanced'] === 'Y'
+			     || ! empty( $extra ) && is_array( $extra ) )
 			{
 				echo '<tr><td>' . _( 'Grade Levels' ) . '</td>
 				<td>&nbsp;<label class="nobr"><input type="checkbox" name="grades_not" value="Y">&nbsp;' .
-					_( 'Not' ) . '</label> &nbsp;
+				     _( 'Not' ) . '</label> &nbsp;
 				<label class="nobr"><input type="checkbox" value="Y" name="controller" onclick="checkAll(this.form,this.checked,\'grades\');">&nbsp;' .
-					_( 'Check All' ) . '</label>
+				     _( 'Check All' ) . '</label>
 				</td></tr>
 				<tr><td></td><td><table class="cellpadding-5"><tr>';
 
@@ -176,7 +176,7 @@ function Search( $type, $extra = null )
 
 					echo '<td><label class="nobr">
 					<input type="checkbox" name="' . AttrEscape( 'grades[' . $id . ']' ) . '" value="Y"' . $checked . '>&nbsp;' .
-						$grade_level['SHORT_NAME'] . '</label></td>';
+					     $grade_level['SHORT_NAME'] . '</label></td>';
 
 					$i++;
 
@@ -200,13 +200,13 @@ function Search( $type, $extra = null )
 					$id = $grade_level['ID'];
 
 					echo '<option value="' . AttrEscape( $id ) . '"' . ( $extra == $id ? ' selected' : '' ) . '>' .
-						$grade_level['TITLE'] . '</option>';
+					     $grade_level['TITLE'] . '</option>';
 				}
 
 				echo '</select></td></tr>';
 			}
 
-		break;
+			break;
 
 		// Find a User form General Info & Profile.
 		case 'staff_general_info':
@@ -220,12 +220,12 @@ function Search( $type, $extra = null )
 				</td></tr>';
 
 			echo '<tr><td><label for="usrid">' . _( 'User ID' ) .
-				'</label></td><td>
+			     '</label></td><td>
 				<input type="text" name="usrid" id="usrid" size="24" maxlength="5000">
 				</td></tr>';
 
 			echo '<tr><td><label for="username">' . _( 'Username' ) .
-				'</label></td><td>
+			     '</label></td><td>
 				<input type="text" name="username" id="username" size="24" maxlength="255">
 				</td></tr>';
 
@@ -279,7 +279,7 @@ function Search( $type, $extra = null )
 			foreach ( $grade_levels_RET as $grade_level )
 			{
 				echo '<option value="' . AttrEscape( $grade_level['ID'] ) . '">' .
-					$grade_level['TITLE'] . '</option>';
+				     $grade_level['TITLE'] . '</option>';
 			}
 
 			echo '</select></td></tr>';
@@ -293,7 +293,7 @@ function Search( $type, $extra = null )
 				};
 			</script>';
 
-		break;
+			break;
 
 		case 'staff_fields':
 		case 'staff_fields_all':
@@ -470,7 +470,7 @@ function Search( $type, $extra = null )
 				}
 
 				if ( $type === 'student_fields_all'
-					|| $type === 'staff_fields_all' )
+				     || $type === 'staff_fields_all' )
 				{
 					echo '<a onclick="switchMenu(this); return false;" href="#" class="switchMenu">
 					<b>' . $category_title . '</b></a>
@@ -480,8 +480,8 @@ function Search( $type, $extra = null )
 					$TR_classes .= 'st';
 
 					if ( $type === 'student_fields_all'
-						&& isset( $category['text'][1]['ID'] )
-						&& $category['text'][1]['ID'] === '2' )
+					     && isset( $category['text'][1]['ID'] )
+					     && $category['text'][1]['ID'] === '2' )
 					{
 						$extra['search'] = '';
 
@@ -496,8 +496,8 @@ function Search( $type, $extra = null )
 				foreach ( (array) $category['text'] as $col )
 				{
 					if ( ( $type === 'staff_fields'
-							|| $type === 'staff_fields_all' )
-						&& $col['COLUMN_NAME'] === 'CUSTOM_200000000' )
+					       || $type === 'staff_fields_all' )
+					     && $col['COLUMN_NAME'] === 'CUSTOM_200000000' )
 					{
 						// @since 5.9 Move Email & Phone Staff Fields to custom fields.
 						$col['COLUMN_NAME'] = 'EMAIL';
@@ -523,7 +523,7 @@ function Search( $type, $extra = null )
 					<span class="sizep2">&le;</span>
 					<input type="text" name="' . AttrEscape( 'cust_end[' . $col['COLUMN_NAME'] . ']' ) . '" size="3" maxlength="11">
 					<label><input type="checkbox" name="' . AttrEscape( 'cust_null[' . $col['COLUMN_NAME'] . ']' ) . '"> ' . _( 'No Value' ) .
-					'</label>&nbsp;
+					     '</label>&nbsp;
 					</td></tr>';
 				}
 
@@ -573,7 +573,7 @@ function Search( $type, $extra = null )
 						}
 
 						if ( $value !== ''
-							&& $option !== '' )
+						     && $option !== '' )
 						{
 							echo '<option value="' . AttrEscape( $value ) . '">' . $option . '</option>';
 						}
@@ -614,7 +614,7 @@ function Search( $type, $extra = null )
 							if ( ! in_array( $option[ $col_name ], $options ) )
 							{
 								echo '<option value="' . AttrEscape( $option[ $col_name ] ) . '">' .
-									$option[ $col_name ] . '</option>';
+								     $option[ $col_name ] . '</option>';
 							}
 						}
 					}
@@ -627,23 +627,23 @@ function Search( $type, $extra = null )
 				{
 					echo '<tr class="' . AttrEscape( $TR_classes ) . '"><td>' . $col['TITLE'] . '<br>
 					<label>&nbsp;<input type="checkbox" name="' . AttrEscape( 'cust_null[' . $col['COLUMN_NAME'] . ']' ) . '"> ' .
-					_( 'No Value' ) . '</label>
+					     _( 'No Value' ) . '</label>
 					</td>
 					<td><table class="cellspacing-0">
 					<tr><td><span class="sizep2">&ge;</span>&nbsp;</td>
 					<td>' . PrepareDate(
-						'',
-						'_cust_begin[' . $col['COLUMN_NAME'] . ']',
-						true,
-						[ 'short' => true ]
-					) . '</td></tr>
+						     '',
+						     '_cust_begin[' . $col['COLUMN_NAME'] . ']',
+						     true,
+						     [ 'short' => true ]
+					     ) . '</td></tr>
 					<tr><td><span class="sizep2">&le;</span>&nbsp;</td>
 					<td>' . PrepareDate(
-						'',
-						'_cust_end[' . $col['COLUMN_NAME'] . ']',
-						true,
-						[ 'short' => true ]
-					) . '</td></tr>
+						     '',
+						     '_cust_end[' . $col['COLUMN_NAME'] . ']',
+						     true,
+						     [ 'short' => true ]
+					     ) . '</td></tr>
 					</table></td></tr>';
 				}
 
@@ -654,21 +654,21 @@ function Search( $type, $extra = null )
 
 					echo '<tr class="' . AttrEscape( $TR_classes ) . '"><td>' . $col['TITLE'] . '</td>
 					<td><label><input name="' . AttrEscape( $name ) . '" type="radio" value="" checked> ' .
-					_( 'All' ) . '</label> &nbsp;
+					     _( 'All' ) . '</label> &nbsp;
 					<label><input name="' . AttrEscape( $name ) . '" type="radio" value="Y"> ' .
-					_( 'Yes' ) . '</label> &nbsp;
+					     _( 'Yes' ) . '</label> &nbsp;
 					<label><input name="' . AttrEscape( $name ) . '" type="radio" value="N"> ' .
-					_( 'No' ) . '</label></td></tr>';
+					     _( 'No' ) . '</label></td></tr>';
 				}
 
 				if ( $type === 'student_fields_all'
-					|| $type === 'staff_fields_all' )
+				     || $type === 'staff_fields_all' )
 				{
 					echo '</table>';
 				}
 			}
 
-		break;
+			break;
 	}
 }
 
@@ -707,7 +707,7 @@ function SearchField( $field, $type = 'student', $extra = [] )
 
 	// No empty values.
 	if ( ! is_array( $field )
-		|| $field['VALUE'] === '' )
+	     || $field['VALUE'] === '' )
 	{
 		return '';
 	}
@@ -747,7 +747,7 @@ function SearchField( $field, $type = 'student', $extra = [] )
 
 			// Matches "searched expression".
 			if ( mb_substr( $value, 0, 1 ) === '"'
-				&& mb_substr( $value, -1 ) === '"' )
+			     && mb_substr( $value, -1 ) === '"' )
 			{
 				if ( ! $no_search_terms )
 				{
@@ -761,7 +761,7 @@ function SearchField( $field, $type = 'student', $extra = [] )
 			if ( ! $no_search_terms )
 			{
 				$_ROSARIO['SearchTerms'] .= _( 'starts with' ) . ' ' .
-					DBUnescapeString( $value ) . '<br />';
+				                            DBUnescapeString( $value ) . '<br />';
 			}
 
 			return ' AND LOWER(' . $sql_col . ") LIKE '" . mb_strtolower( $value ) . "%' ";
@@ -791,7 +791,7 @@ function SearchField( $field, $type = 'student', $extra = [] )
 				return ' AND (' . $sql_col . "!='Y' OR " . $sql_col . " IS NULL) ";
 			}
 
-		break;
+			break;
 
 		case 'numeric':
 		case 'date':
@@ -815,7 +815,7 @@ function SearchField( $field, $type = 'student', $extra = [] )
 			}
 
 			if ( $field['TYPE'] === 'date'
-				&& ! VerifyDate( $value ) )
+			     && ! VerifyDate( $value ) )
 			{
 				return '';
 			}
@@ -887,8 +887,8 @@ function SearchField( $field, $type = 'student', $extra = [] )
 					$option = explode( '|', $option );
 
 					if ( $field['TYPE'] == 'exports'
-						&& $option[0] !== ''
-						&& $value == $option[0] )
+					     && $option[0] !== ''
+					     && $value == $option[0] )
 					{
 						$value = $option[0];
 						break;
@@ -902,7 +902,7 @@ function SearchField( $field, $type = 'student', $extra = [] )
 
 		// Pull-Down.
 		case 'select':
-		// Auto Pull-Down.
+			// Auto Pull-Down.
 		case 'autos':
 
 			// No Value.
@@ -918,7 +918,7 @@ function SearchField( $field, $type = 'student', $extra = [] )
 
 			// Other Value.
 			if ( $field['TYPE'] == 'autos'
-				&& $value === '~' )
+			     && $value === '~' )
 			{
 				if ( ! $no_search_terms )
 				{
