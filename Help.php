@@ -25,11 +25,11 @@ $title = $profiles[ User( 'PROFILE' ) ];
 
 $handle = PDFStart(); ?>
 
-<style>.header2{ font-size: larger; }</style>
-<div class="header1">
-	<h2><img src="assets/themes/<?php echo Preferences( 'THEME' ); ?>/logo.png" class="module-icon" />
-		<?php echo sprintf( _( '%s Handbook' ), $title ); ?></h2>
-</div>
+	<style>.header2{ font-size: larger; }</style>
+	<div class="header1">
+		<h2><img src="assets/themes/<?php echo Preferences( 'THEME' ); ?>/logo.png" class="module-icon" />
+			<?php echo sprintf( _( '%s Handbook' ), $title ); ?></h2>
+	</div>
 
 <?php
 $help = HelpLoad();
@@ -42,7 +42,7 @@ foreach ( (array) $help as $program => $value ) :
 
 	// Zap programs which are not allowed.
 	if ( $program !== 'default'
-		&& ! AllowUse( $program ) )
+	     && ! AllowUse( $program ) )
 	{
 		continue;
 	}
@@ -59,28 +59,28 @@ foreach ( (array) $help as $program => $value ) :
 		}
 
 		if ( $modcat != $old_modcat
-			&& $modcat != 'Custom' ) : ?>
+		     && $modcat != 'Custom' ) : ?>
 
 			<div style="page-break-after: always;"></div>
 
 			<?php
-				unset( $_ROSARIO['DrawHeader'] );
+			unset( $_ROSARIO['DrawHeader'] );
 
-				$_ROSARIO['HeaderIcon'] = $modcat;
+			$_ROSARIO['HeaderIcon'] = $modcat;
 
-				$modcat_title = _( str_replace( '_', ' ',  $modcat ) );
+			$modcat_title = _( str_replace( '_', ' ',  $modcat ) );
 
-				if ( in_array( $modcat, $non_core_modules ) )
-				{
-					$modcat_title = dgettext( $modcat, str_replace( '_', ' ',  $modcat ) );
-				}
+			if ( in_array( $modcat, $non_core_modules ) )
+			{
+				$modcat_title = dgettext( $modcat, str_replace( '_', ' ',  $modcat ) );
+			}
 
-				if ( ! empty( $_ROSARIO['Menu'][ $modcat ]['title'] ) )
-				{
-					$modcat_title = $_ROSARIO['Menu'][ $modcat ]['title'];
-				}
+			if ( ! empty( $_ROSARIO['Menu'][ $modcat ]['title'] ) )
+			{
+				$modcat_title = $_ROSARIO['Menu'][ $modcat ]['title'];
+			}
 
-				DrawHeader( $modcat_title );
+			DrawHeader( $modcat_title );
 		endif;
 
 		if ( $modcat != 'Custom' )
@@ -88,39 +88,39 @@ foreach ( (array) $help as $program => $value ) :
 			$old_modcat = $modcat;
 		}
 	}
-?>
+	?>
 
-<div style="page-break-inside: avoid;">
-	<h3>
+	<div style="page-break-inside: avoid;">
+		<h3>
 
-<?php
-	if ( $program == 'default' )
-	{
-		echo ParseMLField( Config( 'TITLE' ) ) . ' ' . ROSARIO_VERSION;
-	}
-	else
-		echo ( ProgramTitle() == 'RosarioSIS' ? $program : ProgramTitle() );
-?>
+			<?php
+			if ( $program == 'default' )
+			{
+				echo ParseMLField( Config( 'TITLE' ) ) . ' ' . ROSARIO_VERSION;
+			}
+			else
+				echo ( ProgramTitle() == 'RosarioSIS' ? $program : ProgramTitle() );
+			?>
 
-	</h3>
-	<div class="header2">
+		</h3>
+		<div class="header2">
 
-<?php
+			<?php
 
-	$help_text = GetHelpText( $program );
+			$help_text = GetHelpText( $program );
 
-	echo $help_text;
-?>
+			echo $help_text;
+			?>
 
+		</div>
 	</div>
-</div>
-<br />
+	<br />
 
 <?php endforeach; ?>
 
-<div class="center">
-	<b><a href="https://www.rosariosis.org/">https://www.rosariosis.org/</a></b>
-</div>
+	<div class="center">
+		<b><a href="https://www.rosariosis.org/">https://www.rosariosis.org/</a></b>
+	</div>
 
 <?php
 
