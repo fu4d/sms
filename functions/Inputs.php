@@ -184,7 +184,7 @@ function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 	{
 		$extra .= ' size="17"';
 	}
-	elseif ( mb_strpos( $extra, 'size=' ) === false )
+    elseif ( mb_strpos( $extra, 'size=' ) === false )
 	{
 		$extra .= ' size="' . ( strlen( $value ) + 5 ) . '"';
 	}
@@ -223,14 +223,14 @@ function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 
 	// Call our jQuery PasswordStrength plugin based on zxcvbn.
 	?>
-	<script>
+    <script>
         $('#' + <?php echo json_encode( $id ); ?>).passwordStrength(
 			<?php echo (int) $min_required_strength; ?>,
             // Error message when trying to submit the form.
 			<?php echo json_encode( _( 'Your password must be stronger.' ) ); ?>,
 			<?php echo json_encode( $user_inputs ); ?>
         );
-	</script>
+    </script>
 	<?php
 	$password_strength_js = ob_get_clean();
 
@@ -296,7 +296,7 @@ function MLTextInput( $value, $name, $title = '', $extra = '', $div = true )
 	{
 		// Ng - foreach possible language.
 		ob_start(); ?>
-		<script>
+        <script>
             function setMLvalue(id, loc, value){
                 var res = document.getElementById(id).value.split("|");
 
@@ -320,7 +320,7 @@ function MLTextInput( $value, $name, $title = '', $extra = '', $div = true )
                 }
                 document.getElementById(id).value = res.join("|");
             }
-		</script>
+        </script>
 		<?php 	$return = ob_get_clean();
 
 		$return .= '<div class="ml-text-input"><input type="hidden" id="' . $id . '" name="' . AttrEscape( $name ) . '" value="' . AttrEscape( $value ) . '" autocomplete="off">';
@@ -421,7 +421,7 @@ function TextAreaInput( $value, $name, $title = '', $extra = '', $div = true, $t
 			// Convert MarkDown to HTML.
 			$display_val = '<div class="markdown-to-html">' . $value . '</div>';
 		}
-		elseif ( $type === 'tinymce' )
+        elseif ( $type === 'tinymce' )
 		{
 			$display_val = '<div class="tinymce-html">' . $value . '</div>';
 		}
@@ -558,7 +558,7 @@ function TinyMCEInput( $value, $name, $title = '', $extra = '' )
 				// For example: es (Spanish).
 				$tinymce_language = mb_substr( $locale, 0, 2 );
 			}
-			elseif ( file_exists( 'assets/js/tinymce/langs/' . mb_substr( $locale, 0, 5 ) . '.js' ) )
+            elseif ( file_exists( 'assets/js/tinymce/langs/' . mb_substr( $locale, 0, 5 ) . '.js' ) )
 			{
 				// For example: fr_FR (French).
 				$tinymce_language = mb_substr( $locale, 0, 5 );
@@ -579,8 +579,8 @@ function TinyMCEInput( $value, $name, $title = '', $extra = '' )
 		// and its configuration (plugin, language...).
 		ob_start(); ?>
 
-		<script src="assets/js/tinymce/tinymce.min.js?v=4.9.8"></script>
-		<script>
+        <script src="assets/js/tinymce/tinymce.min.js?v=4.9.8"></script>
+        <script>
             tinymceSettings = {
                 selector: '.tinymce',
                 plugins: 'link image pagebreak paste table textcolor colorpicker code fullscreen hr media lists',
@@ -606,7 +606,7 @@ function TinyMCEInput( $value, $name, $title = '', $extra = '' )
                     // Add your plugins using the action hook below.
                 }
             };
-		</script>
+        </script>
 		<?php
 		/**
 		 * TinyMCE before init action hook
@@ -614,9 +614,9 @@ function TinyMCEInput( $value, $name, $title = '', $extra = '' )
 		 * @since 5.3
 		 */
 		do_action( 'functions/Inputs.php|tinymce_before_init' ); ?>
-		<script>
+        <script>
             tinymce.init(tinymceSettings);
-		</script><!-- /TinyMCE -->
+        </script><!-- /TinyMCE -->
 
 		<?php $tinymce_js = ob_get_clean();
 
@@ -649,20 +649,20 @@ function MarkDownInputPreview( $input_id )
 	ob_start();
 
 	?>
-	<div class="md-preview">
-		<a href="#" onclick="<?php echo AttrEscape( 'MarkDownInputPreview(' .
+    <div class="md-preview">
+        <a href="#" onclick="<?php echo AttrEscape( 'MarkDownInputPreview(' .
 		                                            json_encode( $input_id ) .
 		                                            '); return false;' ); ?>" class="tab disabled"><?php echo _( 'Write' ); ?></a>
 
-		<a href="#" onclick="<?php echo AttrEscape( 'MarkDownInputPreview(' .
+        <a href="#" onclick="<?php echo AttrEscape( 'MarkDownInputPreview(' .
 		                                            json_encode( $input_id ) .
 		                                            '); return false;' ); ?>" class="tab"><?php echo _( 'Preview' ); ?></a>
 
-		<a href="https://gitlab.com/francoisjacquet/rosariosis/wikis/Markdown-Cheatsheet" title="<?php echo AttrEscape( _( 'Mastering MarkDown' ) ); ?>" target="_blank" class="md-link">
-			<img class="button" src="assets/themes/<?php echo Preferences( 'THEME' ); ?>/btn/md_button.png" alt="<?php echo AttrEscape( _( 'Mastering MarkDown' ) ); ?>">
-		</a>
-		<div class="markdown-to-html" id="<?php echo GetInputID( 'divMDPreview' . $input_id ); ?>"></div>
-	</div>
+        <a href="https://gitlab.com/francoisjacquet/rosariosis/wikis/Markdown-Cheatsheet" title="<?php echo AttrEscape( _( 'Mastering MarkDown' ) ); ?>" target="_blank" class="md-link">
+            <img class="button" src="assets/themes/<?php echo Preferences( 'THEME' ); ?>/btn/md_button.png" alt="<?php echo AttrEscape( _( 'Mastering MarkDown' ) ); ?>">
+        </a>
+        <div class="markdown-to-html" id="<?php echo GetInputID( 'divMDPreview' . $input_id ); ?>"></div>
+    </div>
 	<?php
 
 	return ob_get_clean();
@@ -1158,14 +1158,14 @@ function ChosenSelectInput( $value, $name, $title = '', $options = [], $allow_na
 	{
 
 		ob_start();	?>
-		<!-- Chosen -->
-		<script src="assets/js/jquery-chosen/chosen.jquery.min.js"></script>
-		<link rel="stylesheet" href="assets/js/jquery-chosen/chosen.min.css">
-		<script>
+        <!-- Chosen -->
+        <script src="assets/js/jquery-chosen/chosen.jquery.min.js"></script>
+        <link rel="stylesheet" href="assets/js/jquery-chosen/chosen.min.css">
+        <script>
             $(document).ready(function(){
                 $('.chosen-select').chosen('.chosen-select');
             });
-		</script>
+        </script>
 		<?php $chosen_included = true;
 
 		$js = ob_get_clean();
@@ -1181,7 +1181,7 @@ function ChosenSelectInput( $value, $name, $title = '', $options = [], $allow_na
 	{
 		$extra .= ' class="chosen-select' . $chosen_rtl . '"';
 	}
-	elseif ( mb_strpos( $extra, 'class=' ) !== false )
+    elseif ( mb_strpos( $extra, 'class=' ) !== false )
 	{
 		$extra = str_replace(
 			[ 'class="', "class='" ],
@@ -1257,10 +1257,10 @@ function Select2Input( $value, $name, $title = '', $options = [], $allow_na = 'N
 	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		ob_start();	?>
-		<!-- Select2 -->
-		<script src="assets/js/jquery-select2/select2.min.js"></script>
-		<link rel="stylesheet" href="assets/js/jquery-select2/select2.min.css">
-		<script>
+        <!-- Select2 -->
+        <script src="assets/js/jquery-select2/select2.min.js"></script>
+        <link rel="stylesheet" href="assets/js/jquery-select2/select2.min.css">
+        <script>
             $(document).ready(function(){
                 $('.select2-select').select2({
                     language: {
@@ -1268,7 +1268,7 @@ function Select2Input( $value, $name, $title = '', $options = [], $allow_na = 'N
                     }
                 });
             });
-		</script>
+        </script>
 		<?php $select2_included = true;
 
 		$js = ob_get_clean();
@@ -1279,7 +1279,7 @@ function Select2Input( $value, $name, $title = '', $options = [], $allow_na = 'N
 	{
 		$extra .= ' class="select2-select"';
 	}
-	elseif ( mb_strpos( $extra, 'class=' ) !== false )
+    elseif ( mb_strpos( $extra, 'class=' ) !== false )
 	{
 		$extra = str_replace(
 			[ 'class="', "class='" ],
@@ -1542,10 +1542,10 @@ function ColorInputMiniColors( $value, $name, $title = '', $type = 'hidden', $ex
 	{
 		ob_start();
 		?>
-		<!-- MiniColors -->
-		<link rel="stylesheet" href="assets/js/jquery-minicolors/jquery.minicolors.css">
-		<script src="assets/js/jquery-minicolors/jquery.minicolors.js"></script>
-		<script>$(document).ready(function(){
+        <!-- MiniColors -->
+        <link rel="stylesheet" href="assets/js/jquery-minicolors/jquery.minicolors.css">
+        <script src="assets/js/jquery-minicolors/jquery.minicolors.js"></script>
+        <script>$(document).ready(function(){
                 $('.minicolors').each(function(){
                     $(this).minicolors({
                         position: $(this).attr('data-position') || 'bottom left'
@@ -1560,8 +1560,8 @@ function ColorInputMiniColors( $value, $name, $title = '', $type = 'hidden', $ex
 
 	ob_start();
 	?>
-	<input type="<?php echo AttrEscape( $type ); ?>" name="<?php echo AttrEscape( $name ); ?>" id="<?php echo $id; ?>"
-	       class="minicolors" value="<?php echo AttrEscape( $value ); ?>" <?php echo $extra; ?>>
+    <input type="<?php echo AttrEscape( $type ); ?>" name="<?php echo AttrEscape( $name ); ?>" id="<?php echo $id; ?>"
+           class="minicolors" value="<?php echo AttrEscape( $value ); ?>" <?php echo $extra; ?>>
 	<?php
 
 	$color = ob_get_clean() . FormatInputTitle( $title, $id, $required );
@@ -1616,12 +1616,12 @@ function CaptchaInput( $name, $title, $extra = '' )
 	$required = true;
 
 	ob_start(); ?>
-	<div class="captcha">
-		<span id="<?php echo $id_base; ?>-n1"></span> + <span id="<?php echo $id_base; ?>-n2"></span> = <input id="<?php echo $id_base; ?>-input" name="<?php echo AttrEscape( $name ); ?>[input]" type="number" required>
-		<input id="<?php echo $id_base; ?>-answer" name="<?php echo AttrEscape( $name ); ?>[answer]" type="hidden" <?php echo $extra; ?>>
+    <div class="captcha">
+        <span id="<?php echo $id_base; ?>-n1"></span> + <span id="<?php echo $id_base; ?>-n2"></span> = <input id="<?php echo $id_base; ?>-input" name="<?php echo AttrEscape( $name ); ?>[input]" type="number" required>
+        <input id="<?php echo $id_base; ?>-answer" name="<?php echo AttrEscape( $name ); ?>[answer]" type="hidden" <?php echo $extra; ?>>
 		<?php echo FormatInputTitle( $title, $id_base . '-input', $required ); ?>
-	</div>
-	<script>captcha(<?php echo json_encode( $id_base ); ?>);</script>
+    </div>
+    <script>captcha(<?php echo json_encode( $id_base ); ?>);</script>
 	<?php
 
 	return ob_get_clean();
