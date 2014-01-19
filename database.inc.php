@@ -25,11 +25,11 @@
 function db_start( $show_error = true )
 {
 	global $DatabaseServer,
-		$DatabaseUsername,
-		$DatabasePassword,
-		$DatabaseName,
-		$DatabasePort,
-		$DatabaseType;
+	       $DatabaseUsername,
+	       $DatabasePassword,
+	       $DatabaseName,
+	       $DatabasePort,
+	       $DatabaseType;
 
 	if ( $DatabaseType === 'mysql' )
 	{
@@ -59,7 +59,7 @@ function db_start( $show_error = true )
 		$connectstring = 'host=' . $DatabaseServer . ' ';
 
 		if ( isset( $DatabasePort )
-			&& $DatabasePort !== '5432' )
+		     && $DatabasePort !== '5432' )
 		{
 			$connectstring .= 'port=' . $DatabasePort . ' ';
 		}
@@ -76,7 +76,7 @@ function db_start( $show_error = true )
 
 	// Error code for both.
 	if ( $db_connection === false
-		&& $show_error )
+	     && $show_error )
 	{
 		// TRANSLATION: do NOT translate these since error messages need to stay in English for technical support.
 		db_show_error(
@@ -113,7 +113,7 @@ function db_start( $show_error = true )
 function db_query( $sql, $show_error = true )
 {
 	global $db_connection,
-		$DatabaseType;
+	       $DatabaseType;
 
 	if ( ! isset( $db_connection ) )
 	{
@@ -152,17 +152,11 @@ function db_query( $sql, $show_error = true )
 	}
 	else
 	{
-        try {
-            $result = pg_exec( $db_connection, $sql );
-        }
-        catch (Exception $exception) {
-            echo $sql;
-        }
-
+		$result = pg_exec( $db_connection, $sql );
 	}
 
 	if ( $result === false
-		&& $show_error )
+	     && $show_error )
 	{
 		// TRANSLATION: do NOT translate these since error messages need to stay in English for technical support.
 		db_show_error(
@@ -259,12 +253,12 @@ function DBQuery( $sql )
 function db_fetch_row( $result )
 {
 	global $db_connection,
-		$DatabaseType;
+	       $DatabaseType;
 
 	$return = false;
 
 	if ( $DatabaseType === 'mysql'
-		&& $result instanceof mysqli_result )
+	     && $result instanceof mysqli_result )
 	{
 		$return = mysqli_fetch_assoc( $result );
 	}
@@ -500,7 +494,7 @@ function db_case( $array )
 		$value = $array[$i];
 
 		if ( $value == "''"
-			&& mb_substr( $string, -1 ) == '=' )
+		     && mb_substr( $string, -1 ) == '=' )
 		{
 			$value = ' IS NULL';
 
@@ -510,7 +504,7 @@ function db_case( $array )
 		$string .= $value;
 
 		if ( $counter == ( $array_count - 2 )
-			&& $array_count % 2 == 0 )
+		     && $array_count % 2 == 0 )
 		{
 			$string .= ' ELSE ';
 		}
@@ -642,34 +636,34 @@ function db_properties( $table )
 function db_show_error( $sql, $failnote, $additional = '' )
 {
 	global $RosarioNotifyAddress,
-		$RosarioErrorsAddress;
+	       $RosarioErrorsAddress;
 
 	// TRANSLATION: do NOT translate these since error messages need to stay in English for technical support.
 	?>
 	<br />
 	<table class="postbox cellspacing-0">
 		<thead><tr><th class="center">
-			<h3><?php echo function_exists( '_' ) ?
-	_( 'We have a problem, please contact technical support ...' ) :
-	// PHP gettext extension not loaded, and polyfill either (PHPCompatibility functions not loaded yet).
-	'We have a problem, please contact technical support ...'; ?></h3>
-		</th></tr></thead>
-	<tbody><tr><td class="popTable">
-		<table>
-			<tr>
-				<td><?php echo date( 'm/d/Y H:i:s' ); ?><br />
-					<span class="legend-gray">Date</span></td>
-			</tr>
-			<tr>
-				<td><?php echo $failnote; ?> <?php echo $additional; ?><br />
-					<span class="legend-gray">Failure Notice</span></td>
-			</tr>
-			<tr>
-				<td><pre class="size-1" style="max-width: 65vw; overflow: auto;"><?php echo str_replace( "\t\t", '', $sql ); ?></pre>
-					<span class="legend-gray">SQL query</span></td>
-			</tr>
-		</table>
-	</td></tr></tbody></table>
+				<h3><?php echo function_exists( '_' ) ?
+						_( 'We have a problem, please contact technical support ...' ) :
+						// PHP gettext extension not loaded, and polyfill either (PHPCompatibility functions not loaded yet).
+						'We have a problem, please contact technical support ...'; ?></h3>
+			</th></tr></thead>
+		<tbody><tr><td class="popTable">
+				<table>
+					<tr>
+						<td><?php echo date( 'm/d/Y H:i:s' ); ?><br />
+							<span class="legend-gray">Date</span></td>
+					</tr>
+					<tr>
+						<td><?php echo $failnote; ?> <?php echo $additional; ?><br />
+							<span class="legend-gray">Failure Notice</span></td>
+					</tr>
+					<tr>
+						<td><pre class="size-1" style="max-width: 65vw; overflow: auto;"><?php echo str_replace( "\t\t", '', $sql ); ?></pre>
+							<span class="legend-gray">SQL query</span></td>
+					</tr>
+				</table>
+			</td></tr></tbody></table>
 	<?php
 
 	// Send notification email if $RosarioNotifyAddress set & functions loaded.
@@ -706,7 +700,7 @@ function db_show_error( $sql, $failnote, $additional = '' )
 function DBEscapeString( $input )
 {
 	global $db_connection,
-		$DatabaseType;
+	       $DatabaseType;
 
 	if ( $DatabaseType === 'mysql' )
 	{
@@ -761,7 +755,7 @@ function DBUnescapeString( $input )
 function DBEscapeIdentifier( $identifier )
 {
 	global $db_connection,
-		$DatabaseType;
+	       $DatabaseType;
 
 	$identifier = mb_strtolower( $identifier );
 
@@ -805,7 +799,7 @@ function MySQLRemoveDelimiter( $sql )
 			$delimiter = ';';
 
 			if ( $line !== 'DELIMITER ;'
-				&& $line !== 'delimiter ;' )
+			     && $line !== 'delimiter ;' )
 			{
 				// Declaring custom delimiter, get it.
 				$line = trim( $line );
