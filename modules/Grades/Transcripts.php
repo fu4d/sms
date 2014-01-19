@@ -11,7 +11,7 @@ require_once 'ProgramFunctions/Substitutions.fnc.php';
 if ( $_REQUEST['modfunc'] === 'save' )
 {
 	if ( ! empty( $_REQUEST['mp_type_arr'] )
-		&& ! empty( $_REQUEST['st_arr'] ) )
+	     && ! empty( $_REQUEST['st_arr'] ) )
 	{
 		if ( ! empty( $_REQUEST['showcertificate'] ) )
 		{
