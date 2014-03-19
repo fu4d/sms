@@ -138,7 +138,7 @@ if ( ! empty( $_REQUEST['values'] )
 			[ 'ASSIGNMENT_ID' ]
 		);
 	}
-	elseif ( $_REQUEST['assignment_id'] === 'all' )
+    elseif ( $_REQUEST['assignment_id'] === 'all' )
 	{
 		$current_RET = DBGet( "SELECT g.STUDENT_ID,g.ASSIGNMENT_ID,g.POINTS
 			FROM gradebook_grades g,gradebook_assignments a
@@ -180,7 +180,7 @@ if ( ! empty( $_REQUEST['values'] )
 					{
 						$columns['POINTS'] = mb_substr( $columns['POINTS'], 0, -1 ) * $assignments_RET[$assignment_id][1]['POINTS'] / 100;
 					}
-					elseif ( ! is_numeric( $columns['POINTS'] ) )
+                    elseif ( ! is_numeric( $columns['POINTS'] ) )
 					{
 						$columns['POINTS'] = _makePercentGrade( $columns['POINTS'], UserCoursePeriod() ) * $assignments_RET[$assignment_id][1]['POINTS'] / 100;
 					}
@@ -189,7 +189,7 @@ if ( ! empty( $_REQUEST['values'] )
 					{
 						$columns['POINTS'] = '0';
 					}
-					elseif ( $columns['POINTS'] > 9999.99 )
+                    elseif ( $columns['POINTS'] > 9999.99 )
 					{
 						$columns['POINTS'] = '9999.99';
 					}
@@ -208,7 +208,7 @@ if ( ! empty( $_REQUEST['values'] )
 					]
 				);
 			}
-			elseif ( $columns['POINTS'] != ''
+            elseif ( $columns['POINTS'] != ''
 			         || ( isset( $columns['COMMENT'] ) && $columns['COMMENT'] != '' ) )
 			{
 				// @deprecated since 6.9 SQL gradebook_grades column PERIOD_ID.
@@ -418,7 +418,7 @@ else
 			$LO_columns['G' . $id] = $column_title;
 		}
 	}
-	elseif ( ! empty( $_REQUEST['assignment_id'] ) )
+    elseif ( ! empty( $_REQUEST['assignment_id'] ) )
 	{
 		$extra['SELECT'] = ",'" . $_REQUEST['assignment_id'] . "' AS POINTS,
 			'" . $_REQUEST['assignment_id'] . "' AS PERCENT_GRADE,
@@ -734,7 +734,7 @@ else
 // @since 4.6 Navigate form inputs vertically using tab key.
 // @link https://stackoverflow.com/questions/38575817/set-tabindex-in-vertical-order-of-columns
 ?>
-	<script>
+    <script>
         function fixVerticalTabindex(selector) {
             var tabindex = 1;
             $(selector).each(function(i, tbl) {
@@ -747,7 +747,7 @@ else
         }
 
         fixVerticalTabindex('.list-wrapper .list tbody');
-	</script>
+    </script>
 <?php
 
 echo $_REQUEST['assignment_id'] ? '<br /><div class="center">' . SubmitButton() . '</div>' : '';
@@ -826,7 +826,7 @@ function _makeExtraAssnCols( $assignment_id, $column )
 					{
 						$points = '*';
 					}
-					elseif ( mb_strpos( (string) $points, '.' ) )
+                    elseif ( mb_strpos( (string) $points, '.' ) )
 					{
 						$points = rtrim( rtrim( $points, '0' ), '.' );
 					}
@@ -1073,7 +1073,7 @@ function _makeExtraStuCols( $value, $column )
 			{
 				$value = '*';
 			}
-			elseif ( mb_strpos( (string) $value, '.' ) )
+            elseif ( mb_strpos( (string) $value, '.' ) )
 			{
 				$value = rtrim( rtrim( $value, '0' ), '.' );
 			}
@@ -1200,7 +1200,7 @@ function _makeExtraCols( $assignment_id, $column )
 		{
 			$points = '*';
 		}
-		elseif ( mb_strpos( (string) $points, '.' ) )
+        elseif ( mb_strpos( (string) $points, '.' ) )
 		{
 			$points = rtrim( rtrim( $points, '0' ), '.' );
 		}
