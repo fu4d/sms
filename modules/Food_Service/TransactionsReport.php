@@ -87,20 +87,20 @@ foreach ( (array) $types as $user => $trans )
 		if ( $total != 0 )
 		{
 			$TMP_types[] = [
-				'TYPE' => ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ),
-				'TRANSACTION' => $types_rows[$tran],
-				'TOTAL' => '<b>' . Currency( $total ) . '</b>'
-			] + array_map( 'Currency', $value );
+				               'TYPE' => ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ),
+				               'TRANSACTION' => $types_rows[$tran],
+				               'TOTAL' => '<b>' . Currency( $total ) . '</b>'
+			               ] + array_map( 'Currency', $value );
 		}
 	}
 
 	$total = array_sum( $types_totals[$user] );
 
 	$TMP_types[] = [
-		'TYPE' => '<b>' . ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ) . '</b>',
-		'TRANSACTION' => '<b>' . _( 'Totals' ) . '</b>',
-		'TOTAL' => '<b>' . Currency( $total ) . '</b>'
-	] + array_map( 'bold_format', $types_totals[$user] );
+		               'TYPE' => '<b>' . ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ) . '</b>',
+		               'TRANSACTION' => '<b>' . _( 'Totals' ) . '</b>',
+		               'TOTAL' => '<b>' . Currency( $total ) . '</b>'
+	               ] + array_map( 'bold_format', $types_totals[$user] );
 
 	unset( $TMP_types[0] );
 	$LO_types[] = $TMP_types;
@@ -118,16 +118,16 @@ foreach ( (array) $types_totals[''] as $key => $value )
 }
 
 $LO_types[] = [ [
-	'TYPE' => '<b>' . _( 'Totals' ) . '</b>',
-	'TOTAL' => '<b>' . number_format( $total, 2 ) . '</b>'
-] + array_map( 'bold_format', $types_totals[''] ) ];
+	                'TYPE' => '<b>' . _( 'Totals' ) . '</b>',
+	                'TOTAL' => '<b>' . number_format( $total, 2 ) . '</b>'
+                ] + array_map( 'bold_format', $types_totals[''] ) ];
 
 unset( $LO_types[0] );
 
 $LO_columns = [
-	'TYPE' => _( 'Type' ),
-	'TRANSACTION' => _( 'Transaction' )
-] + $types_columns + [ 'TOTAL' => _( 'Total' ) ];
+	              'TYPE' => _( 'Type' ),
+	              'TRANSACTION' => _( 'Transaction' )
+              ] + $types_columns + [ 'TOTAL' => _( 'Total' ) ];
 
 ListOutput(
 	$LO_types,
