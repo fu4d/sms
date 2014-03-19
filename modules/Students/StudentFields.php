@@ -46,9 +46,9 @@ else
 function _fieldsCategoryMenu( $category )
 {
 	$link = PreparePHP_SELF(
-		[],
-		[ 'category', 'category_id', 'id', 'table', 'ML_tables' ]
-	) . '&category=';
+		        [],
+		        [ 'category', 'category_id', 'id', 'table', 'ML_tables' ]
+	        ) . '&category=';
 
 	$menu = SelectInput(
 		$category,
