@@ -26,7 +26,7 @@ $chart_types = [ 'bar', 'list' ];
 
 // Set Chart Type.
 if ( ! isset( $_REQUEST['chart_type'] )
-	|| ! in_array( $_REQUEST['chart_type'], $chart_types ) )
+     || ! in_array( $_REQUEST['chart_type'], $chart_types ) )
 {
 	$_REQUEST['chart_type'] = 'bar';
 }
@@ -35,7 +35,7 @@ $timeframes = [ 'month', 'SYEAR' ];
 
 // Set Timeframe.
 if ( ! isset( $_REQUEST['timeframe'] )
-	|| ! in_array( $_REQUEST['timeframe'], $timeframes ) )
+     || ! in_array( $_REQUEST['timeframe'], $timeframes ) )
 {
 	$_REQUEST['timeframe'] = 'month';
 }
@@ -50,15 +50,15 @@ if ( $_REQUEST['modfunc'] === 'search' )
 	$extra['search_title'] = _( 'Advanced' );
 
 	$extra['action'] = '&category_id=' . $_REQUEST['category_id'] .
-		'&chart_type=' . $_REQUEST['chart_type'] .
-		'&timeframe=' . $_REQUEST['timeframe'] .
-		'&day_start=' . $_REQUEST['day_start'] .
-		'&day_end=' . $_REQUEST['day_end'] .
-		'&month_start=' . $_REQUEST['month_start'] .
-		'&month_end=' . $_REQUEST['month_end'] .
-		'&year_start=' . $_REQUEST['year_start'] .
-		'&year_end=' . $_REQUEST['year_end'] .
-		'&modfunc=&search_modfunc=';
+	                   '&chart_type=' . $_REQUEST['chart_type'] .
+	                   '&timeframe=' . $_REQUEST['timeframe'] .
+	                   '&day_start=' . $_REQUEST['day_start'] .
+	                   '&day_end=' . $_REQUEST['day_end'] .
+	                   '&month_start=' . $_REQUEST['month_start'] .
+	                   '&month_end=' . $_REQUEST['month_end'] .
+	                   '&year_start=' . $_REQUEST['year_start'] .
+	                   '&year_end=' . $_REQUEST['year_end'] .
+	                   '&modfunc=&search_modfunc=';
 
 	Search( 'student_id', $extra );
 }
@@ -82,7 +82,7 @@ if ( ! empty( $_REQUEST['category_id'] ) )
 		$start = $_REQUEST['month_start'] * 1;
 
 		$end = ( $_REQUEST['month_end'] * 1 ) + 12 *
-			( $_REQUEST['year_end'] - $_REQUEST['year_start'] );
+		                                        ( $_REQUEST['year_end'] - $_REQUEST['year_start'] );
 	}
 	else // SYEAR
 	{
@@ -128,7 +128,7 @@ if ( ! empty( $_REQUEST['category_id'] ) )
 		AND dr.ENTRY_DATE BETWEEN '" . $start_date . "' AND '" . $end_date . "' ";
 
 	if ( $category_RET[1]['DATA_TYPE'] === 'multiple_radio'
-		|| $category_RET[1]['DATA_TYPE'] === 'select' )
+	     || $category_RET[1]['DATA_TYPE'] === 'select' )
 	{
 		$extra['SELECT_ONLY'] = "dr.CATEGORY_" . intval( $_REQUEST['category_id'] ) . " AS TITLE,COUNT(*) AS COUNT," . $timeframe . ' AS TIMEFRAME';
 
@@ -277,7 +277,7 @@ if ( ! empty( $_REQUEST['category_id'] ) )
 	elseif ( $category_RET[1]['DATA_TYPE'] === 'numeric' )
 	{
 		$extra['SELECT_ONLY'] = "COALESCE(max(CATEGORY_" . intval( $_REQUEST['category_id'] ) .
-			"),0) as MAX,COALESCE(min(CATEGORY_" . intval( $_REQUEST['category_id'] ) . "),0) AS MIN ";
+		                        "),0) as MAX,COALESCE(min(CATEGORY_" . intval( $_REQUEST['category_id'] ) . "),0) AS MIN ";
 
 		// Remove NULL entries.
 		$extra['WHERE'] .= " AND CATEGORY_" . intval( $_REQUEST['category_id'] ) . " IS NOT NULL ";
@@ -436,31 +436,31 @@ if ( ! $_REQUEST['modfunc'] )
 	);
 
 	$advanced_link = ' <a href="' . PreparePHP_SELF( $_REQUEST, [ 'search_modfunc' ], [
-		'modfunc' => 'search',
-		'include_top' => 'false',
-	] ) . '">' . _( 'Advanced' ) . '</a>';
+			'modfunc' => 'search',
+			'include_top' => 'false',
+		] ) . '">' . _( 'Advanced' ) . '</a>';
 
 	DrawHeader( $select );
 
 	$timeframe_radio = '<label>
 		<input type="radio" name="timeframe" value="month"' . ( $_REQUEST['timeframe'] === 'month' ? ' checked' : '' ) . '>&nbsp;' . _( 'Month' ) .
-	'</label> &nbsp;' .
-	'<label>
+	                   '</label> &nbsp;' .
+	                   '<label>
 		<input type="radio" name="timeframe" value="SYEAR"' . ( $_REQUEST['timeframe'] === 'SYEAR' ? ' checked' : '' ) . '>&nbsp;' . _( 'School Year' ) .
-	'</label>';
+	                   '</label>';
 
 	DrawHeader( '<b>' . _( 'Timeframe' ) . ': </b> ' . $timeframe_radio );
 
 	DrawHeader(
 		_( 'Report Timeframe' ) . ': ' .
-			PrepareDate( $start_date, '_start', false ) . ' &nbsp; ' . _( 'to' ) . ' &nbsp; ' .
-			PrepareDate( $end_date, '_end', false ) . ' ' .
-			SubmitButton( _( 'Go' ) ),
+		PrepareDate( $start_date, '_start', false ) . ' &nbsp; ' . _( 'to' ) . ' &nbsp; ' .
+		PrepareDate( $end_date, '_end', false ) . ' ' .
+		SubmitButton( _( 'Go' ) ),
 		$advanced_link
 	);
 
 	if ( isset( $_ROSARIO['SearchTerms'] )
-		&& ! empty( $_ROSARIO['SearchTerms'] ) )
+	     && ! empty( $_ROSARIO['SearchTerms'] ) )
 	{
 		DrawHeader( $_ROSARIO['SearchTerms'] );
 	}
@@ -555,19 +555,19 @@ if ( ! $_REQUEST['modfunc'] )
 function _makeNumericTime( $number, $column )
 {
 	global $max_min_RET,
-		$chart,
-		$diff,
-		$diff_max,
-		$mins,
-		$THIS_RET,
-		$start_date,
-		$end_date;
+	       $chart,
+	       $diff,
+	       $diff_max,
+	       $mins,
+	       $THIS_RET,
+	       $start_date,
+	       $end_date;
 
 	if ( $_REQUEST['timeframe'] === 'month' )
 	{
 		$index = ( ( $THIS_RET['TIMEFRAME'] * 1 ) -
-			( $_REQUEST['month_start'] * 1 ) + 1 +
-			12 * ( $_REQUEST['year_end'] - $_REQUEST['year_start'] ) );
+		           ( $_REQUEST['month_start'] * 1 ) + 1 +
+		           12 * ( $_REQUEST['year_end'] - $_REQUEST['year_start'] ) );
 	}
 	elseif ( $_REQUEST['timeframe'] === 'SYEAR' )
 	{
@@ -605,8 +605,8 @@ function _makeNumericTime( $number, $column )
 		for ( $i = 1; $i <= $diff_max; $i++ )
 		{
 			if ( ( $number >= $mins[ $i ]
-					&& $number < $mins[$i + 1] )
-				|| $i === $diff_max )
+			       && $number < $mins[$i + 1] )
+			     || $i === $diff_max )
 			{
 				$chart['chart_data'][ $index ][ $i ]++;
 
