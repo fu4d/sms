@@ -10,7 +10,7 @@ $chart_types = [ 'bar', 'pie', 'list' ];
 
 // set Chart Type
 if ( ! isset( $_REQUEST['chart_type'] )
-	|| ! in_array( $_REQUEST['chart_type'], $chart_types ) )
+     || ! in_array( $_REQUEST['chart_type'], $chart_types ) )
 {
 	$_REQUEST['chart_type'] = 'bar';
 }
@@ -27,8 +27,8 @@ if ( $_REQUEST['modfunc'] === 'search' )
 	$extra['search_title'] = _( 'Advanced' );
 
 	$extra['action'] = '&field_id=' . $_REQUEST['field_id'] .
-		'&chart_type=' . $_REQUEST['chart_type'] .
-		'&modfunc=&search_modfunc=';
+	                   '&chart_type=' . $_REQUEST['chart_type'] .
+	                   '&modfunc=&search_modfunc=';
 
 	Search( 'student_id', $extra );
 }
@@ -88,7 +88,7 @@ if ( ! empty( $_REQUEST['field_id'] ) )
 			foreach ( (array) $options_RET as $option )
 			{
 				if ( ! $fields_RET[1]['OPTIONS']
-					|| ! in_array( $option['CUSTOM_' . intval( $_REQUEST['field_id'] )], $fields_RET[1]['OPTIONS'] ) )
+				     || ! in_array( $option['CUSTOM_' . intval( $_REQUEST['field_id'] )], $fields_RET[1]['OPTIONS'] ) )
 				{
 					$fields_RET[1]['OPTIONS'][] = $option['CUSTOM_' . intval( $_REQUEST['field_id'] )];
 				}
@@ -183,7 +183,7 @@ if ( ! empty( $_REQUEST['field_id'] ) )
 		$diff = $max_min_RET[1]['MAX'] - $max_min_RET[1]['MIN'];
 
 		if ( $diff > 10
-			&& $_REQUEST['chart_type'] !== 'bar' )
+		     && $_REQUEST['chart_type'] !== 'bar' )
 		{
 			// Correct numeric chart.
 			for ( $i = 1; $i <= 10; $i++ )
@@ -193,7 +193,7 @@ if ( ! empty( $_REQUEST['field_id'] ) )
 				$chart['chart_data'][1][ $i ] = 0;*/
 
 				$chart['chart_data'][0][ $i ] = ( $max_min_RET[1]['MIN'] + ( ceil( $diff / 10 ) * ( $i - 1 ) ) ) . ' - ' .
-					( $max_min_RET[1]['MIN'] + ( ( ceil( $diff / 10 ) * $i ) - 1 ) );
+				                                ( $max_min_RET[1]['MIN'] + ( ( ceil( $diff / 10 ) * $i ) - 1 ) );
 
 				$mins[ $i ] = ( $max_min_RET[1]['MIN'] + ( ceil( $diff / 10 ) * ( $i - 1 ) ) );
 
@@ -271,9 +271,9 @@ if ( ! $_REQUEST['modfunc'] )
 	$select .= '</select>';
 
 	$advanced_link = ' <a href="' . PreparePHP_SELF( $_REQUEST, [ 'search_modfunc' ], [
-		'modfunc' => 'search',
-		'include_top' => 'false',
-	] ) . '">' . _( 'Advanced' ) . '</a>';
+			'modfunc' => 'search',
+			'include_top' => 'false',
+		] ) . '">' . _( 'Advanced' ) . '</a>';
 
 	DrawHeader( $select . $advanced_link );
 
@@ -285,7 +285,7 @@ if ( ! $_REQUEST['modfunc'] )
 	echo '<br />';
 
 	if ( isset( $_REQUEST['field_id'] )
-		&& !empty( $_REQUEST['field_id'] ) )
+	     && !empty( $_REQUEST['field_id'] ) )
 	{
 		if ( $chartline )
 		{

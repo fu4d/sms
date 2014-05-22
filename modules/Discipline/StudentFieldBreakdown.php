@@ -26,7 +26,7 @@ $chart_types = [ 'bar', 'pie', 'list' ];
 
 // Set Chart Type.
 if ( ! isset( $_REQUEST['chart_type'] )
-	|| ! in_array( $_REQUEST['chart_type'], $chart_types ) )
+     || ! in_array( $_REQUEST['chart_type'], $chart_types ) )
 {
 	$_REQUEST['chart_type'] = 'bar';
 }
@@ -43,14 +43,14 @@ if ( $_REQUEST['modfunc'] === 'search' )
 	$extra['search_title'] = _( 'Advanced' );
 
 	$extra['action'] = '&field_id=' . $_REQUEST['field_id'] .
-		'&chart_type=' . $_REQUEST['chart_type'] .
-		'&day_start=' . $_REQUEST['day_start'] .
-		'&day_end=' . $_REQUEST['day_end'] .
-		'&month_start=' . $_REQUEST['month_start'] .
-		'&month_end=' . $_REQUEST['month_end'] .
-		'&year_start=' . $_REQUEST['year_start'] .
-		'&year_end=' . $_REQUEST['year_end'] .
-		'&modfunc=&search_modfunc=';
+	                   '&chart_type=' . $_REQUEST['chart_type'] .
+	                   '&day_start=' . $_REQUEST['day_start'] .
+	                   '&day_end=' . $_REQUEST['day_end'] .
+	                   '&month_start=' . $_REQUEST['month_start'] .
+	                   '&month_end=' . $_REQUEST['month_end'] .
+	                   '&year_start=' . $_REQUEST['year_start'] .
+	                   '&year_end=' . $_REQUEST['year_end'] .
+	                   '&modfunc=&search_modfunc=';
 
 	Search( 'student_id', $extra );
 }
@@ -115,7 +115,7 @@ if ( ! empty( $_REQUEST['field_id'] ) )
 			foreach ( (array) $options_RET as $option )
 			{
 				if ( ! $fields_RET[1]['OPTIONS']
-					|| ! in_array( $option['CUSTOM_' . intval( $_REQUEST['field_id'] )], $fields_RET[1]['OPTIONS'] ) )
+				     || ! in_array( $option['CUSTOM_' . intval( $_REQUEST['field_id'] )], $fields_RET[1]['OPTIONS'] ) )
 				{
 					$fields_RET[1]['OPTIONS'][] = $option['CUSTOM_' . intval( $_REQUEST['field_id'] )];
 				}
@@ -212,7 +212,7 @@ if ( ! empty( $_REQUEST['field_id'] ) )
 		$diff = $max_min_RET[1]['MAX'] - $max_min_RET[1]['MIN'];
 
 		if ( $diff > 10
-			&& $_REQUEST['chart_type'] !== 'bar' )
+		     && $_REQUEST['chart_type'] !== 'bar' )
 		{
 			// Correct numeric chart.
 			for ( $i = 1; $i <= 10; $i++ )
@@ -222,7 +222,7 @@ if ( ! empty( $_REQUEST['field_id'] ) )
 				$chart['chart_data'][1][ $i ] = 0;*/
 
 				$chart['chart_data'][0][ $i ] = ( $max_min_RET[1]['MIN'] + ( ceil( $diff / 10 ) * ( $i - 1 ) ) ) . ' - ' .
-					( $max_min_RET[1]['MIN'] + ( ( ceil( $diff / 10 ) * $i ) - 1 ) );
+				                                ( $max_min_RET[1]['MIN'] + ( ( ceil( $diff / 10 ) * $i ) - 1 ) );
 
 				$mins[ $i ] = ( $max_min_RET[1]['MIN'] + ( ceil( $diff / 10 ) * ( $i - 1 ) ) );
 
@@ -301,18 +301,18 @@ if ( ! $_REQUEST['modfunc'] )
 		<label for="field_id" class="a11y-hidden">' . _( 'Student Field' ) . '</label>';
 
 	$advanced_link = ' <a href="' . PreparePHP_SELF( $_REQUEST, [ 'search_modfunc' ], [
-		'modfunc' => 'search',
-		'include_top' => 'false',
-	] ) . '">' . _( 'Advanced' ) . '</a>';
+			'modfunc' => 'search',
+			'include_top' => 'false',
+		] ) . '">' . _( 'Advanced' ) . '</a>';
 
 
 	DrawHeader( $select );
 
 	DrawHeader(
 		_( 'Report Timeframe' ) . ': ' .
-			PrepareDate( $start_date, '_start', false ) . ' &nbsp; ' . _( 'to' ) . ' &nbsp; ' .
-			PrepareDate( $end_date, '_end', false ) . ' ' .
-			SubmitButton( _( 'Go' ) ),
+		PrepareDate( $start_date, '_start', false ) . ' &nbsp; ' . _( 'to' ) . ' &nbsp; ' .
+		PrepareDate( $end_date, '_end', false ) . ' ' .
+		SubmitButton( _( 'Go' ) ),
 		$advanced_link
 	);
 
@@ -324,7 +324,7 @@ if ( ! $_REQUEST['modfunc'] )
 	echo '<br />';
 
 	if ( isset( $_REQUEST['field_id'] )
-		&& !empty( $_REQUEST['field_id'] ) )
+	     && !empty( $_REQUEST['field_id'] ) )
 	{
 		if ( $chartline )
 		{
