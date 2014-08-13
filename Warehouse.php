@@ -254,7 +254,7 @@ if ( empty( $_SESSION['STAFF_ID'] )
 
 	// Redirection is done in Javascript in case current request is AJAX.
 	?>
-	<script>window.location.href = "index.php?modfunc=logout" +
+    <script>window.location.href = "index.php?modfunc=logout" +
 			<?php echo json_encode( $redirect_to ); ?> +
                 "&token=" + <?php echo json_encode( $_SESSION['token'] ); ?>;</script>
 	<?php
@@ -521,7 +521,7 @@ function _LoadAddons( $addons, $folder )
 		{
 			require_once $addon_functions;
 		}
-		elseif ( $folder === 'plugins/' )
+        elseif ( $folder === 'plugins/' )
 		{
 			// If plugin does not exist, deactivate it.
 			$RosarioPlugins[$addon] = false;
@@ -591,7 +591,7 @@ function Warehouse( $mode )
 			// If jQuery not available, log out.
 
 			if ( $_ROSARIO['page'] === 'modules' ): ?>
-				<script>if (!window.$) window.location.href = 'index.php?modfunc=logout&token=' + <?php echo json_encode( $_SESSION['token'] ); ?>;</script>
+                <script>if (!window.$) window.location.href = 'index.php?modfunc=logout&token=' + <?php echo json_encode( $_SESSION['token'] ); ?>;</script>
 			<?php endif;
 
 			// AJAX: we only need to generate #body content.
@@ -605,18 +605,18 @@ function Warehouse( $mode )
 
 		$dir_RTL = in_array( $lang_2_chars, $RTL_languages ) ? ' dir="RTL"' : '';
 		?>
-		<!doctype html>
-		<html lang="<?php echo $lang_2_chars; ?>"<?php echo $dir_RTL; ?>>
-		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width">
-			<title><?php echo ParseMLField( Config( 'TITLE' ) ); ?></title>
-			<link rel="icon" href="favicon.ico" sizes="32x32">
-			<link rel="icon" href="apple-touch-icon.png" sizes="128x128">
-			<meta name="apple-mobile-web-app-capable" content="yes">
-			<meta name="mobile-web-app-capable" content="yes">
-			<link rel="stylesheet" href="assets/themes/<?php echo Preferences( 'THEME' ); ?>/stylesheet.css?v=<?php echo ROSARIO_VERSION; ?>">
-			<style>.highlight,.highlight-hover:hover{background-color:<?php echo Preferences( 'HIGHLIGHT' ); ?> !important;}</style>
+        <!doctype html>
+        <html lang="<?php echo $lang_2_chars; ?>"<?php echo $dir_RTL; ?>>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width">
+            <title><?php echo ParseMLField( Config( 'TITLE' ) ); ?></title>
+            <link rel="icon" href="favicon.ico" sizes="32x32">
+            <link rel="icon" href="apple-touch-icon.png" sizes="128x128">
+            <meta name="apple-mobile-web-app-capable" content="yes">
+            <meta name="mobile-web-app-capable" content="yes">
+            <link rel="stylesheet" href="assets/themes/<?php echo Preferences( 'THEME' ); ?>/stylesheet.css?v=<?php echo ROSARIO_VERSION; ?>">
+            <style>.highlight,.highlight-hover:hover{background-color:<?php echo Preferences( 'HIGHLIGHT' ); ?> !important;}</style>
 			<?php
 
 			if ( $_ROSARIO['page'] === 'modules'
@@ -639,36 +639,36 @@ function Warehouse( $mode )
 			 */
 			do_action( 'Warehouse.php|header_head' );
 			?>
-			<noscript>
-				<meta http-equiv="REFRESH" content="0; url=<?php echo URLEscape( 'index.php?modfunc=logout&amp;reason=javascript&amp;token=' . $_SESSION['token'] ); ?>">
-			</noscript>
-		</head>
-		<body class="<?php echo AttrEscape( $_ROSARIO['page'] ); ?>">
+            <noscript>
+                <meta http-equiv="REFRESH" content="0; url=<?php echo URLEscape( 'index.php?modfunc=logout&amp;reason=javascript&amp;token=' . $_SESSION['token'] ); ?>">
+            </noscript>
+        </head>
+        <body class="<?php echo AttrEscape( $_ROSARIO['page'] ); ?>">
 		<?php
 		if ( $_ROSARIO['page'] === 'modules' ):
 		// If popup window, verify it is an actual popup.
 		if ( isPopup() ):
 		?>
-			<script>if(window == top  && (!window.opener)) window.location.href = "Modules.php?modname=misc/Portal.php";</script>
+            <script>if(window == top  && (!window.opener)) window.location.href = "Modules.php?modname=misc/Portal.php";</script>
 		<?php // @since 10.0 Close popup if no UserSchool in session, happens on login redirect.
 		if ( ! UserSchool() ) : ?>
-			<script>window.close();</script>
+            <script>window.close();</script>
 		<?php endif;
 		else: ?>
-		<div id="wrap">
-			<footer id="footer" class="mod">
+        <div id="wrap">
+            <footer id="footer" class="mod">
 				<?php require_once 'Bottom.php'; // Include Bottom menu. ?>
-			</footer>
-			<aside id="menu" class="mod">
+            </footer>
+            <aside id="menu" class="mod">
 				<?php require_once 'Side.php'; // Include Side menu. ?>
-			</aside>
+            </aside>
 
 			<?php
 			endif;
 			endif;
 
 			?>
-			<div id="body" tabindex="0" role="main" class="mod">
+            <div id="body" tabindex="0" role="main" class="mod">
 				<?php
 				/**
 				 * Hook.
@@ -684,12 +684,12 @@ function Warehouse( $mode )
 				// Footer HTML.
 				case 'footer':
 				?>
-				<br>
+                <br>
 				<?php
 
 				if ( isset( $_ROSARIO['page'] )
 				     && $_ROSARIO['page'] === 'modules' ): ?>
-				<script>
+                <script>
                     var modname = "<?php echo issetVal( $_ROSARIO['ProgramLoaded'], '' ); ?>";
                     if (typeof menuStudentID !== 'undefined'
                         && (menuStudentID != "<?php echo UserStudentID(); ?>"
@@ -699,7 +699,7 @@ function Warehouse( $mode )
                             || menuCoursePeriod != "<?php echo UserCoursePeriod(); ?>")) {
                         ajaxLink( 'Side.php?sidefunc=update' );
                     }
-				</script>
+                </script>
 				<?php
 				/**
 				 * Hook.
@@ -714,17 +714,17 @@ function Warehouse( $mode )
 				// If not AJAX request.
 				if ( ! isAJAX() ):
 				?>
-			</div><!-- #body -->
-			<div class="ajax-error"></div>
+            </div><!-- #body -->
+            <div class="ajax-error"></div>
 			<?php
 
 			if ( ! isPopup() ):
 			?>
-		</div><!-- #wrap -->
+        </div><!-- #wrap -->
 		<?php endif;
 
 		?>
-		</body></html>
+        </body></html>
 	<?php endif;
 
 		if ( ! isPopup() ):
@@ -742,11 +742,11 @@ function Warehouse( $mode )
 
 		endif;
 
-	elseif ( ! isAJAX() ): // Other pages (not modules).
+    elseif ( ! isAJAX() ): // Other pages (not modules).
 
 		?>
-		</div><!-- #body -->
-		</body></html>
+        </div><!-- #body -->
+        </body></html>
 	<?php endif;
 
 		ETagCache( 'stop' );
@@ -770,13 +770,13 @@ function WarehouseHeaderJS()
 	$lang_2_chars = mb_substr( $_SESSION['locale'], 0, 2 );
 
 	?>
-	<script src="assets/js/jquery.js?v=2.2.4"></script>
-	<script src="assets/js/plugins.min.js?v=<?php echo ROSARIO_VERSION; ?>"></script>
-	<script src="assets/js/jscalendar/lang/calendar-<?php echo file_exists( 'assets/js/jscalendar/lang/calendar-' . $lang_2_chars . '.js' ) ? $lang_2_chars : 'en'; ?>.js"></script>
+    <script src="assets/js/jquery.js?v=2.2.4"></script>
+    <script src="assets/js/plugins.min.js?v=<?php echo ROSARIO_VERSION; ?>"></script>
+    <script src="assets/js/jscalendar/lang/calendar-<?php echo file_exists( 'assets/js/jscalendar/lang/calendar-' . $lang_2_chars . '.js' ) ? $lang_2_chars : 'en'; ?>.js"></script>
 	<?php
 	// Add scripts.js file from theme if any found.
 	if ( file_exists( 'assets/themes/' . Preferences( 'THEME' ) . '/scripts.js' ) ): ?>
-		<script src="assets/themes/<?php echo Preferences( 'THEME' ); ?>/scripts.js"></script>
+        <script src="assets/themes/<?php echo Preferences( 'THEME' ); ?>/scripts.js"></script>
 	<?php endif;
 }
 
@@ -899,7 +899,7 @@ function ETagCache( $mode = '' )
 		// Start buffer (to generate ETag).
 		$ob_started = ob_start();
 	}
-	elseif ( $mode === 'stop'
+    elseif ( $mode === 'stop'
 	         && $ob_started )
 	{
 		// Stop & get buffer buffer (to generate ETag).
