@@ -3,6 +3,12 @@ RosarioSIS Student Information System
 
 [<img src="http://www.rosariosis.org/wp-content/uploads/2013/02/rosariosis_logo2half.png" width="144" />](https://www.rosariosis.org)
 
+Note
+----
+
+The master branch hosts the legacy (1.4.x) version of RosarioSIS. You sould head up to the [mobile branch](https://github.com/francoisjacquet/rosariosis/tree/mobile) for the currently developed version.
+
+
 License
 -------
 
