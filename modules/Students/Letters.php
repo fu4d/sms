@@ -123,16 +123,17 @@ if ( $_REQUEST['modfunc'] === 'save'
 			echo '<br /><br /><br />';
 		}
 
-		//DrawHeader(ParseMLField(Config('TITLE')).' Letter');
+		/*//DrawHeader(ParseMLField(Config('TITLE')).' Letter');
 		DrawHeader( '&nbsp;' );
 		DrawHeader( $student['FULL_NAME'], $student['STUDENT_ID'] );
 		DrawHeader( $student['GRADE_ID'], $student['SCHOOL_TITLE'] );
 		//DrawHeader('',GetMP(GetCurrentMP('QTR',DBDate(),false)));
-		DrawHeader( ProperDate( DBDate() ) );
+		DrawHeader( ProperDate( DBDate() ) );*/
 
 		if ( $_REQUEST['mailing_labels'] == 'Y' )
 		{
-			echo '<br /><br /><table class="width-100p"><tr><td style="width:50px;"> &nbsp; </td><td>' . $student['MAILING_LABEL'] . '</td></tr></table><br />';
+//			echo '<br /><br /><table class="width-100p"><tr><td style="width:50px;"> &nbsp; </td><td>' . $student['MAILING_LABEL'] . '</td></tr></table><br />';
+			echo '<table class="width-100p"><tr><td>' . $student['MAILING_LABEL'] . '</td></tr></table><br />';
 		}
 
 		$substitutions = [
