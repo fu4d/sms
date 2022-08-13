@@ -152,7 +152,13 @@ function db_query( $sql, $show_error = true )
 	}
 	else
 	{
-		$result = pg_exec( $db_connection, $sql );
+        try {
+            $result = pg_exec( $db_connection, $sql );
+        }
+        catch (Exception $exception) {
+            echo $sql;
+        }
+
 	}
 
 	if ( $result === false
