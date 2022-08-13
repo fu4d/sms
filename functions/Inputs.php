@@ -346,7 +346,7 @@ function setMLvalue(id, loc, value){
 	{
 		$return = ParseMLField( $value );
 
-		$title_break = '<br />';
+		$title_break = '';
 	}
 
 	return $return . FormatInputTitle( $title, '', false, $title_break );
@@ -1679,7 +1679,7 @@ function GetInputID( $name )
  *
  * @return string  Formatted Input Title
  */
-function FormatInputTitle( $title, $id = '', $required = false, $break = '<br />' )
+function FormatInputTitle( $title, $id = '', $required = false, $break = '' )
 {
 	if ( $title === '' )
 	{
