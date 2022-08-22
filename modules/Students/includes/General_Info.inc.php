@@ -211,7 +211,7 @@ else
 		'values[student_enrollment][new][SCHOOL_ID]',
 		_( 'School' ),
 		$school_options,
-		false,
+		'',
 		'autocomplete="off" onchange="window.location.href=' . $school_onchange_url . ' + this.value;"',
 		false
 	);
