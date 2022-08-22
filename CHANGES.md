@@ -1,6 +1,12 @@
 # CHANGES
 ## RosarioSIS Student Information System
 
+Changes in 10.1
+---------------
+- Fix MySQL 5.6 syntax error when WHERE without FROM clause, use dual table in TakeAttendance.php, Reminders.php,  InputFinalGrades.php, Requests.php & Calendar.php
+- Add dual VIEW for compatibility with MySQL 5.6 to avoid syntax error when WHERE without FROM clause in rosariosis.sql & Update.fnc.php
+- Fix MySQL 5.6 syntax error in ORDER BY use report_card_comments table instead of dual in InputFinalGrades.php
+
 Changes in 10.0
 ---------------
 - SQL convert table names to lowercase, program wide
@@ -44,7 +50,7 @@ Changes in 10.0
 - Rename YEAR_MONTH column alias to YEAR_MONTH_DATE: reserved keyword in MySQL in Dashboard.inc.php
 - SQL use DAYOFWEEK() for MySQL or cast(extract(DOW)+1 AS int) for PostrgeSQL, program wide
 - SQL cast(AS UNSIGNED) for MySQL or cast(AS INT) for PostgreSQL, program wide
-- SQL cast custom_fields ID as VARCHAR(10) instead of TEXT for MySQL compatibility in GetStaffList.fnc.php, GetStuList.fnc.php & Search.fnc.php
+- SQL cast custom_fields ID AS char(10) instead of TEXT for MySQL compatibility in GetStaffList.fnc.php, GetStuList.fnc.php & Search.fnc.php
 - SQL rename $field COLUMN (reserved keyword) to COLUMN_NAME for MySQL compatibility in CustomFields.fnc.php, GetStaffList.fnc.php, GetStuList.fnc.php & Search.fnc.php
 - SQL remove use of nextval in rosariosis_fr.sql
 - Rename $pg_dumpPath configuration variable to $DatabaseDumpPath in config.inc.sample.php, diagnostic.php & DatabaseBackup.php
@@ -102,6 +108,18 @@ Changes in 10.0
 - Place currency symbol after amount for some locales in Currency.fnc.php
 - SQL use timestamp type: standard & without time zone by default in rosariosis.sql
 - CSS add .accounting-totals, .accounting-staff-payroll-totals, .student-billing-totals classes in Expenses.php, Incomes.php, Salaries.php, StaffPayments.php, StudentFees.php & StudentPayments.php
+- SQL rename KEY (reserved keyword) to SORT_KEY for MySQL compatibility in Search.fnc.php, StudentFieldBreakdown.php, StudentBreakdown.php
+- SQL use GROUP BY instead of DISCTINCT ON for MySQL compatibility in Address.inc.php & EnterEligibility.php
+- SQL cast Config( 'STUDENTS_EMAIL_FIELD' ) to int when custom field in SendNotification.fnc.php, Registration.fnc.php, Moodle/getconfig.inc.php & ImportUsers.fnc.php
+- Fix MySQL 5.6 error Can't specify target table for update in FROM clause in PortalPollsNotes.fnc.php, DeleteTransaction.fnc.php, DeleteTransactionItem.fnc.php, Rollover.php, CopySchool.php & AssignOtherInfo.php
+- Fix MySQL syntax error: explicitly list all columns instead of wildcard in ActivityReport.php & Statements.php
+- Fix MakeChooseCheckbox() remove parent link to sort column in Inputs.php & ListOutput.fnc.php
+- CSS WPadmin fix menu select width in stylesheet.css
+- Enrollment Start: No N/A option for new student in StudentUsersInfo.fnc.php
+
+Changes in 9.3.2
+----------------
+- Fix regression since 9.2.1 fields other type than Select Multiple from Options in CategoryBreakdownTime.php
 
 Changes in 9.3.1
 ----------------
@@ -122,7 +140,7 @@ Changes in 9.3
 - SQL use CONCAT() instead of pipes || for MySQL compatibility, program wide
 - Fix first item in the list not displayed in Accounting/includes/DailyTransactions.php
 - SQL time interval for MySQL compatibility in PasswordReset.php & index.php
-- SQL use CAST(X AS varchar(X)) instead of to_char() for MySQL compatibility in Dashboard.inc.php & Reminders.php
+- SQL use CAST(X AS char(X)) instead of to_char() for MySQL compatibility in Dashboard.inc.php & Reminders.php
 - SQL result as comma separated list for MySQL compatibility in Grades/includes/Dashboard.inc.php & MasterScheduleReport.php
 - Use DBEscapeIdentifier() for MySQL reserved 'TIMESTAMP' keyword in ServeMenus.php & Transactions.php
 - SQL add `_SQLUnixTimestamp()` to extract Unix timestamp or epoch from date in Grades.php & Schedule.php
@@ -284,6 +302,8 @@ Changes in 9.0
 - HTML use number input for Class Rank widget in Widget.php
 - Check default if school has no default calendar in Calendar.php
 - CSS do not capitalize date in stylesheet.css
+- Remove unused index ON attendance_period (attendance_code) & ON student_report_card_grades (school_id) in rosariosis.sql & rosariosis_mysql.sql
+- SQL VACUUM & ANALIZE are for PostgreSQL only in Scheduler.php
 
 Changes in 8.9.6
 ----------------

@@ -875,6 +875,17 @@ CREATE TABLE discipline_referrals (
 
 
 --
+-- Name: dual; Type: VIEW; Schema: public; Owner: rosariosis
+--
+-- Compatibility with MySQL 5.6 to avoid syntax error when WHERE without FROM clause
+-- @example SELECT 1 FROM dual WHERE NOT EXISTS(...)
+-- @link https://pgpedia.info/d/dual-dummy-table.html
+--
+
+CREATE VIEW dual AS SELECT 'X' AS dummy;
+
+
+--
 -- Name: eligibility; Type: TABLE; Schema: public; Owner: rosariosis; Tablespace:
 --
 
@@ -2215,7 +2226,7 @@ INSERT INTO attendance_codes VALUES (NEXTVAL('attendance_codes_id_seq'), 2022, 1
 --
 
 INSERT INTO config VALUES (0, 'LOGIN', 'No');
-INSERT INTO config VALUES (0, 'VERSION', '9.3.1');
+INSERT INTO config VALUES (0, 'VERSION', '10.1');
 INSERT INTO config VALUES (0, 'TITLE', 'Rosario Student Information System');
 INSERT INTO config VALUES (0, 'NAME', 'RosarioSIS');
 INSERT INTO config VALUES (0, 'MODULES', 'a:13:{s:12:"School_Setup";b:1;s:8:"Students";b:1;s:5:"Users";b:1;s:10:"Scheduling";b:1;s:6:"Grades";b:1;s:10:"Attendance";b:1;s:11:"Eligibility";b:1;s:10:"Discipline";b:1;s:10:"Accounting";b:1;s:15:"Student_Billing";b:1;s:12:"Food_Service";b:1;s:9:"Resources";b:1;s:6:"Custom";b:1;}');
@@ -3180,13 +3191,6 @@ CREATE INDEX attendance_period_ind2 ON attendance_period (period_id);
 
 
 --
--- Name: attendance_period_ind3; Type: INDEX; Schema: public; Owner: rosariosis; Tablespace:
---
-
-CREATE INDEX attendance_period_ind3 ON attendance_period (attendance_code);
-
-
---
 -- Name: attendance_period_ind4; Type: INDEX; Schema: public; Owner: rosariosis; Tablespace:
 --
 
@@ -3653,13 +3657,6 @@ CREATE INDEX student_medical_visits_ind1 ON student_medical_visits (student_id);
 --
 
 CREATE INDEX student_report_card_comments_ind1 ON student_report_card_comments (syear, school_id);
-
-
---
--- Name: student_report_card_grades_ind1; Type: INDEX; Schema: public; Owner: rosariosis; Tablespace:
---
-
-CREATE INDEX student_report_card_grades_ind1 ON student_report_card_grades (school_id);
 
 
 --

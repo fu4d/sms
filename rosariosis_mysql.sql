@@ -2175,7 +2175,7 @@ INSERT INTO attendance_codes VALUES (NULL, 2022, 1, 'Excused Absence', 'E', 'off
 --
 
 INSERT INTO config VALUES (0, 'LOGIN', 'No', NULL, NULL);
-INSERT INTO config VALUES (0, 'VERSION', '9.3.1', NULL, NULL);
+INSERT INTO config VALUES (0, 'VERSION', '10.1', NULL, NULL);
 INSERT INTO config VALUES (0, 'TITLE', 'Rosario Student Information System', NULL, NULL);
 INSERT INTO config VALUES (0, 'NAME', 'RosarioSIS', NULL, NULL);
 INSERT INTO config VALUES (0, 'MODULES', 'a:13:{s:12:"School_Setup";b:1;s:8:"Students";b:1;s:5:"Users";b:1;s:10:"Scheduling";b:1;s:6:"Grades";b:1;s:10:"Attendance";b:1;s:11:"Eligibility";b:1;s:10:"Discipline";b:1;s:10:"Accounting";b:1;s:15:"Student_Billing";b:1;s:12:"Food_Service";b:1;s:9:"Resources";b:1;s:6:"Custom";b:1;}', NULL, NULL);
@@ -3130,13 +3130,6 @@ CREATE INDEX attendance_period_ind2 ON attendance_period (period_id);
 
 
 --
--- Name: attendance_period_ind3; Type: INDEX;
---
-
-CREATE INDEX attendance_period_ind3 ON attendance_period (attendance_code);
-
-
---
 -- Name: attendance_period_ind4; Type: INDEX;
 --
 
@@ -3442,13 +3435,6 @@ CREATE INDEX student_enrollment_2 ON student_enrollment (grade_id);
 --
 
 CREATE INDEX student_enrollment_4 ON student_enrollment (start_date, end_date);
-
-
---
--- Name: student_report_card_grades_ind1; Type: INDEX;
---
-
-CREATE INDEX student_report_card_grades_ind1 ON student_report_card_grades (school_id);
 
 
 --

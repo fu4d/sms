@@ -26,6 +26,10 @@
 	/* 100% of browser screen height */
 }
 
+#menu-top select {
+	width: 100%;
+}
+
 #body {
 	margin-bottom: 38px;
 }
@@ -351,10 +355,6 @@ select,
 	border-spacing: 0;
 }
 
-.widefat * {
-	word-wrap: break-word
-}
-
 .widefat a {
 	text-decoration: none
 }
@@ -382,7 +382,18 @@ select,
 	font-size: larger;
 	line-height: 0.5em;
 	content: "\0000a0";
+	/**
+	 * Prevent wrapping to next line
+	 * @link https://stackoverflow.com/questions/16100956/prevent-after-element-from-wrapping-to-next-line
+	 */
+	display: inline-block;
+	width: 10px;
 	padding-left: 3px;
+	margin-right: -13px;
+}
+
+.widefat th a[href*="LO_dir"] {
+	padding-right: 13px;
 }
 
 .widefat th a[href*="LO_dir=1"]:hover:after {
@@ -427,7 +438,9 @@ select,
 .widefat th {
 	overflow: hidden;
 	font-weight: normal;
-	line-height: 1.4em
+	line-height: 1.4em;
+	/* Do not break column headers */
+	word-break: normal;
 }
 
 .widefat th,

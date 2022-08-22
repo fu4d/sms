@@ -152,11 +152,11 @@ if ( $_REQUEST['modfunc'] === 'save' )
 				AND SYEAR='" . UserSyear() . "'
 				AND (START_DATE<=CURRENT_DATE AND (END_DATE IS NULL OR CURRENT_DATE<=END_DATE)))" );
 
-			// @since 9.3 SQL use CAST(X AS varchar(X)) instead of to_char() for MySQL compatibility
+			// @since 9.3 SQL use CAST(X AS char(X)) instead of to_char() for MySQL compatibility
 			$last_deposit = DBGet( "SELECT (SELECT sum(AMOUNT)
 				FROM food_service_transaction_items
 				WHERE TRANSACTION_ID=fst.TRANSACTION_ID) AS AMOUNT,
-				CAST(fst.TIMESTAMP AS varchar(10)) AS DATE
+				CAST(fst.TIMESTAMP AS char(10)) AS DATE
 			FROM food_service_transactions fst
 			WHERE fst.SHORT_NAME='DEPOSIT'
 			AND fst.ACCOUNT_ID='" . (int) $student['ACCOUNT_ID'] . "'
@@ -221,10 +221,11 @@ if ( ! $_REQUEST['modfunc'] )
 
 	$status = DBEscapeString( _( 'Active' ) );
 
+	// Fix MySQL 5.6 syntax error when WHERE without FROM clause, use dual table
 	$extra['SELECT'] .= ",coalesce(fssa.STATUS,'" . $status . "') AS STATUS,fsa.BALANCE
-		,(SELECT 'Y' WHERE fsa.BALANCE < '" . $warning . "' AND fsa.BALANCE >= 0) AS WARNING
-		,(SELECT 'Y' WHERE fsa.BALANCE < 0 AND fsa.BALANCE >= '" . $minimum . "') AS NEGATIVE
-		,(SELECT 'Y' WHERE fsa.BALANCE < '" . $minimum . "') AS MINIMUM";
+		,(SELECT 'Y' FROM dual WHERE fsa.BALANCE < '" . $warning . "' AND fsa.BALANCE >= 0) AS WARNING
+		,(SELECT 'Y' FROM dual WHERE fsa.BALANCE < 0 AND fsa.BALANCE >= '" . $minimum . "') AS NEGATIVE
+		,(SELECT 'Y' FROM dual WHERE fsa.BALANCE < '" . $minimum . "') AS MINIMUM";
 
 	if ( ! mb_strpos( $extra['FROM'], 'fssa' ) )
 	{

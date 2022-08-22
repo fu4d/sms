@@ -31,7 +31,7 @@ function Update()
 	 * Prevent DB version update if new Update.fnc.php file has NOT been uploaded YET.
 	 * Update must be run once both new Warehouse.php & Update.fnc.php files are uploaded.
 	 */
-	if ( version_compare( '9.3.1', ROSARIO_VERSION, '<' ) )
+	if ( version_compare( '10.1', ROSARIO_VERSION, '<' ) )
 	{
 		return false;
 	}
@@ -228,6 +228,10 @@ function Update()
 		case version_compare( $from_version, '9.3', '<' ) :
 
 			$return = _update93();
+
+		case version_compare( $from_version, '10.1', '<' ) :
+
+			$return = _update101();
 	}
 
 	// Update version in DB config table.
@@ -855,6 +859,38 @@ function _update93()
 	}
 
 	DBQuery( $display_name_sql );
+
+	return $return;
+}
+
+
+/**
+ * Update to version 10.1
+ *
+ * 1. Add dual VIEW for compatibility with MySQL 5.6 to avoid syntax error when WHERE without FROM clause
+ *
+ * Local function
+ *
+ * @since 10.1
+ *
+ * @return boolean false if update failed or if not called by Update(), else true
+ */
+function _update101()
+{
+	global $DatabaseType;
+
+	_isCallerUpdate( debug_backtrace() );
+
+	$return = true;
+
+	/**
+	 * 1. Add dual VIEW for compatibility with MySQL 5.6 to avoid syntax error when WHERE without FROM clause
+	 * PostgreSQL only
+	 */
+	if ( $DatabaseType !== 'mysql' )
+	{
+		DBQuery( "CREATE OR REPLACE VIEW dual AS SELECT 'X' AS dummy;" );
+	}
 
 	return $return;
 }
