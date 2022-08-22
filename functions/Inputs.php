@@ -107,8 +107,8 @@ function TextInput( $value, $name, $title = '', $extra = '', $div = true )
 	// Specify input type via $extra (email,...).
 	$type = mb_strpos( $extra, 'type=' ) === false ? 'type="text"' : '';
 
-	$input = '<input ' . $type . ' id="' . $id . '" name="' . AttrEscape( $name ) .
-		'" value="' . AttrEscape( $value ) . '" ' . $extra . ' />' .
+	$input = '<input class="input"' . $type . ' id="' . $id . '" name="' . AttrEscape( $name ) .
+		'" value="' . AttrEscape( $value ) . '" ' . $extra . ' placeholder="'.$title.'" />' .
 		FormatInputTitle( $title, $id, $required );
 
 	if ( is_null( $value )
@@ -181,8 +181,8 @@ function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 
 	$extra .= ' type="password" autocomplete="new-password"';
 
-	$input = TextInput( ( $value !== str_repeat( '*', 8 ) ? $value : '' ), $name, '', $extra, false );
-
+	$input = TextInput( ( $value !== str_repeat( '*', 8 ) ? $value : '' ), $name, $title, $extra, false );
+    $input .= FormatInputTitle( $title, $id, $required );
 	$lock_icons = button( 'unlocked', '', '', 'password-toggle password-show' ) .
 		button( 'locked', '', '', 'password-toggle password-hide' );
 
@@ -216,8 +216,7 @@ function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 	<?php
 	$password_strength_js = ob_get_clean();
 
-	$input .= $lock_icons . $password_strength_bars .
-		FormatInputTitle( $title, $id, $required ) . $password_strength_js;
+	$input .= $lock_icons . $password_strength_bars . $password_strength_js;
 
 	$input = '<div class="password-input-wrapper">' . $input . '</div>';
 
@@ -885,12 +884,17 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 
 		return $display_val . FormatInputTitle( $title );
 	}
+    $selectedValue = '';
+    foreach ( (array) $values as $value )
+    {
+        $selectedValue = $value;
+    }
 
-	$select = '<select name="' . AttrEscape( $name ) . '" id="' . $id . '" ' . $extra . '>';
+	$select = '<select name="' . AttrEscape( $name ) . '" id="' . $id . '" ' . $extra . ' class="select" onchange=" this.dataset.chosen = this.value;" data-chosen="'.$selectedValue.'">';
 
 	if ( $allow_na !== false )
 	{
-		$select .= '<option value="">' . ( $allow_na === 'N/A' ? _( 'N/A' ) : $allow_na ) . '</option>';
+		$select .= '<option value="">' . ( $allow_na === 'N/A' ? '' : $allow_na ) . '</option>';
 	}
 
 	$make_option = function( $values, $key, $val )
@@ -898,14 +902,15 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 		$selected = '';
 
 		$key .= '';
-
+        // No need to set first as default
 		foreach ( (array) $values as $value )
 		{
 			if ( $value == $key
 				&& ( !( $value == false && $value !== $key )
 					|| ( $value === '0' && $key === 0 ) ) )
 			{
-				$selected = ' selected';
+
+				$selected = ' selected ';
 
 				break;
 			}
@@ -1007,7 +1012,7 @@ function MLSelectInput( $value, $name, $title, $options, $allow_na = 'N/A', $ext
 
 	if ( count( $RosarioLocales ) < 2 )
 	{
-		return SelectInput( ParseMLField( $value, $locale ), $name, $title, $options, $div );
+		return SelectInput( ParseMLField( $value, $locale ), $name, '', $options, $div );
 	}
 
 	$id = GetInputID( $name );

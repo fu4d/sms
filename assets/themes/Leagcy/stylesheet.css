@@ -333,7 +333,7 @@ body {
     color: #111;
 }
 #menu {
-    background-color: rgba(42,62,76,1.0);
+    background-color: rgba(255,255,255,1.0);
     border-color: #ccc;
     color: rgba(255,255,255,1.0);
 }
@@ -387,7 +387,6 @@ body {
     background: #f9f9f9;
 }
 input[type=button], input[type=submit] {
-    border-color: #bbb;
     color: #464646;
 }
 input[type=button]:focus, input[type=button]:hover, input[type=submit]:focus, input[type=submit]:hover {
@@ -402,25 +401,20 @@ input[type=button]:focus, input[type=button]:hover, input[type=submit]:focus, in
     background: linear-gradient(top, #fff, #ededed);
     text-shadow: #fff 0 1px 0;
 }*/
-input[type=button]:active, input[type=reset]:active, input[type=submit]:active {
+input[type=button]:active, input[type=reset]:active {
     background: url(white-grad-active.png) left top repeat-x #eee;
     background: -webkit-linear-gradient(top, #ededed, #fff);
     background: -moz-linear-gradient(top, #ededed, #fff);
     background: linear-gradient(top, #ededed, #fff);
 }
 a.button-primary, button.button-primary, input.button-primary {
-    border-color: #15556b;
     font-weight: 700;
     color: #fff;
-    background-color: #4b81a7;
-    text-shadow: rgba(0, 0, 0, .3) 0 -1px 0;
+    background-color: rgba(244,82,70,1.0);
 }
-a.button-primary:active, button.button-primary:active, input.button-primary:active {
-    background-image: url(button-grad-active.png);
-    background: -ms-linear-gradient(top, #1d6385, #298cba);
-    background: -webkit-linear-gradient(top, #1d6385, #298cba);
-    background: -moz-linear-gradient(top, #1d6385, #298cba);
-    background: linear-gradient(top, #1d6385, #298cba);
+a.button-primary:active, button.button-primary:active, input.button-primary:hover {
+    background-color: rgba(24,179,220,1.0);
+    border: none;
 }
 a.button-primary:focus, a.button-primary:hover, button.button-primary:focus, button.button-primary:hover, input.button-primary:focus, input.button-primary:hover {
     border-color: #10354b;
@@ -430,9 +424,9 @@ a.button-primary:focus, a.button-primary:hover, button.button-primary:focus, but
 .adminmenu a:focus, .adminmenu a:hover, a:active, a:focus, a:hover {
     /*color: #d54e21;*/
 }
-a:active, a:focus {
+/*a:active, a:focus {
     outline: #d54e21 dotted 1px;
-}
+}*/
 input[type=checkbox]:focus, input[type=radio]:focus {
     outline: #000 dotted 1px;
 }
@@ -474,18 +468,28 @@ div.updated {
 .menu-top {
     border-top-color: #f9f9f9;
     border-bottom-color: #dfdfdf;
+    position: relative;
 }
 .menu-top:focus, .menu-top:hover, #selectedModuleLink {
     background-color: rgba(244,82,70,1.0);
+    /*border-end-start-radius: 15px;
+    border-start-start-radius: 15px;*/
 }
 .wp-submenu {
     border-color: #dfdfdf #ccc;
 }
 #selectedMenuLink, .wp-submenu a:focus, .wp-submenu a:hover {
-    color: rgba(174,178,183,1.0);
     background-color: rgba(20,28,34,1.0);
+    border-left: solid 3px;
+    padding-left: 22px;
 }
-
+.wp-submenu a:hover::before {
+    background-color: rgba(244,82,70,1.0);
+    left: -11px;
+}
+#selectedMenuLink::before {
+    background-color: rgba(244,82,70,1.0);
+}
 .wp-submenu a:focus {
     outline: #111 dotted 1px;
 }
@@ -660,12 +664,13 @@ fieldset {
     font-style: normal;
 }
 .module-icon {
-    width: 36px;
-    height: 36px;
     background-size: contain;
     background-repeat: no-repeat;
-    display: inline-block;
+    display: inline-block;    border: 1px solid;
+    border-radius: 50%;
+    height: 27px;
     vertical-align: middle;
+    width: 27px;
 }
 .header1 .module-icon {
     vertical-align: -25%}
@@ -710,6 +715,7 @@ fieldset {
 }
 .module-icon.School_Setup {
     background-image: url("modules/School_Setup.png");
+    margin-right: 5px;
 }
 .module-icon.SMS {
     background-image: url("modules/SMS.png");
@@ -772,7 +778,8 @@ fieldset {
     clear: both;
 }
 .fixed-col select, input {
-    max-width: 100%}
+    max-width: 100%
+}
 #search input, #search select {
     max-width: 217px;
 }
@@ -841,17 +848,71 @@ img {
 }
 td {
     line-height: inherit;
+    position: relative;
 }
 input, select, textarea {
+    background: transparent;
     line-height: 1.3;
     margin: 2px 1px;
-    padding: 8px;
+    padding: 15px 8px 5px;
 }
 select {
     width: 100%;
 }
 a, input, select:focus {
     text-decoration: none;
+}
+.input ~ label {
+    font-size: 16px;
+    left: 10px;
+    position: absolute;
+    transform-origin: top left;
+    transform: translate(0, 16px) scale(1);
+    transition: all .1s ease-in-out;
+}
+.input::-webkit-input-placeholder {
+    color:transparent;
+}
+.input:-moz-placeholder {
+    color:transparent;
+}
+.input::-moz-placeholder {
+    color:transparent;
+}
+.input:-ms-input-placeholder {
+    color:transparent;
+}
+.input:not(:placeholder-shown) ~ label,
+.input:focus ~ label {
+    transform: translate(0, 4px) scale(.75);
+}
+.select ~ label {
+    font-size: 16px;
+    left: 10px;
+    position: absolute;
+    transform-origin: top left;
+    transform: translate(0, 16px) scale(1);
+    transition: all .1s ease-in-out;
+    top: 0;
+    z-index: -10;
+}
+.select::-webkit-input-placeholder {
+    color:transparent;
+}
+.select:-moz-placeholder {
+    color:transparent;
+}
+.select::-moz-placeholder {
+    color:transparent;
+}
+.select:-ms-input-placeholder {
+    color:transparent;
+}
+.select:focus ~ label {
+    transform: translate(0, 4px) scale(.75);
+}
+.select[data-chosen]:not([data-chosen='']) ~ label {
+    transform: translate(0, 4px) scale(.75);
 }
 blockquote, q {
     quotes: none;
@@ -914,9 +975,18 @@ sub, sup {
     padding-right: 5px;
     padding-bottom: 5px;
 }
-.postbox, .widefat, div.error, div.updated, input[type=button], input[type=email], input[type=file], input[type=number], input[type=password], input[type=reset], input[type=search], input[type=submit], input[type=tel], input[type=text], input[type=url], select, textarea {
+.postbox, .widefat, div.error, div.updated,  input[type=email], input[type=number], input[type=password], input[type=reset], input[type=search], input[type=tel], input[type=text], input[type=url], select, textarea {
     border-width: 1px;
     border-style: solid;
+}
+input[type=button],  input[type=submit] {
+    border: none;
+}
+.file {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+    height: 2.5rem;
 }
 .postbox {
     border-bottom-width: 2px;
@@ -1036,7 +1106,6 @@ input[type=button], input[type=reset], input[type=submit] {
     margin: 0 8px;
     cursor: pointer;
     border-radius: inherit;
-    border-style: solid;
     line-height: 23px;
 }
 .header2.align-right input[type=button], .header2.align-right input[type=reset], .header2.align-right input[type=submit] {
@@ -1070,9 +1139,27 @@ input[type=button], input[type=reset], input[type=submit] {
     list-style: none;
 }
 .adminmenu {
+    background-color: rgba(42,62,76,1.0);
     clear: left;
     margin: 5px 0 38px;
     padding: 0;
+    position: relative;
+}
+.adminmenu::before,
+.adminmenu::after {
+    background: -moz-linear-gradient(bottom, rgba(174,178,183,0.9) 50%, rgba(42,62,76,0.9) 100%);
+    background: -webkit-linear-gradient(bottom, rgba(174,178,183,0.9) 50%, rgb(124 144 159 / 90%) 100%);
+    background: -o-linear-gradient(bottom, rgba(174,178,183,0.9) 50%, rgba(42,62,76,0.9) 100%);
+    background: -ms-linear-gradient(bottom, rgba(174,178,183,0.9) 50%, rgba(42,62,76,0.9) 100%);
+    background: linear-gradient(bottom, rgba(174,178,183,0.9) 50%, rgba(42,62,76,0.9) 100%);
+    content: " ";
+    display: block;
+    height: 100%;
+    left: 19px;
+    position: absolute;
+    top: 0;
+    width: 1px;
+    z-index: 1;
 }
 .adminmenu *, .widefat th {
     -webkit-user-select: none;
@@ -1081,11 +1168,12 @@ input[type=button], input[type=reset], input[type=submit] {
     user-select: none;
 }
 .wp-submenu {
+    background-color: rgba(42,62,76,1.0);
     top: -1000em;
     left: 0;
     position: absolute;
-    min-width: 215px;
-    padding: 0;
+    min-width: 260px;
+    padding-left: 20px;
     margin: 0;
     overflow: hidden;
     -webkit-transition: top 0s .15s, left 0s .15s, box-shadow 0s .15s;
@@ -1112,10 +1200,20 @@ input[type=button], input[type=reset], input[type=submit] {
     content: "\276F";
     position: absolute;
     right: 5px;
-    bottom: 15px;
+    /*bottom: 15px;*/
 }
 #selectedModuleLink:after {
-    content: ""}
+    border: solid 8px transparent;
+    border-right-color: #f0f0f1;
+    content: " ";
+    height: 0;
+    margin-top: -8px;
+    position: absolute;
+    pointer-events: none;
+    right: 0;
+    top: 50%;
+    width: 0;
+}
 .no-touch .menu-module:focus-within .wp-submenu {
     -webkit-transition-delay: .15s;
     transition-delay: .15s;
@@ -1129,16 +1227,14 @@ input[type=button], input[type=reset], input[type=submit] {
 }
 .no-touch .menu-module:hover .wp-submenu {
     box-shadow: 2px 2px 4px #ccc;
-    background-color: rgba(42,62,76,1.0);
     -webkit-transition-delay: .15s;
-    z-index: 20;
+    /*z-index: 20;*/
     top: 0;
-    left: 205px;
+    left: 260px;
     overflow: visible;
     transition-delay: .15s;
     word-wrap: break-word;
     min-height: 36px;
-    width: auto;
 }
 #selectedModuleLink+.wp-submenu {
     background-color: rgb(52 96 126);
@@ -1152,13 +1248,16 @@ input[type=button], input[type=reset], input[type=submit] {
     position: relative;
     transition-delay: 0s;
     top: 0;
-    z-index: 1;
+}
+#selectedModuleLink+.wp-submenu a {
+    margin: 0 0 0 10px;
 }
 .menu-inter {
     border-width: 1px 0 0;
-    border-style: solid;
+    border-style: dashed;
     padding: 15px 5px 2.5px;
-    margin-top: 2.5px;
+    margin-left: 20px;
+    width: 84%;
 }
 .adminmenu a {
     display: block;
@@ -1171,7 +1270,11 @@ input[type=button], input[type=reset], input[type=submit] {
     font-size: 15px;
     min-width: 10em;
     border-width: 1px 0;
-    border-style: solid;
+    /*border-style: solid;*/
+    z-index: 2;
+}
+.menu-top a {
+
 }
 .menu-top, .menu-inter {
     font-weight: 600;
@@ -1182,7 +1285,21 @@ input[type=button], input[type=reset], input[type=submit] {
     vertical-align: middle;
 }
 .wp-submenu a {
-    margin: 0;
+    color: rgba(174,178,183,1.0);
+    padding-left: 25px;
+    position: relative;
+}
+.wp-submenu a::before {
+    background-color: rgb(52 96 126);
+    border: 1px solid rgba(255,255,255,.5);
+    border-radius: 50%;
+    content: " ";
+    height: 12px;
+    left: -8px;
+    position: absolute;
+    top: 15px;
+    width: 12px;
+    z-index: 1011;
 }
 .current-person {
     padding: 1px 5px;
@@ -1326,8 +1443,8 @@ div.underline-dots {
     line-height: inherit;
 }
 .checkbox-label, .no-input-value, .underline-dots {
-    line-height: 28px;
     padding-bottom: 1px;
+    float: right;
 }
 .span-grade-points+label {
     line-height: 28px;
@@ -1384,8 +1501,10 @@ textarea {
     padding: 5px;
 }
 .legend-gray, .legend-red {
-    margin-bottom: 7px;
     display: inline-block;
+    float: left;
+    margin-bottom: 7px;
+    margin-right: 15px;
 }
 .logo {
     max-width: 150px;
@@ -1399,6 +1518,7 @@ textarea {
 }
 div.onclick {
     display: inline-block;
+    line-height: 28px;
     max-width: 100%}
 .cellspacing-0 {
     border-spacing: 0;
@@ -1558,6 +1678,48 @@ input[type=file] {
     padding: 0;
     max-width: calc(100% - 18px);
     height: 25px;
+    min-width: 14rem;
+    margin: 0;
+    filter: alpha(opacity=0);
+    opacity: 0;
+}
+.file-custom {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 5;
+    height: 1rem;
+    padding: .5rem 1rem .8rem;
+    line-height: 1.5;
+    color: #555;
+    background-color: #fff;
+    border: .075rem solid #ddd;
+    border-radius: .25rem;
+    box-shadow: inset 0 0.2rem 0.4rem rgb(0 0 0 / 5%);
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+.file-custom:before {
+    position: absolute;
+    top: -.075rem;
+    right: -.075rem;
+    bottom: -.075rem;
+    z-index: 6;
+    display: block;
+    content: "Browse";
+    height: 1.3rem;
+    padding: .5rem 1rem;
+    line-height: 1.5;
+    color: #555;
+    background-color: #eee;
+    border: .075rem solid #ddd;
+    border-radius: 0 .25rem .25rem 0;
+}
+.file-custom:after {
+    content: "Choose file...";
 }
 .bar {
     word-wrap: normal;
