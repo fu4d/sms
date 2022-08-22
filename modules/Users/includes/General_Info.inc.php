@@ -203,6 +203,7 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 	echo '<tr class="st"><td>';
 
 	$profile_options = [
+		'' => _( '' ),
 		'admin' => _( 'Administrator' ),
 		'teacher' => _( 'Teacher' ),
 		'parent' => _( 'Parent' ),
@@ -264,18 +265,18 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 				WHERE PROFILE='" . $staff['PROFILE'] . "'
 				ORDER BY ID" );
 
+            $permissions_options[_( 'Custom' )] = _( 'Custom' );
 			foreach ( (array) $permissions_RET as $permission )
 			{
 				$permissions_options[$permission['ID']] = _( $permission['TITLE'] );
 			}
-
-			$na = _( 'Custom' );
 		}
 		else
 		{
-			$na = _( 'Default' );
+            $permissions_options[_( 'Default' )] = _( 'Default' );
 		}
 
+        $na = '';
 		echo SelectInput(
 			issetVal( $staff['PROFILE_ID'], '' ),
 			'staff[PROFILE_ID]',
@@ -334,8 +335,25 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 			$i = 0;
 
 			$schools_html = '<table class="cellspacing-0 width-100p"><tr class="st">';
+            $schools_html .= '</tr><tr class="st">';
+            $school_options = [];
 
-			$school_titles = [];
+            foreach ( (array) $schools_RET as $school )
+            {
+                $school_options[$school['ID']] = _( $school['TITLE'] );
+            }
+
+            $na = '';
+            $schools_html .= '<td>' . SelectInput(
+                issetVal( $staff['PROFILE_ID'], '' ),
+                'staff[SCHOOLS]',
+                _( 'Schools' ),
+                    $school_options,
+                $na
+            ). '&nbsp;</td>';
+
+
+			/*$school_titles = [];
 
 			foreach ( (array) $schools_RET as $school )
 			{
@@ -363,11 +381,12 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 				}
 
 				$i++;
-			}
+			}*/
 
 			$schools_html .= '</tr></table>';
+            echo $schools_html;
 
-			$id = 'schools';
+			/*$id = 'schools';
 
 			$title = FormatInputTitle( _( 'Schools' ), $id );
 
@@ -397,7 +416,7 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 			{
 				echo ( $school_titles ? implode( ', ', $school_titles ) : _( 'All Schools' ) ) .
 					$title;
-			}
+			}*/
 
 			// Admin Schools restriction.
 			if ( $admin_schools_restriction )

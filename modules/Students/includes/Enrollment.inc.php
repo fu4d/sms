@@ -117,7 +117,7 @@ echo SelectInput(
 	'values[student_enrollment][' . $id . '][GRADE_ID]',
 	_( 'Grade Level' ),
 	$gradelevel_options,
-	false,
+	'',
 	'required',
 	$div
 );
@@ -129,7 +129,7 @@ echo SelectInput(
 	'values[student_enrollment][' . $id . '][CALENDAR_ID]',
 	_( 'Calendar' ),
 	$calendar_options,
-	false,
+	'',
 	'required',
 	$div
 );
@@ -141,7 +141,7 @@ echo SelectInput(
 	'values[student_enrollment][' . $id . '][NEXT_SCHOOL]',
 	_( 'Rolling / Retention Options' ),
 	$next_school_options,
-	false,
+	'',
 	'required',
 	$div
 );
