@@ -68,9 +68,11 @@ if ( $_REQUEST['modfunc'] === 'save'
 				//School logo
 				$logo_pic = 'assets/school_logo_' . UserSchool() . '.jpg';
 
+				$picwidth = 120;
+
 				if ( file_exists( $logo_pic ) )
 				{
-					DrawHeader( _( 'Student Info' ), '<img src="' . URLEscape( $logo_pic ) . '" width="280" />' );
+					DrawHeader( _( 'Student Info' ), '<img src="' . URLEscape( $logo_pic ) . '" width="' . $picwidth . '" />' );
 				}
 				else
 				{
@@ -88,6 +90,7 @@ if ( $_REQUEST['modfunc'] === 'save'
 
 				if ( ! empty( $_REQUEST['category']['1'] ) )
 				{
+					require_once 'modules/Students/includes/Enrollment.fnc.php';
 					require 'modules/Students/includes/General_Info.inc.php';
 					echo '<div style="page-break-after: always;"></div>';
 				}

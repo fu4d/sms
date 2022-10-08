@@ -73,7 +73,8 @@ if ( isset( $_REQUEST['course_modfunc'] )
 
 	echo '<table><tr><td><input type="text" name="search_term" value="' .
 		// Security Fix reflected XSS: encode HTML special chars for search_term.
-		AttrEscape( issetVal( $_REQUEST['search_term'], '' ) ) . '" required autofocus /></td>
+		// Security: use $_POST here to avoid DBEscapeString() on $_REQUEST, still use strip_tags() though.
+		AttrEscape( strip_tags( issetVal( $_POST['search_term'], '' ) ) ) . '" required autofocus /></td>
 		<td>' . Buttons( _( 'Search' ) ) . '</td></tr></table>';
 
 	if ( $_REQUEST['modfunc'] === 'choose_course'
@@ -898,11 +899,11 @@ if (  ( ! $_REQUEST['modfunc']
 			) . '</td>';
 
 			// @since 9.2.1 SQL replace use of STRPOS() with LIKE, compatible with MySQL.
-			$teachers_RET = DBGet( "SELECT STAFF_ID
+			$teachers_RET = DBGet( "SELECT STAFF_ID," . DisplayNameSQL() . " AS FULL_NAME
 				FROM staff WHERE (SCHOOLS LIKE '%," . UserSchool() . ",%' OR SCHOOLS IS NULL)
 				AND SYEAR='" . UserSyear() . "'
 				AND PROFILE='teacher'
-				ORDER BY LAST_NAME,FIRST_NAME" );
+				ORDER BY FULL_NAME" );
 
 			$teachers = [];
 
@@ -977,7 +978,7 @@ if (  ( ! $_REQUEST['modfunc']
 				WHERE (MP='FY' OR MP='SEM' OR MP='QTR')
 				AND SCHOOL_ID='" . UserSchool() . "'
 				AND SYEAR='" . UserSyear() . "'
-				ORDER BY TBL,SORT_ORDER IS NULL,SORT_ORDER" );
+				ORDER BY TBL,SORT_ORDER IS NULL,SORT_ORDER,START_DATE" );
 
 			unset( $options );
 
@@ -1169,7 +1170,7 @@ if (  ( ! $_REQUEST['modfunc']
 					function newSchoolPeriod()
 					{
 						var table = document.getElementById('coursesTable');
-						row = table.insertRow(3+nbSchoolPeriods);
+						row = table.insertRow(4+nbSchoolPeriods);
 						// insert table cells to the new row
 						var tr = document.getElementById('schoolPeriod'+nbSchoolPeriods);
 						row.setAttribute('id', 'schoolPeriod'+(nbSchoolPeriods+1));

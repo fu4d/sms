@@ -329,7 +329,7 @@ if ( ! isset( $_REQUEST['sidefunc'] )
 		if ( User( 'PROFILE' ) === 'admin'
 			|| User( 'PROFILE' ) === 'teacher' ) :
 
-			$schools = mb_substr( str_replace( ',', "','", User( 'SCHOOLS' ) ), 2, -2 );
+			$schools = mb_substr( str_replace( ',', "','", (string) User( 'SCHOOLS' ) ), 2, -2 );
 
 			$schools_RET = DBGet( "SELECT ID,TITLE,SHORT_NAME
 				FROM schools
@@ -463,7 +463,7 @@ if ( ! isset( $_REQUEST['sidefunc'] )
 			WHERE MP='QTR'
 			AND SCHOOL_ID='" . UserSchool() . "'
 			AND SYEAR='" . UserSyear() . "'
-			ORDER BY SORT_ORDER IS NULL,SORT_ORDER" );
+			ORDER BY SORT_ORDER IS NULL,SORT_ORDER,START_DATE" );
 		?>
 
 		<span class="br-after">

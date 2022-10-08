@@ -417,7 +417,9 @@ select,
 	border-width: 1px 0;
 	border-style: solid;
 	padding: 4px 7px;
-	vertical-align: top
+	vertical-align: top;
+	/* Do not break text inside lists */
+	word-break: normal;
 }
 
 /* @since 7.0 CSS Add .widefat.files class */
@@ -439,8 +441,6 @@ select,
 	overflow: hidden;
 	font-weight: normal;
 	line-height: 1.4em;
-	/* Do not break column headers */
-	word-break: normal;
 }
 
 .widefat th,
@@ -1353,6 +1353,40 @@ td.calendar-menu {
 
 .span-grade-points {
 	float: left;
+}
+
+/* Report Cards */
+
+.grade-minmax-wrap {
+	min-width: 120px;
+}
+
+/* Note: Total width < 100% so to leave space for triangle sort icon (::after). */
+
+.grade-minmax-min {
+	float: left;
+	width: 23%;
+	font-size: 13px;
+}
+
+.grade-minmax-grade {
+	float: left;
+	width: 48%;
+	text-align: center;
+}
+
+.grade-minmax-max {
+	float: left;
+	width: 23%;
+	text-align: right;
+	font-size: 13px;
+}
+
+.grade-minmax-min,
+.grade-minmax-grade,
+.grade-minmax-max {
+	/* Do not break grades */
+	word-wrap: initial;
 }
 
 /* Take Attendance */

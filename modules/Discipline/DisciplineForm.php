@@ -131,11 +131,40 @@ if ( ! empty( $_REQUEST['values'] )
 				DBQuery( 'ALTER TABLE discipline_referrals ADD ' .
 					DBEscapeIdentifier( 'CATEGORY_' . (int) $id ) . ' ' . $sql_type );
 
-				if ( $create_index )
+				$max_indices_reached = false;
+
+				if ( $DatabaseType === 'mysql' )
 				{
+					/**
+					 * Fix MySQL error 1069 Too many keys specified; max 64 keys allowed
+					 * Count columns having an index
+					 *
+					 * @since 10.3
+					 */
+					$indices = DBGet( DBQuery( "SHOW INDEX FROM " . DBEscapeIdentifier( 'discipline_referrals' ) ) );
+
+					$max_indices_reached = count( $indices ) >= 64;
+				}
+
+				if ( $create_index
+					&& ! $max_indices_reached )
+				{
+					$key_length = '';
+
+					if ( $sql_type === 'TEXT'
+						&& $DatabaseType === 'mysql' )
+					{
+						/**
+						 * Fix MySQL error TEXT column used in key specification without a key length
+						 *
+						 * @since 10.2.3
+						 */
+						$key_length = '(255)';
+					}
+
 					DBQuery( 'CREATE INDEX ' . DBEscapeIdentifier( 'discipline_referrals_ind' . (int) $id ) .
 						' ON discipline_referrals (' .
-						DBEscapeIdentifier( 'CATEGORY_' . (int) $id ) . ')' );
+						DBEscapeIdentifier( 'CATEGORY_' . (int) $id ) . $key_length . ')' );
 				}
 
 				DBQuery( $usage_sql );

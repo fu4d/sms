@@ -248,19 +248,23 @@ function DBQuery( $sql )
  * Return next row
  *
  * @since 10.0 Add MySQL support
+ * @since 10.2.1 Fix error mysqli_fetch_assoc(): Argument #1 must be of type mysqli_result, null given
  *
  * @global $db_connection PgSql or MySQLi connection instance
  * @global $DatabaseType  Database type: mysql or postgresql
  *
  * @param  resource PostgreSQL result resource $result Result.
- * @return array    Next row in result set.
+ * @return array|bool    Next row in result set or false.
  */
 function db_fetch_row( $result )
 {
 	global $db_connection,
 		$DatabaseType;
 
-	if ( $DatabaseType === 'mysql' )
+	$return = false;
+
+	if ( $DatabaseType === 'mysql'
+		&& $result instanceof mysqli_result )
 	{
 		$return = mysqli_fetch_assoc( $result );
 	}
@@ -423,7 +427,7 @@ function db_trans_rollback()
  * @example $can_delete = DBTransDryRun( UserDeleteSQL( UserStaffID() ) );
  *
  * @param  string     $sql       SQL statement.
- * @return PostgreSQL result resource
+ * @return bool Can run the queries in the transaction without error?
  */
 function DBTransDryRun( $sql )
 {

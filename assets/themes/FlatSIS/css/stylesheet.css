@@ -442,7 +442,9 @@ select,
 	border-width: 1px 0;
 	border-style: solid;
 	padding: 6px 11px;
-	vertical-align: top
+	vertical-align: top;
+	/* Do not break text inside lists */
+	word-break: normal;
 }
 
 .list.widefat th {
@@ -469,8 +471,6 @@ select,
 	overflow: hidden;
 	font-weight: normal;
 	line-height: 1.4em;
-	/* Do not break column headers */
-	word-break: normal;
 }
 
 .widefat th,
@@ -1380,6 +1380,7 @@ div.st {
 
 .calendar-event {
 	height: 32px;
+	font-size: 14px;
 }
 
 /*http://stackoverflow.com/questions/9789723/css-text-overflow-in-a-table-cell*/
@@ -1457,6 +1458,40 @@ td.calendar-menu {
 
 .span-grade-points {
 	float: left;
+}
+
+/* Report Cards */
+
+.grade-minmax-wrap {
+	min-width: 120px;
+}
+
+/* Note: Total width < 100% so to leave space for triangle sort icon (::after). */
+
+.grade-minmax-min {
+	float: left;
+	width: 23%;
+	font-size: 14px;
+}
+
+.grade-minmax-grade {
+	float: left;
+	width: 48%;
+	text-align: center;
+}
+
+.grade-minmax-max {
+	float: left;
+	width: 23%;
+	text-align: right;
+	font-size: 14px;
+}
+
+.grade-minmax-min,
+.grade-minmax-grade,
+.grade-minmax-max {
+	/* Do not break grades */
+	word-wrap: initial;
 }
 
 /* Take Attendance */

@@ -205,10 +205,7 @@ function ListOutput( $result, $column_names, $singular = '.', $plural = '.', $li
 					array_multisort( $sort_array, $dir, $result );
 				}
 
-				for ( $i = $result_count - 1; $i >= 0; $i-- )
-				{
-					$result[$i + 1] = $result[$i];
-				}
+				array_unshift( $result, [ 'always_start_list_at_key_1' ] );
 
 				unset( $result[0] );
 			}
@@ -464,7 +461,7 @@ function ListOutput( $result, $column_names, $singular = '.', $plural = '.', $li
 				echo '<tr><td colspan="' . ( $remove ? $cols + 1 : $cols ) . '">' .
 					button(
 						'add',
-						$link['add']['title'],
+						issetVal( $link['add']['title'], '' ),
 						( mb_strpos( $link['add']['link'], '"' ) === 0 ?
 							$link['add']['link'] :
 							'"' . URLEscape( $link['add']['link'] ) . '"' )
@@ -798,7 +795,7 @@ function _listSearch( $result, $LO_search )
 
 		$terms[trim( $search_term )] = 1;
 	}
-	else
+	elseif ( mb_strlen( $search_term ) > 2 )
 	{
 		// Search "expression".
 		$search_term = str_replace( '"', '', $search_term );

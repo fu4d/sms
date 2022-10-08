@@ -183,6 +183,7 @@ function _makeSelectInput( $column, $name, $request )
  * Make Auto Select Input
  *
  * @since 4.6 Add $options_RET parameter.
+ * @since 10.2.1 When -Edit- option selected, change the auto pull-down to text field
  *
  * @global array  $value
  * @global array  $field
@@ -196,10 +197,14 @@ function _makeSelectInput( $column, $name, $request )
  */
 function _makeAutoSelectInput( $column, $name, $request, $options_RET = [] )
 {
+	static $js_included = false;
+
 	global $value,
 		$field;
 
 	$div = true;
+
+	$value[ $column ] = issetVal( $value[ $column ] );
 
 	if ( $field['DEFAULT_SELECTION']
 		&& _isNew( $request ) )
@@ -229,51 +234,58 @@ function _makeAutoSelectInput( $column, $name, $request, $options_RET = [] )
 	// Add the 'new' option, is also the separator.
 	$options['---'] = '-' . _( 'Edit' ) . '-';
 
+	$col_name = DBEscapeIdentifier( $column );
+
 	if ( $field['TYPE'] === 'autos'
 		&& AllowEdit() ) // We don't really need the select list if we can't edit anyway.
 	{
 		// Add values found in current and previous year.
 		if ( $request === 'values[address]' )
 		{
-			$options_SQL = "SELECT DISTINCT a.CUSTOM_" . $field['ID'] . ",upper(a.CUSTOM_" . $field['ID'] . ") AS SORT_KEY
+			$options_SQL = "SELECT DISTINCT a." . $col_name . ",upper(a." . $col_name . ") AS SORT_KEY
 				FROM address a,students_join_address sja,students s,student_enrollment sse
 				WHERE a.ADDRESS_ID=sja.ADDRESS_ID
 				AND s.STUDENT_ID=sja.STUDENT_ID
 				AND sse.STUDENT_ID=s.STUDENT_ID
 				AND (sse.SYEAR='" . UserSyear() . "' OR sse.SYEAR='" . ( UserSyear() - 1 ) . "')
-				AND a.CUSTOM_" . $field['ID'] . " IS NOT NULL
+				AND a." . $col_name . " IS NOT NULL
+				AND a." . $col_name . "<>'---'
 				ORDER BY SORT_KEY";
 		}
 		elseif ( $request === 'values[people]' )
 		{
-			$options_SQL = "SELECT DISTINCT p.CUSTOM_" . $field['ID'] . ",upper(p.CUSTOM_" . $field['ID'] . ") AS SORT_KEY
+			$options_SQL = "SELECT DISTINCT p." . $col_name . ",upper(p." . $col_name . ") AS SORT_KEY
 				FROM people p,students_join_people sjp,students s,student_enrollment sse
 				WHERE p.PERSON_ID=sjp.PERSON_ID
 				AND s.STUDENT_ID=sjp.STUDENT_ID
 				AND sse.STUDENT_ID=s.STUDENT_ID
 				AND (sse.SYEAR='" . UserSyear() . "' OR sse.SYEAR='" . ( UserSyear() - 1 ) . "')
-				AND p.CUSTOM_" . $field['ID'] . " IS NOT NULL
+				AND p." . $col_name . " IS NOT NULL
+				AND p." . $col_name . "<>'---'
 				ORDER BY SORT_KEY";
 		}
 		elseif ( $request === 'students' )
 		{
-			$options_SQL = "SELECT DISTINCT s.CUSTOM_" . $field['ID'] . ",upper(s.CUSTOM_" . $field['ID'] . ") AS SORT_KEY
+			$options_SQL = "SELECT DISTINCT s." . $col_name . ",upper(s." . $col_name . ") AS SORT_KEY
 				FROM students s,student_enrollment sse
 				WHERE sse.STUDENT_ID=s.STUDENT_ID
 				AND (sse.SYEAR='" . UserSyear() . "' OR sse.SYEAR='" . ( UserSyear() - 1 ) . "')
-				AND s.CUSTOM_" . $field['ID'] . " IS NOT NULL
+				AND s." . $col_name . " IS NOT NULL
+				AND s." . $col_name . "<>'---'
 				ORDER BY SORT_KEY";
 		}
 		elseif ( $request === 'staff' )
 		{
-			$options_SQL = "SELECT DISTINCT s.CUSTOM_" . $field['ID'] . ",upper(s.CUSTOM_" . $field['ID'] . ") AS SORT_KEY
+			$options_SQL = "SELECT DISTINCT s." . $col_name . ",upper(s." . $col_name . ") AS SORT_KEY
 				FROM staff s
 				WHERE (s.SYEAR='" . UserSyear() . "' OR s.SYEAR='" . ( UserSyear() - 1 ) . "')
-				AND s.CUSTOM_" . $field['ID'] . " IS NOT NULL
+				AND s." . $col_name . " IS NOT NULL
+				AND s." . $col_name . "<>'---'
 				ORDER BY SORT_KEY";
 		}
 
-		if ( empty( $options_RET ) )
+		if ( empty( $options_RET )
+			&& ! empty( $options_SQL ) )
 		{
 			$options_RET = DBGet( $options_SQL );
 		}
@@ -303,33 +315,83 @@ function _makeAutoSelectInput( $column, $name, $request, $options_RET = [] )
 		];
 	}
 
-	if ( $value[ $column ] != '---'
-		&& count( $options ) > 1 )
-	{
-		// FJ select field is required.
-		$extra = ( $field['REQUIRED'] === 'Y' ? 'required' : '' );
+	$input_name = $request . '[' . $column . ']';
 
-		return SelectInput(
-			$value[ $column ],
-			$request . '[' . $column . ']',
+	if ( $value[ $column ] === '---'
+		|| count( $options ) < 1 )
+	{
+		// FJ new option.
+		return TextInput(
+			$value[ $column ] === '---' ?
+				[ '---', '<span style="color:red">-' . _( 'Edit' ) . '-</span>' ] :
+				$value[ $column ],
+			$input_name,
 			$name,
-			$options,
-			'N/A',
-			$extra,
+			( $field['REQUIRED'] === 'Y' ? 'required' : '' ),
 			$div
 		);
 	}
 
-	// FJ new option.
-	return TextInput(
-		$value[ $column ] === '---' ?
-			[ '---', '<span style="color:red">-' . _( 'Edit' ) . '-</span>' ] :
-			$value[ $column ],
-		$request . '[' . $column . ']',
+	// When -Edit- option selected, change the auto pull-down to text field.
+	$return = '';
+
+	if ( AllowEdit()
+		&& ! isset( $_REQUEST['_ROSARIO_PDF'] )
+		&& ! $js_included )
+	{
+		$js_included = true;
+
+		ob_start();?>
+		<script>
+		function maybeEditTextInput(el) {
+
+			// -Edit- option's value is ---.
+			if ( el.value === '---' ) {
+
+				var $el = $( el );
+
+				// Remove parent <div> if any
+				if ( $el.parent('div').length ) {
+					$el.unwrap();
+				}
+				// Remove the select input.
+				$el.remove();
+
+				// Show & enable the text input of the same name.
+				$( '[name="' + el.name + '_text"]' ).prop('name', el.name).prop('disabled', false).show().focus();
+			}
+		}
+		</script>
+		<?php $return = ob_get_clean();
+	}
+
+	// FJ select field is required.
+	$extra = ( $field['REQUIRED'] === 'Y' ? 'required' : '' );
+
+	if ( AllowEdit()
+		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	{
+		// Add hidden & disabled Text input in case user chooses -Edit-.
+		$return .= TextInput(
+			'',
+			$input_name . '_text',
+			'',
+			$extra . ' disabled style="display:none;"',
+			false
+		);
+	}
+
+	$return .= SelectInput(
+		$value[ $column ],
+		$input_name,
 		$name,
-		( $field['REQUIRED'] === 'Y' ? 'required' : '' ),
+		$options,
+		'N/A',
+		$extra . ' onchange="maybeEditTextInput(this);"',
 		$div
 	);
+
+	return $return;
 }
 
 

@@ -318,7 +318,7 @@ if ( $_REQUEST['modfunc'] === 'create'
 						( $weekdays_list ?
 							" AND " . ( $DatabaseType === 'mysql' ?
 								"DAYOFWEEK(SCHOOL_DATE)-1" :
-								"cast(extract(DOW FROM SCHOOL_DATE)+1 AS int)" ) .
+								"cast(extract(DOW FROM SCHOOL_DATE) AS int)" ) .
 							" IN (" . $weekdays_list . ")" : '' );
 
 				if ( $date_min && $date_max )
@@ -543,10 +543,12 @@ if ( $_REQUEST['modfunc'] === 'detail' )
 			}
 
 			// Reload Calendar & close popup
-			$opener_URL = "Modules.php?modname=" . $_REQUEST['modname'] . "&year=" . $_REQUEST['year'] . "&month=" . $_REQUEST['month'];
+			// @since 10.2.1 Maintain Calendar when closing event popup
+			$opener_url = URLEscape( "Modules.php?modname=" . $_REQUEST['modname'] . "&year=" .
+				$_REQUEST['year'] . "&month=" . $_REQUEST['month'] . "&calendar_id=" . $_REQUEST['calendar_id'] );
 			?>
 <script>
-	window.opener.ajaxLink(<?php echo json_encode( $opener_URL ); ?>);
+	window.opener.ajaxLink(<?php echo json_encode( $opener_url ); ?>);
 	window.close();
 </script>
 			<?php
@@ -567,10 +569,12 @@ if ( $_REQUEST['modfunc'] === 'detail' )
 			do_action( 'School_Setup/Calendar.php|delete_calendar_event' );
 
 			// Reload Calendar & close popup
-			$opener_URL = "Modules.php?modname=" . $_REQUEST['modname'] . "&year=" . $_REQUEST['year'] . "&month=" . $_REQUEST['month'];
+			// @since 10.2.1 Maintain Calendar when closing Event popup
+			$opener_url = URLEscape( "Modules.php?modname=" . $_REQUEST['modname'] . "&year=" .
+				$_REQUEST['year'] . "&month=" . $_REQUEST['month'] . "&calendar_id=" . $_REQUEST['calendar_id'] );
 			?>
 <script>
-	window.opener.ajaxLink(<?php echo json_encode( $opener_URL ); ?>);
+	window.opener.ajaxLink(<?php echo json_encode( $opener_url ); ?>);
 	window.close();
 </script>
 			<?php
@@ -598,7 +602,9 @@ if ( $_REQUEST['modfunc'] === 'detail' )
 				$RET[1]['SCHOOL_DATE'] = issetVal( $_REQUEST['school_date'] );
 			}
 
-			echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=detail&event_id=' . $_REQUEST['event_id'] . '&month=' . $_REQUEST['month'] . '&year=' . $_REQUEST['year']  ) . '" method="POST">';
+			echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
+				'&modfunc=detail&event_id=' . $_REQUEST['event_id'] . '&month=' . $_REQUEST['month'] .
+				'&year=' . $_REQUEST['year'] . '&calendar_id=' . $_REQUEST['calendar_id']  ) . '" method="POST">';
 		}
 		// Assignment
 		elseif ( ! empty( $_REQUEST['assignment_id'] ) )
@@ -976,8 +982,8 @@ if ( ! $_REQUEST['modfunc'] )
 			}
 		}
 
-		//FJ bugfix erase calendar onchange
-		$calendar_onchange_URL = URLEscape( "Modules.php?modname=" . $_REQUEST['modname'] . "&calendar_id=" );
+		// @since 10.2.1 Maintain current month on calendar change.
+		$calendar_onchange_URL = PreparePHP_SELF( [], [ 'calendar_id' ] ) . '&calendar_id=';
 
 		$links = SelectInput(
 			$_REQUEST['calendar_id'],
@@ -1086,10 +1092,11 @@ if ( ! $_REQUEST['modfunc'] )
 	}
 
 	// Calendar Events onclick popup.
-	$popup_URL = URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=detail&year=' . $_REQUEST['year'] . '&month=' . $_REQUEST['month'] );
+	$popup_url = URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=detail&year=' .
+		$_REQUEST['year'] . '&month=' . $_REQUEST['month'] . '&calendar_id=' . $_REQUEST['calendar_id'] );
 ?>
 <script>
-	var popupURL = <?php echo json_encode( $popup_URL ); ?>;
+	var popupURL = <?php echo json_encode( $popup_url ); ?>;
 
 	function CalEventPopup(url) {
 		popups.open( url, "scrollbars=yes,resizable=yes,width=500,height=400" );
