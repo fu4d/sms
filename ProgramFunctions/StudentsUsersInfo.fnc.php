@@ -841,7 +841,7 @@ function _makeStartInput( $value, $column )
 		$disallow_edit_parent_student = true;
 	}
 
-	$return = '<div class="nobr">' . $add .
+	$return = '<div class="nobr">' . //$add .
 		DateInput(
 			$value,
 			'values[student_enrollment][' . $id . '][' . $column . ']',

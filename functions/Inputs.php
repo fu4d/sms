@@ -33,6 +33,19 @@ function DateInput( $value, $name, $title = '', $div = true, $allow_na = true, $
 
 	$ftitle = FormatInputTitle( $title, '', $value == '' && $required );
 
+//	$input_name = strtolower(explode('[', str_replace(']','',$name))[1]);
+	$input_name = strtolower($name);
+	$input_date = '<input type="date"class="field-value input-date" id="'.$input_name.'" name="'.$input_name.'" value="'.$value.'">';
+	$input_date .= '<label for="' . $input_name . '">' .
+	               _( $ftitle ) . '</label>';
+	return InputDivOnclick(
+		$id,
+		$input_date,
+		( $value != '' ? ProperDate( $value ) : '-' ),
+		FormatInputTitle( $title )
+	);
+    return $input_date;
+
 	if ( ! AllowEdit()
 		|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
@@ -1745,7 +1758,7 @@ function InputDivOnclick( $id, $input_html, $value, $input_ftitle )
 
 	$script = '<script>var html' . $id_var_name_sanitized . '=' . json_encode( $input_html ).';</script>';
 
-	$value = $value == '' ? '-' : $value;
+	$value = strpos($id,'new') ? '<span class="field-value input-date">-</span>' : '<span class="underline-dots">'.$value.'</span>';
 
 	$onfocus_js = 'addHTML(html' . $id_var_name_sanitized . ',"div' . $id_var_name_sanitized . '",true);
 		$("#' . $id_var_name_sanitized . '").focus();
@@ -1755,7 +1768,7 @@ function InputDivOnclick( $id, $input_html, $value, $input_ftitle )
 		<div class="onclick" tabindex="0" onfocus="' . AttrEscape( $onfocus_js ) . '">' .
 		( mb_strpos( $value, '<div' ) === 0 ?
 			'<div class="underline-dots">' . $value . '</div>' :
-			'<span class="underline-dots">' . $value . '</span>' ) .
+			$value ) .
 		$input_ftitle . '</div></div>';
 
 	return $script . $div_onclick;

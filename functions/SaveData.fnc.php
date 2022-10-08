@@ -23,21 +23,17 @@ function SaveData( $iu_extra, $field_names = [] )
 {
 	// Add eventual Dates to $_REQUEST['values'].
 	AddRequestedDates( 'values' );
-
 	// For each DB table.
 	foreach ( (array) $_REQUEST['values'] as $table => $values )
 	{
 		// Get DB table columns properties.
 		$table_properties = db_properties( $table );
-
 		// For each table entry.
 		foreach ( (array) $values as $id => $columns )
 		{
 			// Reset vars.
 			$error = $sql = $ins_fields = $ins_values = [];
-
 			$sql[ $table ] = $ins_fields[ $table ] = $ins_values[ $table ] = '';
-
 			$go = false;
 
 			if ( empty( $columns ) )
@@ -49,58 +45,50 @@ function SaveData( $iu_extra, $field_names = [] )
 			// For each column.
 			foreach ( (array) $columns as $column => $value )
 			{
+				$column = mb_strtoupper($column);
 				if ( isset( $field_names[ $table ][ $column ] ) )
 				{
 					$name = sprintf( _( 'The value for %s' ), $field_names[ $table ][ $column ] );
 				}
-				else
+				else {
 					$name = sprintf(
 						_( 'The value for %s' ),
 						_( ucwords( mb_strtolower( str_replace( '_', ' ', $column ) ) ) )
 					);
-
+				}
 				// COLUMN DOESN'T EXIST.
 				if ( ! isset( $table_properties[ $column ] ) )
 				{
-					$error[] = sprintf( _( 'There is no column for %s. This value was not saved.' ), $name );
-
+					$error[] = sprintf( _( 'rrrThere is no column for %s. This value was not saved.' ), $name );
 					continue;
 				}
-
 				// VALUE IS TOO LONG.
 				elseif ( $table_properties[ $column ]['TYPE'] === 'VARCHAR'
 					&& mb_strlen( $value ) > $table_properties[ $column ]['SIZE'] )
 				{
 					$value = mb_substr( $value, 0, $table_properties[ $column ]['SIZE'] );
-
 					$error[] = sprintf( _( '%s was too long. It was truncated to fit in the field.' ), $name );
 				}
-
 				// FIELD IS NUMERIC, VALUE CONTAINS NON-NUMERICAL CHARACTERS.
 				elseif ( $table_properties[ $column ]['TYPE'] === 'NUMERIC'
 					&& preg_match( '/[^0-9-.]/', $value ) )
 				{
 					$value = preg_replace( '/[^0-9-.]/', '', $value );
-
 					$error[] = sprintf( _( '%s, a numerical field, contained non-numerical characters. These characters were removed.' ), $name );
 				}
-
 				// FIELD IS INTEGER, VALUE CONTAINS NON-INTEGER CHARACTERS.
 				elseif ( strpos( $table_properties[ $column ]['TYPE'], 'INT' ) === 0
 					&& preg_match( '/[^0-9-]/', $value ) )
 				{
 					$value = (int) $value;
-
 					$error[] = sprintf( _( '%s, a numerical field, contained non-numerical characters. These characters were removed.' ), $name );
 				}
-
 				// FIELD IS DATE, DATE IS WRONG.
 				elseif ( $table_properties[ $column ]['TYPE'] === 'DATE'
 					&& $value
 					&& ! VerifyDate( $value ) )
 				{
 					$error[] = sprintf( _( '%s, a date field, was not a valid date. This value could not be saved.' ), $name );
-
 					continue;
 				}
 
@@ -110,17 +98,12 @@ function SaveData( $iu_extra, $field_names = [] )
 						|| $value == '0' )
 					{
 						$ins_fields[ $table ] .= DBEscapeIdentifier( $column ) . ',';
-
 						$ins_values[ $table ] .= "'" . $value . "',";
-
 						$go = true;
 					}
-
 					continue;
 				}
-
 				$sql[ $table ] .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-
 				$go = true;
 			}
 

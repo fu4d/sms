@@ -102,7 +102,6 @@ if ( $_REQUEST['modfunc'] === 'update'
 {
 	// Add eventual Dates to $_REQUEST['students'].
 	AddRequestedDates( 'students', 'post' );
-
 	if ( ! empty( $_POST['students'] )
 		|| ! empty( $_POST['values'] )
 		|| ! empty( $_FILES ) )
@@ -159,7 +158,8 @@ if ( $_REQUEST['modfunc'] === 'update'
 
 			// Check if trying to hack enrollment.
 
-			if ( isset( $_REQUEST['month_values']['student_enrollment'] )
+//			if ( isset( $_REQUEST['month_values']['student_enrollment'] )
+			if ( isset( $_REQUEST['values']['student_enrollment'] )
 				|| count( (array) $_REQUEST['values']['student_enrollment'] ) > 2 )
 			{
 				require_once 'ProgramFunctions/HackingLog.fnc.php';
@@ -186,7 +186,7 @@ if ( $_REQUEST['modfunc'] === 'update'
 					FROM attendance_calendars
 					WHERE SYEAR='" . UserSyear() . "'
 					AND SCHOOL_ID='" . UserSchool() . "'
-					AND DEFAULT_CALENDAR='Y'" );
+					AND DEFAULT_CALENDARCALENDAR='Y'" );
 			}
 		}
 

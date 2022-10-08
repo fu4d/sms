@@ -26,7 +26,7 @@ if ( ! empty( $fields_RET ) )
 {
 	echo issetVal( $separator, '' );
 
-	echo '<table class="width-100p valign-top fixed-col">';
+	// echo '<table class="width-100p valign-top fixed-col">';
 }
 
 $i = 1;
@@ -45,106 +45,106 @@ foreach ( (array) $fields_RET as $field )
 	//echo '<pre>'; var_dump($field); echo '</pre>';
 
 	if ( ( $i - 1 )%$per_row === 0 )
-		echo '<tr class="st">';
+		echo '<div class="st user-comm">';
 
-	echo '<td>';
+		echo    '<div class="field">';
 
-	switch ( $field['TYPE'] )
-	{
-		case 'text':
-		case 'numeric':
+		switch ( $field['TYPE'] )
+		{
+			case 'text':
+			case 'numeric':
 
-			if ( $field['ID'] === '200000000' )
-			{
-				// @since 5.9 Move Email & Phone Staff Fields to custom fields.
-				// FJ Moodle integrator: email required
-				echo TextInput(
-					issetVal( $value['EMAIL'] ),//issetVal( $value['CUSTOM_' . $field['ID']] ),
-					'staff[EMAIL]',
-					$field['TITLE'],
-					'size=22 maxlength=255 type="email" pattern="[^ @]*@[^ @]*" placeholder="' . AttrEscape( _( 'Email' ) ) . '"' .
-						( ! empty( $_REQUEST['moodle_create_user'] ) || ! empty( $old_user_in_moodle )
-							|| $field['REQUIRED'] ? ' required' : '' ),
-					empty( $_REQUEST['moodle_create_user'] )
-				);
-			}
-			else
-			{
+				if ( $field['ID'] === '200000000' )
+				{
+					// @since 5.9 Move Email & Phone Staff Fields to custom fields.
+					// FJ Moodle integrator: email required
+					echo TextInput(
+						issetVal( $value['EMAIL'] ),//issetVal( $value['CUSTOM_' . $field['ID']] ),
+						'staff[EMAIL]',
+						$field['TITLE'],
+						'size=22 maxlength=255 type="email" pattern="[^ @]*@[^ @]*" placeholder="' . AttrEscape( _( 'Email' ) ) . '"' .
+							( ! empty( $_REQUEST['moodle_create_user'] ) || ! empty( $old_user_in_moodle )
+								|| $field['REQUIRED'] ? ' required' : '' ),
+						empty( $_REQUEST['moodle_create_user'] )
+					);
+				}
+				else
+				{
+					echo _makeTextInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
+				}
+
+				break;
+
+			case 'autos':
+
+				echo _makeAutoSelectInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
+
+				break;
+
 				echo _makeTextInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
-			}
 
-			break;
+				break;
 
-		case 'autos':
+			case 'date':
 
-			echo _makeAutoSelectInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
+				echo _makeDateInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
 
-			break;
+				break;
 
-			echo _makeTextInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
+			case 'exports':
+			case 'select':
 
-			break;
+				echo _makeSelectInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
 
-		case 'date':
+				break;
 
-			echo _makeDateInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
+			case 'multiple':
 
-			break;
+				echo _makeMultipleInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
 
-		case 'exports':
-		case 'select':
+				break;
 
-			echo _makeSelectInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
+			case 'radio':
 
-			break;
+				echo _makeCheckboxInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
 
-		case 'multiple':
+				break;
 
-			echo _makeMultipleInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
+			case 'textarea':
 
-			break;
+				// Only 2 fields per row when textarea
+				if ( $per_row > 2 )
+				{
+					// New row
+					echo '</div></div><div class="st">';
 
-		case 'radio':
+					echo '<td colspan="' . round( $per_row / 2 ) . '">';
 
-			echo _makeCheckboxInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
+					$i = round( $per_row / 2 );
+				}
 
-			break;
+				echo _makeTextAreaInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
 
-		case 'textarea':
+				break;
 
-			// Only 2 fields per row when textarea
-			if ( $per_row > 2 )
-			{
-				// New row
-				echo '</td></tr><tr class="st">';
+			case 'files':
 
-				echo '<td colspan="' . round( $per_row / 2 ) . '">';
+				echo _makeFilesInput(
+					'CUSTOM_' . $field['ID'],
+					$field['TITLE'],
+					'staff',
+					'Modules.php?modname=' . $_REQUEST['modname'] .
+					'&category_id=' . $_REQUEST['category_id'] . '&staff_id=' . $_REQUEST['staff_id'] .
+					'&modfunc=remove_file&id=' . $field['ID'] . '&filename='
+				);
 
-				$i = round( $per_row / 2 );
-			}
+				break;
+		}
 
-			echo _makeTextAreaInput( 'CUSTOM_' . $field['ID'], $field['TITLE'], 'staff' );
-
-			break;
-
-		case 'files':
-
-			echo _makeFilesInput(
-				'CUSTOM_' . $field['ID'],
-				$field['TITLE'],
-				'staff',
-				'Modules.php?modname=' . $_REQUEST['modname'] .
-				'&category_id=' . $_REQUEST['category_id'] . '&staff_id=' . $_REQUEST['staff_id'] .
-				'&modfunc=remove_file&id=' . $field['ID'] . '&filename='
-			);
-
-			break;
-	}
-
-	echo '</td>';
+	echo '</div>';
 
 	if ( $i%$per_row === 0 )
-		echo '</tr>';
+		echo '</div>';
 
 	$i++;
 }
@@ -152,7 +152,7 @@ foreach ( (array) $fields_RET as $field )
 if ( $i > 1 )
 {
 	if ( ( $i - 1 )%$per_row !== 0 )
-		echo '</tr>';
+		echo '</div>';
 
-	echo '</table>';
+	echo '</div>';
 }
