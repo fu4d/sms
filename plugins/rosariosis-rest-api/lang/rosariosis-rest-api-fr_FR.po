@@ -1,0 +1,62 @@
+# Copyright (C) 2014 RosarioSIS REST API
+# This file is distributed under the same license as the RosarioSIS REST API package.
+msgid ""
+msgstr ""
+"Project-Id-Version: RosarioSIS REST API 1.0\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/WordPress-Plugin-Template\n"
+"POT-Creation-Date: 2018-11-28 15:59+0100\n"
+"PO-Revision-Date: 2018-11-28 16:00+0100\n"
+"Last-Translator: \n"
+"Language-Team: RosarioSIS <info@rosariosis.org>\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 1.8.11\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-Basepath: ..\n"
+"X-Poedit-KeywordsList: __\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-SearchPathExcluded-0: includes/lib\n"
+"X-Poedit-SearchPathExcluded-1: includes/class-rosariosis-rest-api-settings."
+"php\n"
+
+#: includes/class-rosariosis-rest-api-controller.php:169
+msgid ""
+"Please define the ROSARIOSIS_REST_API_URL & ROSARIOSIS_REST_API_USER_TOKEN "
+"constants in the wp-config.php file."
+msgstr ""
+"Merci de définir les constantes ROSARIOSIS_REST_API_URL et "
+"ROSARIOSIS_REST_API_USER_TOKEN dans le fichier wp-config.php."
+
+#: includes/class-rosariosis-rest-api-controller.php:178
+msgid "Please enter a valid ROSARIOSIS_REST_API_URL in the wp-config.php file."
+msgstr ""
+"Merci d'entrer une ROSARIOSIS_REST_API_URL valide dans le fichier wp-config."
+"php."
+
+#: includes/class-rosariosis-rest-api-controller.php:189
+msgid ""
+"Please enter a valid ROSARIOSIS_REST_API_URL and ROSARIOSIS_REST_API_USER_TOKEN in "
+"the wp-config.php file."
+msgstr ""
+"Merci de définir des constantes ROSARIOSIS_REST_API_URL et "
+"ROSARIOSIS_REST_API_USER_TOKEN valides dans le fichier wp-config.php."
+
+#: includes/class-rosariosis-rest-api-controller.php:216
+msgid "Connection successful."
+msgstr "Connexion réussie."
+
+#: includes/class-rosariosis-rest-api-controller.php:547
+msgid "Empty response. Unknown error."
+msgstr "Réponse vide. Erreur inconnue."
+
+#: includes/class-rosariosis-rest-api-controller.php:646
+msgid "RosarioSIS REST API"
+msgstr "API REST RosarioSIS"
+
+#: includes/class-rosariosis-rest-api.php:287
+#: includes/class-rosariosis-rest-api.php:296
+msgid "Cheatin&#8217; huh?"
+msgstr "On triche, hein?"
