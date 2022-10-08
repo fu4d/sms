@@ -9,7 +9,7 @@ function SaveEnrollment()
 	global $error, $student_id;
 
 	if ( ! empty( $_POST['month_values']['student_enrollment'] )
-		|| ! empty( $_POST['values']['student_enrollment'] ) )
+	     || ! empty( $_POST['values']['student_enrollment'] ) )
 	{
 		issetVal( $_REQUEST['month_values']['student_enrollment'] );
 
@@ -23,7 +23,7 @@ function SaveEnrollment()
 				unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
 			}
 			elseif ( $stu_enrol_id == 'new'
-				&& $_REQUEST['values']['student_enrollment']['new']['SCHOOL_ID'] )
+			         && $_REQUEST['values']['student_enrollment']['new']['SCHOOL_ID'] )
 			{
 				$enrollment_school_id = $_REQUEST['values']['student_enrollment']['new']['SCHOOL_ID'];
 
@@ -95,8 +95,8 @@ function SaveEnrollment()
 				}
 			}
 			elseif ( UserStudentID()
-				&& isset( $stu_enrol_month['START_DATE'] )
-				&& empty( $stu_enrol_month['START_DATE'] ) )
+			         && isset( $stu_enrol_month['START_DATE'] )
+			         && empty( $stu_enrol_month['START_DATE'] ) )
 			{
 				// @since 5.4 Delete enrollment record if start date is empty.
 				// Check first if Student has previous enrollment records.
