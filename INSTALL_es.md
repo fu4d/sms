@@ -202,7 +202,7 @@ server$ sudo apt install ./wkhtmltox_0.12.6-1.focal_amd64.deb
 ```
 
 Definir el camino en el archivo `config.inc.php`:
-    `$wkhtmltopdfPath = '/usr/local/bin/wkhtmltopdf';`
+`$wkhtmltopdfPath = '/usr/local/bin/wkhtmltopdf';`
 
 
 Envio de email

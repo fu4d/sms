@@ -22,8 +22,8 @@ New in 11.1
 
 Scheduling
 - Courses:
-  - Automatically update teacher: Fix the false "Missing attendance" portal alerts
-  - Automatically update credits (attempted and earned); will also recalculate GPA
+    - Automatically update teacher: Fix the false "Missing attendance" portal alerts
+    - Automatically update credits (attempted and earned); will also recalculate GPA
 
 [Grades Import](https://www.rosariosis.org/modules/grades-import/)
 - Import Final Grades, sponsored by Univers Frère Raphaël, Haiti
@@ -210,14 +210,14 @@ New in 8.8
 
 Grades
 - Report Cards:
-  - Min. and Max. cumulative GPA
-  - Class Rank
+    - Min. and Max. cumulative GPA
+    - Class Rank
 
 [Email Students](https://www.rosariosis.org/modules/email-students/)
 - Automatically send Absence notifications, after X registered absences
 - Automatically send Birthday notifications
 - Automatically send Payment reminders (outstanding fees), X days before or after Due date
-Sponsored by Mr Marinsek, Argentina
+  Sponsored by Mr Marinsek, Argentina
 
 
 New in 8.7
@@ -240,12 +240,12 @@ Users
 [Email Parents](https://www.rosariosis.org/modules/email-parents/)
 - Automatically send (child's) Birthday notifications
 - Automatically send Payment reminders (outstanding fees), X days before or after Due date
-Sponsored by Rousseau International school
+  Sponsored by Rousseau International school
 
 [SMS Premium](https://www.rosariosis.org/modules/sms/#premium-module)
 - Automatically send (child's) Birthday Notifications to Parents
 - Automatically send Payment Reminders (outstanding fees) to Parents, X days before or after Due date
-Sponsored by Rousseau International school
+  Sponsored by Rousseau International school
 
 [Quiz Premium](https://www.rosariosis.org/modules/quiz/#premium-module) module, sponsored by Dzung Do
 
@@ -651,7 +651,7 @@ New in 4.5
 Grades
 
 - Gradebook Configuration: "Hide previous quarters assignment types" option, sponsored by Santa Cecilia school.
-Note: Will only work for newly created Assignment Types.
+  Note: Will only work for newly created Assignment Types.
 - Remove Teacher Programs (still available from Users menu)
 
 Attendance
@@ -816,11 +816,11 @@ New in 3.0
 School Setup
 - Access Log
 - Marking Periods
-	- Access granted to parents & students
+    - Access granted to parents & students
 
 Users
 - My Preferences
-	- Student Fields: search Username
+    - Student Fields: search Username
 
 Performance
 - 90% gain when updating Side menu
@@ -837,24 +837,24 @@ Students
 
 School Setup
 - Configuration
-	- Limit Existing Contacts & Addresses to current school
-	- Force Default Theme
+    - Limit Existing Contacts & Addresses to current school
+    - Force Default Theme
 
 Users
 - My Preferences
-	- Export Listings in XML format
-	- User Fields: search Email Address & Phone
+    - Export Listings in XML format
+    - User Fields: search Email Address & Phone
 
 Scheduling
 - Group Schedule
-	- Schedule multiple courses
+    - Schedule multiple courses
 
 Grades
 - Student Assignments
-	- Submit Assignment
+    - Submit Assignment
 
 - Grading Scales
-	- Minimum Passing Grade
+    - Minimum Passing Grade
 
 Student Billing & Accounting
 - Daily Totals
@@ -874,13 +874,13 @@ New in 2.8
 -----------
 School Setup
 - School Configuration
-	- Create User Account
-	- Create Student Account
+    - Create User Account
+    - Create Student Account
 
 Students
 - Group Assign Student Info
-	- Grade Level
-	- Attendance Start Date this School Year
+    - Grade Level
+    - Attendance Start Date this School Year
 
 Attendance
 - Course Period Absences Widget
@@ -896,9 +896,9 @@ New in 2.7
 -----------
 School Setup
 - School Configuration
-	- manage Modules & Plugins
-	- set Default Theme
-	- set Currency
+    - manage Modules & Plugins
+    - set Default Theme
+    - set Currency
 
 `config.inc.php`
 - No more Rosario Admins list

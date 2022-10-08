@@ -193,10 +193,10 @@ body,
 input,
 select,
 textarea,
-/* Chosen JS select */
+	/* Chosen JS select */
 
 div.chosen-container,
-/* JS calendar */
+	/* JS calendar */
 
 .calendar,
 .calendar table {
