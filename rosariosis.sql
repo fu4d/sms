@@ -17,22 +17,22 @@ SET client_min_messages = warning;
 
 CREATE OR REPLACE FUNCTION create_language_plpgsql() RETURNS boolean AS $$
     CREATE LANGUAGE plpgsql;
-    SELECT TRUE;
+SELECT TRUE;
 $$ LANGUAGE SQL;
 
 SELECT CASE WHEN NOT
     (
         SELECT  TRUE AS exists
-        FROM    pg_language
-        WHERE   lanname = 'plpgsql'
-        UNION
-        SELECT  FALSE AS exists
-        ORDER BY exists DESC
-        LIMIT 1
+FROM    pg_language
+WHERE   lanname = 'plpgsql'
+UNION
+SELECT  FALSE AS exists
+ORDER BY exists DESC
+    LIMIT 1
     )
-THEN
+    THEN
     create_language_plpgsql()
-ELSE
+    ELSE
     FALSE
 END AS plpgsql_created;
 
@@ -46,11 +46,11 @@ DROP FUNCTION create_language_plpgsql();
 
 CREATE OR REPLACE FUNCTION calc_cum_cr_gpa(mp_id integer, s_id integer) RETURNS integer AS $$
 BEGIN
-    UPDATE student_mp_stats
-    SET cum_cr_weighted_factor = (case when cr_credits = '0' THEN '0' ELSE cr_weighted_factors/cr_credits END),
-        cum_cr_unweighted_factor = (case when cr_credits = '0' THEN '0' ELSE cr_unweighted_factors/cr_credits END)
-    WHERE student_mp_stats.student_id = s_id and student_mp_stats.marking_period_id = mp_id;
-    RETURN 1;
+UPDATE student_mp_stats
+SET cum_cr_weighted_factor = (case when cr_credits = '0' THEN '0' ELSE cr_weighted_factors/cr_credits END),
+    cum_cr_unweighted_factor = (case when cr_credits = '0' THEN '0' ELSE cr_unweighted_factors/cr_credits END)
+WHERE student_mp_stats.student_id = s_id and student_mp_stats.marking_period_id = mp_id;
+RETURN 1;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -62,11 +62,11 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION calc_cum_gpa(mp_id integer, s_id integer) RETURNS integer AS $$
 BEGIN
-    UPDATE student_mp_stats
-    SET cum_weighted_factor = (case when gp_credits = '0' THEN '0' ELSE sum_weighted_factors/gp_credits END),
-        cum_unweighted_factor = (case when gp_credits = '0' THEN '0' ELSE sum_unweighted_factors/gp_credits END)
-    WHERE student_mp_stats.student_id = s_id and student_mp_stats.marking_period_id = mp_id;
-    RETURN 1;
+UPDATE student_mp_stats
+SET cum_weighted_factor = (case when gp_credits = '0' THEN '0' ELSE sum_weighted_factors/gp_credits END),
+    cum_unweighted_factor = (case when gp_credits = '0' THEN '0' ELSE sum_unweighted_factors/gp_credits END)
+WHERE student_mp_stats.student_id = s_id and student_mp_stats.marking_period_id = mp_id;
+RETURN 1;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -78,18 +78,18 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION calc_gpa_mp(s_id integer, mp_id integer) RETURNS integer AS $$
 DECLARE
-    oldrec student_mp_stats%ROWTYPE;
+oldrec student_mp_stats%ROWTYPE;
 BEGIN
-  SELECT * INTO oldrec FROM student_mp_stats WHERE student_id = s_id and marking_period_id = mp_id;
+SELECT * INTO oldrec FROM student_mp_stats WHERE student_id = s_id and marking_period_id = mp_id;
 
-  IF FOUND THEN
-    UPDATE student_mp_stats SET
-        sum_weighted_factors = rcg.sum_weighted_factors,
-        sum_unweighted_factors = rcg.sum_unweighted_factors,
-        cr_weighted_factors = rcg.cr_weighted,
-        cr_unweighted_factors = rcg.cr_unweighted,
-        gp_credits = rcg.gp_credits,
-        cr_credits = rcg.cr_credits
+IF FOUND THEN
+UPDATE student_mp_stats SET
+                            sum_weighted_factors = rcg.sum_weighted_factors,
+                            sum_unweighted_factors = rcg.sum_unweighted_factors,
+                            cr_weighted_factors = rcg.cr_weighted,
+                            cr_unweighted_factors = rcg.cr_unweighted,
+                            gp_credits = rcg.gp_credits,
+                            cr_credits = rcg.cr_credits
     FROM (
     select
         sum(weighted_gp*credit_attempted/gp_scale) as sum_weighted_factors,
@@ -102,33 +102,33 @@ BEGIN
         and marking_period_id = mp_id
         and not gp_scale = 0 group by student_id, marking_period_id
     ) as rcg
-    WHERE student_id = s_id and marking_period_id = mp_id;
-    RETURN 1;
-  ELSE
+WHERE student_id = s_id and marking_period_id = mp_id;
+RETURN 1;
+ELSE
     INSERT INTO student_mp_stats (student_id, marking_period_id, sum_weighted_factors, sum_unweighted_factors, grade_level_short, cr_weighted_factors, cr_unweighted_factors, gp_credits, cr_credits)
-        select
-            srcg.student_id,
-            srcg.marking_period_id,
-            sum(weighted_gp*credit_attempted/gp_scale) as sum_weighted_factors,
-            sum(unweighted_gp*credit_attempted/gp_scale) as sum_unweighted_factors,
-            (select eg.short_name
-                from enroll_grade eg, marking_periods mp
-                where eg.student_id = s_id
-                and eg.syear = mp.syear
-                and eg.school_id = mp.school_id
-                and eg.start_date <= mp.end_date
-                and mp.marking_period_id = mp_id
-                order by eg.start_date desc
-                limit 1) as short_name,
+select
+    srcg.student_id,
+    srcg.marking_period_id,
+    sum(weighted_gp*credit_attempted/gp_scale) as sum_weighted_factors,
+    sum(unweighted_gp*credit_attempted/gp_scale) as sum_unweighted_factors,
+    (select eg.short_name
+     from enroll_grade eg, marking_periods mp
+     where eg.student_id = s_id
+       and eg.syear = mp.syear
+       and eg.school_id = mp.school_id
+       and eg.start_date <= mp.end_date
+       and mp.marking_period_id = mp_id
+     order by eg.start_date desc
+        limit 1) as short_name,
             sum( case when class_rank = 'Y' THEN weighted_gp*credit_attempted/gp_scale END ) as cr_weighted,
             sum( case when class_rank = 'Y' THEN unweighted_gp*credit_attempted/gp_scale END ) as cr_unweighted,
             sum(credit_attempted) as gp_credits,
             sum(case when class_rank = 'Y' THEN credit_attempted END) as cr_credits
-        from student_report_card_grades srcg
-        where srcg.student_id = s_id and srcg.marking_period_id = mp_id and not srcg.gp_scale = 0
-        group by srcg.student_id, srcg.marking_period_id, short_name;
-  END IF;
-  RETURN 0;
+from student_report_card_grades srcg
+where srcg.student_id = s_id and srcg.marking_period_id = mp_id and not srcg.gp_scale = 0
+group by srcg.student_id, srcg.marking_period_id, short_name;
+END IF;
+RETURN 0;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -139,7 +139,7 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION credit(cp_id integer, mp_id integer) RETURNS numeric AS $$
 DECLARE
-    course_detail RECORD;
+course_detail RECORD;
     mp_detail RECORD;
     val RECORD;
 BEGIN
@@ -149,11 +149,11 @@ select * into mp_detail from marking_periods where marking_period_id = mp_id;
 IF course_detail.marking_period_id = mp_detail.marking_period_id THEN
     return course_detail.credits;
 ELSIF course_detail.mp = 'FY' AND mp_detail.mp_type = 'semester' THEN
-    select into val count(*) as mp_count from marking_periods where parent_id = course_detail.marking_period_id group by parent_id;
+select into val count(*) as mp_count from marking_periods where parent_id = course_detail.marking_period_id group by parent_id;
 ELSIF course_detail.mp = 'FY' and mp_detail.mp_type = 'quarter' THEN
-    select into val count(*) as mp_count from marking_periods where grandparent_id = course_detail.marking_period_id group by grandparent_id;
+select into val count(*) as mp_count from marking_periods where grandparent_id = course_detail.marking_period_id group by grandparent_id;
 ELSIF course_detail.mp = 'SEM' and mp_detail.mp_type = 'quarter' THEN
-    select into val count(*) as mp_count from marking_periods where parent_id = course_detail.marking_period_id group by parent_id;
+select into val count(*) as mp_count from marking_periods where parent_id = course_detail.marking_period_id group by parent_id;
 ELSE
     return course_detail.credits;
 END IF;
@@ -176,7 +176,7 @@ CREATE OR REPLACE FUNCTION set_class_rank_mp(mp_id integer) RETURNS integer AS $
 BEGIN
 update student_mp_stats
 set cum_rank = class_rank.class_rank, class_size = class_rank.class_size
-from (select mp.marking_period_id, sgm.student_id,
+    from (select mp.marking_period_id, sgm.student_id,
     (select count(*)+1
         from student_mp_stats sgm3
         where sgm3.cum_cr_weighted_factor > sgm.cum_cr_weighted_factor
@@ -201,7 +201,7 @@ from (select mp.marking_period_id, sgm.student_id,
     and se.syear = mp.syear
     and not sgm.cum_cr_weighted_factor is null) as class_rank
 where student_mp_stats.marking_period_id = class_rank.marking_period_id
-and student_mp_stats.student_id = class_rank.student_id;
+  and student_mp_stats.student_id = class_rank.student_id;
 RETURN 1;
 END;
 $$ LANGUAGE plpgsql;
@@ -217,7 +217,7 @@ BEGIN
     PERFORM calc_gpa_mp(OLD.student_id, OLD.marking_period_id);
     PERFORM calc_cum_gpa(OLD.marking_period_id, OLD.student_id);
     PERFORM calc_cum_cr_gpa(OLD.marking_period_id, OLD.student_id);
-  ELSE
+ELSE
     --IF tg_op = 'INSERT' THEN
         --we need to do stuff here to gather other information since it's a new record.
     --ELSE
@@ -227,8 +227,8 @@ BEGIN
     PERFORM calc_gpa_mp(NEW.student_id, NEW.marking_period_id);
     PERFORM calc_cum_gpa(NEW.marking_period_id, NEW.student_id);
     PERFORM calc_cum_cr_gpa(NEW.marking_period_id, NEW.student_id);
-  END IF;
-  RETURN NULL;
+END IF;
+RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -242,10 +242,10 @@ CREATE OR REPLACE FUNCTION set_updated_at() RETURNS trigger AS $$
 BEGIN
   IF row(NEW.*) IS DISTINCT FROM row(OLD.*) THEN
     NEW.updated_at := CURRENT_TIMESTAMP;
-    RETURN NEW;
-  ELSE
+RETURN NEW;
+ELSE
     RETURN OLD;
-  END IF;
+END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -259,23 +259,23 @@ SET default_with_oids = false;
 --
 
 CREATE TABLE schools (
-    syear numeric(4,0) NOT NULL,
-    id serial,
-    title varchar(100) NOT NULL,
-    address varchar(100),
-    city varchar(100),
-    state varchar(10),
-    zipcode varchar(10),
-    phone varchar(30),
-    principal varchar(100),
-    www_address text,
-    school_number varchar(50),
-    short_name varchar(25),
-    reporting_gp_scale numeric(10,3),
-    number_days_rotation numeric(1,0),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (id, syear)
+                         syear numeric(4,0) NOT NULL,
+                         id serial,
+                         title varchar(100) NOT NULL,
+                         address varchar(100),
+                         city varchar(100),
+                         state varchar(10),
+                         zipcode varchar(10),
+                         phone varchar(30),
+                         principal varchar(100),
+                         www_address text,
+                         school_number varchar(50),
+                         short_name varchar(25),
+                         reporting_gp_scale numeric(10,3),
+                         number_days_rotation numeric(1,0),
+                         created_at timestamp DEFAULT current_timestamp,
+                         updated_at timestamp,
+                         PRIMARY KEY (id, syear)
 );
 
 
@@ -284,29 +284,29 @@ CREATE TABLE schools (
 --
 
 CREATE TABLE students (
-    student_id serial PRIMARY KEY,
-    last_name varchar(50) NOT NULL,
-    first_name varchar(50) NOT NULL,
-    middle_name varchar(50),
-    name_suffix varchar(3),
-    username varchar(100) UNIQUE,
-    password varchar(106),
-    last_login timestamp,
-    failed_login integer,
-    custom_200000000 text,
-    custom_200000001 text,
-    custom_200000002 text,
-    custom_200000003 text,
-    custom_200000004 date,
-    custom_200000005 text,
-    custom_200000006 text,
-    custom_200000007 text,
-    custom_200000008 text,
-    custom_200000009 text,
-    custom_200000010 char(1),
-    custom_200000011 text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                          student_id serial PRIMARY KEY,
+                          last_name varchar(50) NOT NULL,
+                          first_name varchar(50) NOT NULL,
+                          middle_name varchar(50),
+                          name_suffix varchar(3),
+                          username varchar(100) UNIQUE,
+                          password varchar(106),
+                          last_login timestamp,
+                          failed_login integer,
+                          custom_200000000 text,
+                          custom_200000001 text,
+                          custom_200000002 text,
+                          custom_200000003 text,
+                          custom_200000004 date,
+                          custom_200000005 text,
+                          custom_200000006 text,
+                          custom_200000007 text,
+                          custom_200000008 text,
+                          custom_200000009 text,
+                          custom_200000010 char(1),
+                          custom_200000011 text,
+                          created_at timestamp DEFAULT current_timestamp,
+                          updated_at timestamp
 );
 
 
@@ -315,27 +315,27 @@ CREATE TABLE students (
 --
 
 CREATE TABLE staff (
-    syear numeric(4,0) NOT NULL,
-    staff_id serial PRIMARY KEY,
-    current_school_id integer,
-    title varchar(5),
-    first_name varchar(100) NOT NULL,
-    last_name varchar(100) NOT NULL,
-    middle_name varchar(100),
-    name_suffix varchar(3),
-    username varchar(100),
-    password varchar(106),
-    email varchar(255),
-    custom_200000001 text, -- Old phone column.
-    profile varchar(30),
-    homeroom varchar(5),
-    schools varchar(150),
-    last_login timestamp,
-    failed_login integer,
-    profile_id integer,
-    rollover_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                       syear numeric(4,0) NOT NULL,
+                       staff_id serial PRIMARY KEY,
+                       current_school_id integer,
+                       title varchar(5),
+                       first_name varchar(100) NOT NULL,
+                       last_name varchar(100) NOT NULL,
+                       middle_name varchar(100),
+                       name_suffix varchar(3),
+                       username varchar(100),
+                       password varchar(106),
+                       email varchar(255),
+                       custom_200000001 text, -- Old phone column.
+                       profile varchar(30),
+                       homeroom varchar(5),
+                       schools varchar(150),
+                       last_login timestamp,
+                       failed_login integer,
+                       profile_id integer,
+                       rollover_id integer,
+                       created_at timestamp DEFAULT current_timestamp,
+                       updated_at timestamp
 );
 
 
@@ -344,24 +344,24 @@ CREATE TABLE staff (
 --
 
 CREATE TABLE school_marking_periods (
-    marking_period_id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    mp varchar(3) NOT NULL,
-    school_id integer NOT NULL,
-    parent_id integer,
-    title varchar(50) NOT NULL,
-    short_name varchar(10),
-    sort_order numeric,
-    start_date date NOT NULL,
-    end_date date NOT NULL,
-    post_start_date date,
-    post_end_date date,
-    does_grades varchar(1),
-    does_comments varchar(1),
-    rollover_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                        marking_period_id serial PRIMARY KEY,
+                                        syear numeric(4,0) NOT NULL,
+                                        mp varchar(3) NOT NULL,
+                                        school_id integer NOT NULL,
+                                        parent_id integer,
+                                        title varchar(50) NOT NULL,
+                                        short_name varchar(10),
+                                        sort_order numeric,
+                                        start_date date NOT NULL,
+                                        end_date date NOT NULL,
+                                        post_start_date date,
+                                        post_end_date date,
+                                        does_grades varchar(1),
+                                        does_comments varchar(1),
+                                        rollover_id integer,
+                                        created_at timestamp DEFAULT current_timestamp,
+                                        updated_at timestamp,
+                                        FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -370,19 +370,19 @@ CREATE TABLE school_marking_periods (
 --
 
 CREATE TABLE courses (
-    syear numeric(4,0) NOT NULL,
-    course_id serial PRIMARY KEY,
-    subject_id integer NOT NULL,
-    school_id integer NOT NULL,
-    grade_level integer,
-    title varchar(100) NOT NULL,
-    short_name varchar(25),
-    rollover_id integer,
-    credit_hours numeric(6,2),
-    description text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                         syear numeric(4,0) NOT NULL,
+                         course_id serial PRIMARY KEY,
+                         subject_id integer NOT NULL,
+                         school_id integer NOT NULL,
+                         grade_level integer,
+                         title varchar(100) NOT NULL,
+                         short_name varchar(25),
+                         rollover_id integer,
+                         credit_hours numeric(6,2),
+                         description text,
+                         created_at timestamp DEFAULT current_timestamp,
+                         updated_at timestamp,
+                         FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -391,35 +391,35 @@ CREATE TABLE courses (
 --
 
 CREATE TABLE course_periods (
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    course_period_id serial PRIMARY KEY,
-    course_id integer NOT NULL REFERENCES courses(course_id),
-    title text,
-    short_name varchar(25) NOT NULL,
-    mp varchar(3),
-    marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
-    teacher_id integer NOT NULL REFERENCES staff(staff_id),
-    secondary_teacher_id integer REFERENCES staff(staff_id),
-    room varchar(10),
-    total_seats numeric,
-    filled_seats numeric,
-    does_attendance text,
-    does_honor_roll varchar(1),
-    does_class_rank varchar(1),
-    gender_restriction varchar(1),
-    house_restriction varchar(1),
-    availability numeric,
-    parent_id integer,
-    calendar_id integer,
-    half_day varchar(1), -- @deprecated since 8.9
-    does_breakoff varchar(1),
-    rollover_id integer,
-    grade_scale_id integer,
-    credits numeric(6,2),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                syear numeric(4,0) NOT NULL,
+                                school_id integer NOT NULL,
+                                course_period_id serial PRIMARY KEY,
+                                course_id integer NOT NULL REFERENCES courses(course_id),
+                                title text,
+                                short_name varchar(25) NOT NULL,
+                                mp varchar(3),
+                                marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
+                                teacher_id integer NOT NULL REFERENCES staff(staff_id),
+                                secondary_teacher_id integer REFERENCES staff(staff_id),
+                                room varchar(10),
+                                total_seats numeric,
+                                filled_seats numeric,
+                                does_attendance text,
+                                does_honor_roll varchar(1),
+                                does_class_rank varchar(1),
+                                gender_restriction varchar(1),
+                                house_restriction varchar(1),
+                                availability numeric,
+                                parent_id integer,
+                                calendar_id integer,
+                                half_day varchar(1), -- @deprecated since 8.9
+                                does_breakoff varchar(1),
+                                rollover_id integer,
+                                grade_scale_id integer,
+                                credits numeric(6,2),
+                                created_at timestamp DEFAULT current_timestamp,
+                                updated_at timestamp,
+                                FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -428,15 +428,15 @@ CREATE TABLE course_periods (
 --
 
 CREATE TABLE access_log (
-    syear numeric(4,0) NOT NULL,
-    username varchar(100),
-    profile varchar(30),
-    login_time timestamp, -- @deprecated since 11.0 use created_at instead
-    ip_address varchar(50),
-    user_agent text,
-    status varchar(50),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                            syear numeric(4,0) NOT NULL,
+                            username varchar(100),
+                            profile varchar(30),
+                            login_time timestamp, -- @deprecated since 11.0 use created_at instead
+                            ip_address varchar(50),
+                            user_agent text,
+                            status varchar(50),
+                            created_at timestamp DEFAULT current_timestamp,
+                            updated_at timestamp
 );
 
 
@@ -445,14 +445,14 @@ CREATE TABLE access_log (
 --
 
 CREATE TABLE accounting_categories (
-    id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    title text NOT NULL,
-    short_name varchar(10),
-    type varchar(100),
-    sort_order numeric,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                       id serial PRIMARY KEY,
+                                       school_id integer NOT NULL,
+                                       title text NOT NULL,
+                                       short_name varchar(10),
+                                       type varchar(100),
+                                       sort_order numeric,
+                                       created_at timestamp DEFAULT current_timestamp,
+                                       updated_at timestamp
 );
 
 
@@ -461,18 +461,18 @@ CREATE TABLE accounting_categories (
 --
 
 CREATE TABLE accounting_incomes (
-    assigned_date date,
-    comments text,
-    id serial PRIMARY KEY,
-    title text NOT NULL,
-    category_id integer REFERENCES accounting_categories(id),
-    amount numeric(14,2) NOT NULL,
-    file_attached text,
-    school_id integer NOT NULL,
-    syear numeric(4,0) NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                    assigned_date date,
+                                    comments text,
+                                    id serial PRIMARY KEY,
+                                    title text NOT NULL,
+                                    category_id integer REFERENCES accounting_categories(id),
+                                    amount numeric(14,2) NOT NULL,
+                                    file_attached text,
+                                    school_id integer NOT NULL,
+                                    syear numeric(4,0) NOT NULL,
+                                    created_at timestamp DEFAULT current_timestamp,
+                                    updated_at timestamp,
+                                    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -481,19 +481,19 @@ CREATE TABLE accounting_incomes (
 --
 
 CREATE TABLE accounting_salaries (
-    staff_id integer NOT NULL REFERENCES staff(staff_id),
-    assigned_date date,
-    due_date date,
-    comments text,
-    id serial PRIMARY KEY,
-    title text NOT NULL,
-    amount numeric(14,2) NOT NULL,
-    file_attached text,
-    school_id integer NOT NULL,
-    syear numeric(4,0) NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                     staff_id integer NOT NULL REFERENCES staff(staff_id),
+                                     assigned_date date,
+                                     due_date date,
+                                     comments text,
+                                     id serial PRIMARY KEY,
+                                     title text NOT NULL,
+                                     amount numeric(14,2) NOT NULL,
+                                     file_attached text,
+                                     school_id integer NOT NULL,
+                                     syear numeric(4,0) NOT NULL,
+                                     created_at timestamp DEFAULT current_timestamp,
+                                     updated_at timestamp,
+                                     FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -502,19 +502,19 @@ CREATE TABLE accounting_salaries (
 --
 
 CREATE TABLE accounting_payments (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    staff_id integer REFERENCES staff(staff_id),
-    title text,
-    category_id integer REFERENCES accounting_categories(id),
-    amount numeric(14,2) NOT NULL,
-    payment_date date,
-    comments text,
-    file_attached text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                     id serial PRIMARY KEY,
+                                     syear numeric(4,0) NOT NULL,
+                                     school_id integer NOT NULL,
+                                     staff_id integer REFERENCES staff(staff_id),
+                                     title text,
+                                     category_id integer REFERENCES accounting_categories(id),
+                                     amount numeric(14,2) NOT NULL,
+                                     payment_date date,
+                                     comments text,
+                                     file_attached text,
+                                     created_at timestamp DEFAULT current_timestamp,
+                                     updated_at timestamp,
+                                     FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -523,23 +523,23 @@ CREATE TABLE accounting_payments (
 --
 
 CREATE TABLE address (
-    address_id serial PRIMARY KEY,
-    house_no numeric(5,0),
-    direction varchar(2),
-    street varchar(30),
-    apt varchar(5),
-    zipcode varchar(10),
-    city text,
-    state varchar(50),
-    mail_street varchar(30),
-    mail_city text,
-    mail_state varchar(50),
-    mail_zipcode varchar(10),
-    address text,
-    mail_address text,
-    phone varchar(30),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                         address_id serial PRIMARY KEY,
+                         house_no numeric(5,0),
+                         direction varchar(2),
+                         street varchar(30),
+                         apt varchar(5),
+                         zipcode varchar(10),
+                         city text,
+                         state varchar(50),
+                         mail_street varchar(30),
+                         mail_city text,
+                         mail_state varchar(50),
+                         mail_zipcode varchar(10),
+                         address text,
+                         mail_address text,
+                         phone varchar(30),
+                         created_at timestamp DEFAULT current_timestamp,
+                         updated_at timestamp
 );
 
 
@@ -548,14 +548,14 @@ CREATE TABLE address (
 --
 
 CREATE TABLE address_field_categories (
-    id serial PRIMARY KEY,
-    title text NOT NULL,
-    sort_order numeric,
-    residence char(1),
-    mailing char(1),
-    bus char(1),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                          id serial PRIMARY KEY,
+                                          title text NOT NULL,
+                                          sort_order numeric,
+                                          residence char(1),
+                                          mailing char(1),
+                                          bus char(1),
+                                          created_at timestamp DEFAULT current_timestamp,
+                                          updated_at timestamp
 );
 
 
@@ -564,16 +564,16 @@ CREATE TABLE address_field_categories (
 --
 
 CREATE TABLE address_fields (
-    id serial PRIMARY KEY,
-    type varchar(10) NOT NULL,
-    title text NOT NULL,
-    sort_order numeric,
-    select_options text,
-    category_id integer,
-    required varchar(1),
-    default_selection text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                id serial PRIMARY KEY,
+                                type varchar(10) NOT NULL,
+                                title text NOT NULL,
+                                sort_order numeric,
+                                select_options text,
+                                category_id integer,
+                                required varchar(1),
+                                default_selection text,
+                                created_at timestamp DEFAULT current_timestamp,
+                                updated_at timestamp
 );
 
 
@@ -582,16 +582,16 @@ CREATE TABLE address_fields (
 --
 
 CREATE TABLE attendance_calendar (
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    school_date date NOT NULL,
-    minutes integer,
-    block varchar(10),
-    calendar_id integer NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (syear, school_id, school_date, calendar_id),
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                     syear numeric(4,0) NOT NULL,
+                                     school_id integer NOT NULL,
+                                     school_date date NOT NULL,
+                                     minutes integer,
+                                     block varchar(10),
+                                     calendar_id integer NOT NULL,
+                                     created_at timestamp DEFAULT current_timestamp,
+                                     updated_at timestamp,
+                                     PRIMARY KEY (syear, school_id, school_date, calendar_id),
+                                     FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -600,15 +600,15 @@ CREATE TABLE attendance_calendar (
 --
 
 CREATE TABLE attendance_calendars (
-    school_id integer NOT NULL,
-    title varchar(100) NOT NULL,
-    syear numeric(4,0) NOT NULL,
-    calendar_id serial PRIMARY KEY,
-    default_calendar varchar(1),
-    rollover_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                      school_id integer NOT NULL,
+                                      title varchar(100) NOT NULL,
+                                      syear numeric(4,0) NOT NULL,
+                                      calendar_id serial PRIMARY KEY,
+                                      default_calendar varchar(1),
+                                      rollover_id integer,
+                                      created_at timestamp DEFAULT current_timestamp,
+                                      updated_at timestamp,
+                                      FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -617,15 +617,15 @@ CREATE TABLE attendance_calendars (
 --
 
 CREATE TABLE attendance_code_categories (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    title text NOT NULL,
-    sort_order numeric,
-    rollover_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                            id serial PRIMARY KEY,
+                                            syear numeric(4,0) NOT NULL,
+                                            school_id integer NOT NULL,
+                                            title text NOT NULL,
+                                            sort_order numeric,
+                                            rollover_id integer,
+                                            created_at timestamp DEFAULT current_timestamp,
+                                            updated_at timestamp,
+                                            FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -634,19 +634,19 @@ CREATE TABLE attendance_code_categories (
 --
 
 CREATE TABLE attendance_codes (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    title text NOT NULL,
-    short_name varchar(10),
-    type varchar(10),
-    state_code varchar(1),
-    default_code varchar(1),
-    table_name integer,
-    sort_order numeric,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                  id serial PRIMARY KEY,
+                                  syear numeric(4,0) NOT NULL,
+                                  school_id integer NOT NULL,
+                                  title text NOT NULL,
+                                  short_name varchar(10),
+                                  type varchar(10),
+                                  state_code varchar(1),
+                                  default_code varchar(1),
+                                  table_name integer,
+                                  sort_order numeric,
+                                  created_at timestamp DEFAULT current_timestamp,
+                                  updated_at timestamp,
+                                  FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -655,13 +655,13 @@ CREATE TABLE attendance_codes (
 --
 
 CREATE TABLE attendance_completed (
-    staff_id integer NOT NULL REFERENCES staff(staff_id),
-    school_date date NOT NULL,
-    period_id integer NOT NULL,
-    table_name integer NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (staff_id, school_date, period_id, table_name)
+                                      staff_id integer NOT NULL REFERENCES staff(staff_id),
+                                      school_date date NOT NULL,
+                                      period_id integer NOT NULL,
+                                      table_name integer NOT NULL,
+                                      created_at timestamp DEFAULT current_timestamp,
+                                      updated_at timestamp,
+                                      PRIMARY KEY (staff_id, school_date, period_id, table_name)
 );
 
 
@@ -670,16 +670,16 @@ CREATE TABLE attendance_completed (
 --
 
 CREATE TABLE attendance_day (
-    student_id integer NOT NULL REFERENCES students(student_id),
-    school_date date NOT NULL,
-    minutes_present integer,
-    state_value numeric(2,1),
-    syear numeric(4,0),
-    marking_period_id integer REFERENCES school_marking_periods(marking_period_id),
-    comment text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (student_id, school_date)
+                                student_id integer NOT NULL REFERENCES students(student_id),
+                                school_date date NOT NULL,
+                                minutes_present integer,
+                                state_value numeric(2,1),
+                                syear numeric(4,0),
+                                marking_period_id integer REFERENCES school_marking_periods(marking_period_id),
+                                comment text,
+                                created_at timestamp DEFAULT current_timestamp,
+                                updated_at timestamp,
+                                PRIMARY KEY (student_id, school_date)
 );
 
 
@@ -688,19 +688,19 @@ CREATE TABLE attendance_day (
 --
 
 CREATE TABLE attendance_period (
-    student_id integer NOT NULL REFERENCES students(student_id),
-    school_date date NOT NULL,
-    period_id integer NOT NULL,
-    attendance_code integer,
-    attendance_teacher_code integer,
-    attendance_reason varchar(100),
-    admin varchar(1),
-    course_period_id integer REFERENCES course_periods(course_period_id),
-    marking_period_id integer REFERENCES school_marking_periods(marking_period_id),
-    comment varchar(100),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (student_id, school_date, period_id)
+                                   student_id integer NOT NULL REFERENCES students(student_id),
+                                   school_date date NOT NULL,
+                                   period_id integer NOT NULL,
+                                   attendance_code integer,
+                                   attendance_teacher_code integer,
+                                   attendance_reason varchar(100),
+                                   admin varchar(1),
+                                   course_period_id integer REFERENCES course_periods(course_period_id),
+                                   marking_period_id integer REFERENCES school_marking_periods(marking_period_id),
+                                   comment varchar(100),
+                                   created_at timestamp DEFAULT current_timestamp,
+                                   updated_at timestamp,
+                                   PRIMARY KEY (student_id, school_date, period_id)
 );
 
 
@@ -709,21 +709,21 @@ CREATE TABLE attendance_period (
 --
 
 CREATE TABLE billing_fees (
-    student_id integer NOT NULL REFERENCES students(student_id),
-    assigned_date date,
-    due_date date,
-    comments text,
-    id serial PRIMARY KEY,
-    title text NOT NULL,
-    amount numeric(14,2) NOT NULL,
-    file_attached text,
-    school_id integer NOT NULL,
-    syear numeric(4,0) NOT NULL,
-    waived_fee_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    created_by text,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                              student_id integer NOT NULL REFERENCES students(student_id),
+                              assigned_date date,
+                              due_date date,
+                              comments text,
+                              id serial PRIMARY KEY,
+                              title text NOT NULL,
+                              amount numeric(14,2) NOT NULL,
+                              file_attached text,
+                              school_id integer NOT NULL,
+                              syear numeric(4,0) NOT NULL,
+                              waived_fee_id integer,
+                              created_at timestamp DEFAULT current_timestamp,
+                              updated_at timestamp,
+                              created_by text,
+                              FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -732,20 +732,20 @@ CREATE TABLE billing_fees (
 --
 
 CREATE TABLE billing_payments (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    amount numeric(14,2) NOT NULL,
-    payment_date date,
-    comments text,
-    refunded_payment_id integer,
-    lunch_payment varchar(1),
-    file_attached text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    created_by text,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                  id serial PRIMARY KEY,
+                                  syear numeric(4,0) NOT NULL,
+                                  school_id integer NOT NULL,
+                                  student_id integer NOT NULL REFERENCES students(student_id),
+                                  amount numeric(14,2) NOT NULL,
+                                  payment_date date,
+                                  comments text,
+                                  refunded_payment_id integer,
+                                  lunch_payment varchar(1),
+                                  file_attached text,
+                                  created_at timestamp DEFAULT current_timestamp,
+                                  updated_at timestamp,
+                                  created_by text,
+                                  FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -754,15 +754,15 @@ CREATE TABLE billing_payments (
 --
 
 CREATE TABLE calendar_events (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    school_date date,
-    title varchar(50) NOT NULL,
-    description text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                 id serial PRIMARY KEY,
+                                 syear numeric(4,0) NOT NULL,
+                                 school_id integer NOT NULL,
+                                 school_date date,
+                                 title varchar(50) NOT NULL,
+                                 description text,
+                                 created_at timestamp DEFAULT current_timestamp,
+                                 updated_at timestamp,
+                                 FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -771,11 +771,11 @@ CREATE TABLE calendar_events (
 --
 
 CREATE TABLE config (
-    school_id integer NOT NULL, -- Can be 0.
-    title varchar(100) NOT NULL,
-    config_value text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                        school_id integer NOT NULL, -- Can be 0.
+                        title varchar(100) NOT NULL,
+                        config_value text,
+                        created_at timestamp DEFAULT current_timestamp,
+                        updated_at timestamp
 );
 
 
@@ -784,7 +784,7 @@ CREATE TABLE config (
 --
 
 CREATE VIEW course_details AS
-    SELECT cp.school_id, cp.syear, cp.marking_period_id, c.subject_id, cp.course_id, cp.course_period_id, cp.teacher_id, c.title AS course_title, cp.title AS cp_title, cp.grade_scale_id, cp.mp, cp.credits FROM course_periods cp, courses c WHERE (cp.course_id = c.course_id);
+SELECT cp.school_id, cp.syear, cp.marking_period_id, c.subject_id, cp.course_id, cp.course_period_id, cp.teacher_id, c.title AS course_title, cp.title AS cp_title, cp.grade_scale_id, cp.mp, cp.credits FROM course_periods cp, courses c WHERE (cp.course_id = c.course_id);
 
 
 --
@@ -792,13 +792,13 @@ CREATE VIEW course_details AS
 --
 
 CREATE TABLE course_period_school_periods (
-    course_period_school_periods_id serial PRIMARY KEY,
-    course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
-    period_id integer NOT NULL,
-    days varchar(7),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    UNIQUE (course_period_id, period_id)
+                                              course_period_school_periods_id serial PRIMARY KEY,
+                                              course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
+                                              period_id integer NOT NULL,
+                                              days varchar(7),
+                                              created_at timestamp DEFAULT current_timestamp,
+                                              updated_at timestamp,
+                                              UNIQUE (course_period_id, period_id)
 );
 
 
@@ -807,16 +807,16 @@ CREATE TABLE course_period_school_periods (
 --
 
 CREATE TABLE course_subjects (
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    subject_id serial PRIMARY KEY,
-    title varchar(100) NOT NULL,
-    short_name varchar(25),
-    sort_order numeric,
-    rollover_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                 syear numeric(4,0) NOT NULL,
+                                 school_id integer NOT NULL,
+                                 subject_id serial PRIMARY KEY,
+                                 title varchar(100) NOT NULL,
+                                 short_name varchar(25),
+                                 sort_order numeric,
+                                 rollover_id integer,
+                                 created_at timestamp DEFAULT current_timestamp,
+                                 updated_at timestamp,
+                                 FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -825,16 +825,16 @@ CREATE TABLE course_subjects (
 --
 
 CREATE TABLE custom_fields (
-    id serial PRIMARY KEY,
-    type varchar(10) NOT NULL,
-    title text NOT NULL,
-    sort_order numeric,
-    select_options text,
-    category_id integer,
-    required varchar(1),
-    default_selection text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                               id serial PRIMARY KEY,
+                               type varchar(10) NOT NULL,
+                               title text NOT NULL,
+                               sort_order numeric,
+                               select_options text,
+                               category_id integer,
+                               required varchar(1),
+                               default_selection text,
+                               created_at timestamp DEFAULT current_timestamp,
+                               updated_at timestamp
 );
 
 
@@ -843,16 +843,16 @@ CREATE TABLE custom_fields (
 --
 
 CREATE TABLE discipline_field_usage (
-    id serial PRIMARY KEY,
-    discipline_field_id integer NOT NULL,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    title text NOT NULL,
-    select_options text,
-    sort_order numeric,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                        id serial PRIMARY KEY,
+                                        discipline_field_id integer NOT NULL,
+                                        syear numeric(4,0) NOT NULL,
+                                        school_id integer NOT NULL,
+                                        title text NOT NULL,
+                                        select_options text,
+                                        sort_order numeric,
+                                        created_at timestamp DEFAULT current_timestamp,
+                                        updated_at timestamp,
+                                        FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -861,13 +861,13 @@ CREATE TABLE discipline_field_usage (
 --
 
 CREATE TABLE discipline_fields (
-    id serial PRIMARY KEY,
-    title text NOT NULL,
-    short_name varchar(20),
-    data_type varchar(30) NOT NULL,
-    column_name text NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                   id serial PRIMARY KEY,
+                                   title text NOT NULL,
+                                   short_name varchar(20),
+                                   data_type varchar(30) NOT NULL,
+                                   column_name text NOT NULL,
+                                   created_at timestamp DEFAULT current_timestamp,
+                                   updated_at timestamp
 );
 
 
@@ -876,22 +876,22 @@ CREATE TABLE discipline_fields (
 --
 
 CREATE TABLE discipline_referrals (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    school_id integer NOT NULL,
-    staff_id integer REFERENCES staff(staff_id),
-    entry_date date,
-    referral_date date,
-    category_1 text,
-    category_2 text,
-    category_3 varchar(1),
-    category_4 text,
-    category_5 text,
-    category_6 text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                      id serial PRIMARY KEY,
+                                      syear numeric(4,0) NOT NULL,
+                                      student_id integer NOT NULL REFERENCES students(student_id),
+                                      school_id integer NOT NULL,
+                                      staff_id integer REFERENCES staff(staff_id),
+                                      entry_date date,
+                                      referral_date date,
+                                      category_1 text,
+                                      category_2 text,
+                                      category_3 varchar(1),
+                                      category_4 text,
+                                      category_5 text,
+                                      category_6 text,
+                                      created_at timestamp DEFAULT current_timestamp,
+                                      updated_at timestamp,
+                                      FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -911,14 +911,14 @@ CREATE VIEW dual AS SELECT 'X' AS dummy;
 --
 
 CREATE TABLE eligibility (
-    student_id integer NOT NULL REFERENCES students(student_id),
-    syear numeric(4,0),
-    school_date date,
-    period_id integer,
-    eligibility_code varchar(20),
-    course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                             student_id integer NOT NULL REFERENCES students(student_id),
+                             syear numeric(4,0),
+                             school_date date,
+                             period_id integer,
+                             eligibility_code varchar(20),
+                             course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
+                             created_at timestamp DEFAULT current_timestamp,
+                             updated_at timestamp
 );
 
 
@@ -927,16 +927,16 @@ CREATE TABLE eligibility (
 --
 
 CREATE TABLE eligibility_activities (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    title text NOT NULL,
-    start_date date,
-    end_date date,
-    comment text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                        id serial PRIMARY KEY,
+                                        syear numeric(4,0) NOT NULL,
+                                        school_id integer NOT NULL,
+                                        title text NOT NULL,
+                                        start_date date,
+                                        end_date date,
+                                        comment text,
+                                        created_at timestamp DEFAULT current_timestamp,
+                                        updated_at timestamp,
+                                        FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -945,12 +945,12 @@ CREATE TABLE eligibility_activities (
 --
 
 CREATE TABLE eligibility_completed (
-    staff_id integer NOT NULL REFERENCES staff(staff_id),
-    school_date date NOT NULL,
-    period_id integer NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (staff_id, school_date, period_id)
+                                       staff_id integer NOT NULL REFERENCES staff(staff_id),
+                                       school_date date NOT NULL,
+                                       period_id integer NOT NULL,
+                                       created_at timestamp DEFAULT current_timestamp,
+                                       updated_at timestamp,
+                                       PRIMARY KEY (staff_id, school_date, period_id)
 );
 
 
@@ -959,11 +959,11 @@ CREATE TABLE eligibility_completed (
 --
 
 CREATE TABLE food_service_accounts (
-    account_id integer PRIMARY KEY,
-    balance numeric(9,2) NOT NULL,
-    transaction_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                       account_id integer PRIMARY KEY,
+                                       balance numeric(9,2) NOT NULL,
+                                       transaction_id integer,
+                                       created_at timestamp DEFAULT current_timestamp,
+                                       updated_at timestamp
 );
 
 
@@ -972,13 +972,13 @@ CREATE TABLE food_service_accounts (
 --
 
 CREATE TABLE food_service_categories (
-    category_id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    menu_id integer NOT NULL,
-    title varchar(25) NOT NULL,
-    sort_order numeric,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                         category_id serial PRIMARY KEY,
+                                         school_id integer NOT NULL,
+                                         menu_id integer NOT NULL,
+                                         title varchar(25) NOT NULL,
+                                         sort_order numeric,
+                                         created_at timestamp DEFAULT current_timestamp,
+                                         updated_at timestamp
 );
 
 
@@ -987,18 +987,18 @@ CREATE TABLE food_service_categories (
 --
 
 CREATE TABLE food_service_items (
-    item_id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    short_name varchar(25),
-    sort_order numeric,
-    description varchar(25),
-    icon varchar(50),
-    price numeric(9,2) NOT NULL,
-    price_reduced numeric(9,2),
-    price_free numeric(9,2),
-    price_staff numeric(9,2) NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                    item_id serial PRIMARY KEY,
+                                    school_id integer NOT NULL,
+                                    short_name varchar(25),
+                                    sort_order numeric,
+                                    description varchar(25),
+                                    icon varchar(50),
+                                    price numeric(9,2) NOT NULL,
+                                    price_reduced numeric(9,2),
+                                    price_free numeric(9,2),
+                                    price_staff numeric(9,2) NOT NULL,
+                                    created_at timestamp DEFAULT current_timestamp,
+                                    updated_at timestamp
 );
 
 
@@ -1007,15 +1007,15 @@ CREATE TABLE food_service_items (
 --
 
 CREATE TABLE food_service_menu_items (
-    menu_item_id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    menu_id integer NOT NULL,
-    item_id integer NOT NULL,
-    category_id integer,
-    sort_order numeric,
-    does_count varchar(1),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                         menu_item_id serial PRIMARY KEY,
+                                         school_id integer NOT NULL,
+                                         menu_id integer NOT NULL,
+                                         item_id integer NOT NULL,
+                                         category_id integer,
+                                         sort_order numeric,
+                                         does_count varchar(1),
+                                         created_at timestamp DEFAULT current_timestamp,
+                                         updated_at timestamp
 );
 
 
@@ -1024,12 +1024,12 @@ CREATE TABLE food_service_menu_items (
 --
 
 CREATE TABLE food_service_menus (
-    menu_id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    title varchar(25) NOT NULL,
-    sort_order numeric,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                    menu_id serial PRIMARY KEY,
+                                    school_id integer NOT NULL,
+                                    title varchar(25) NOT NULL,
+                                    sort_order numeric,
+                                    created_at timestamp DEFAULT current_timestamp,
+                                    updated_at timestamp
 );
 
 
@@ -1038,13 +1038,13 @@ CREATE TABLE food_service_menus (
 --
 
 CREATE TABLE food_service_staff_accounts (
-    staff_id integer PRIMARY KEY REFERENCES staff(staff_id),
-    status varchar(25),
-    barcode varchar(50) UNIQUE,
-    balance numeric(9,2) NOT NULL,
-    transaction_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                             staff_id integer PRIMARY KEY REFERENCES staff(staff_id),
+                                             status varchar(25),
+                                             barcode varchar(50) UNIQUE,
+                                             balance numeric(9,2) NOT NULL,
+                                             transaction_id integer,
+                                             created_at timestamp DEFAULT current_timestamp,
+                                             updated_at timestamp
 );
 
 
@@ -1054,14 +1054,14 @@ CREATE TABLE food_service_staff_accounts (
 
 CREATE TABLE food_service_staff_transaction_items (
     -- @since 11.2 FS transaction item ID references food_service_menu_items(menu_item_id)
-    item_id integer NOT NULL,
-    transaction_id integer NOT NULL,
-    amount numeric(9,2),
-    short_name varchar(25),
-    description varchar(50),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (item_id, transaction_id)
+                                                      item_id integer NOT NULL,
+                                                      transaction_id integer NOT NULL,
+                                                      amount numeric(9,2),
+                                                      short_name varchar(25),
+                                                      description varchar(50),
+                                                      created_at timestamp DEFAULT current_timestamp,
+                                                      updated_at timestamp,
+                                                      PRIMARY KEY (item_id, transaction_id)
 );
 
 COMMENT ON COLUMN food_service_staff_transaction_items.item_id IS 'References food_service_menu_items(menu_item_id)';
@@ -1072,18 +1072,18 @@ COMMENT ON COLUMN food_service_staff_transaction_items.item_id IS 'References fo
 --
 
 CREATE TABLE food_service_staff_transactions (
-    transaction_id serial PRIMARY KEY,
-    staff_id integer NOT NULL REFERENCES staff(staff_id),
-    school_id integer NOT NULL,
-    syear numeric(4,0) NOT NULL,
-    balance numeric(9,2),
-    "timestamp" timestamp, -- TODO use created_at instead
-    short_name varchar(25),
-    description varchar(50),
-    seller_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                                 transaction_id serial PRIMARY KEY,
+                                                 staff_id integer NOT NULL REFERENCES staff(staff_id),
+                                                 school_id integer NOT NULL,
+                                                 syear numeric(4,0) NOT NULL,
+                                                 balance numeric(9,2),
+                                                 "timestamp" timestamp, -- TODO use created_at instead
+                                                 short_name varchar(25),
+                                                 description varchar(50),
+                                                 seller_id integer,
+                                                 created_at timestamp DEFAULT current_timestamp,
+                                                 updated_at timestamp,
+                                                 FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1092,13 +1092,13 @@ CREATE TABLE food_service_staff_transactions (
 --
 
 CREATE TABLE food_service_student_accounts (
-    student_id integer PRIMARY KEY REFERENCES students(student_id),
-    account_id integer NOT NULL,
-    discount varchar(25),
-    status varchar(25),
-    barcode varchar(50) UNIQUE,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                               student_id integer PRIMARY KEY REFERENCES students(student_id),
+                                               account_id integer NOT NULL,
+                                               discount varchar(25),
+                                               status varchar(25),
+                                               barcode varchar(50) UNIQUE,
+                                               created_at timestamp DEFAULT current_timestamp,
+                                               updated_at timestamp
 );
 
 
@@ -1108,15 +1108,15 @@ CREATE TABLE food_service_student_accounts (
 
 CREATE TABLE food_service_transaction_items (
     -- @since 11.2 FS transaction item ID references food_service_menu_items(menu_item_id)
-    item_id integer NOT NULL,
-    transaction_id integer NOT NULL,
-    amount numeric(9,2),
-    discount varchar(25),
-    short_name varchar(25),
-    description varchar(50),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (item_id, transaction_id)
+                                                item_id integer NOT NULL,
+                                                transaction_id integer NOT NULL,
+                                                amount numeric(9,2),
+                                                discount varchar(25),
+                                                short_name varchar(25),
+                                                description varchar(50),
+                                                created_at timestamp DEFAULT current_timestamp,
+                                                updated_at timestamp,
+                                                PRIMARY KEY (item_id, transaction_id)
 );
 
 COMMENT ON COLUMN food_service_transaction_items.item_id IS 'References food_service_menu_items(menu_item_id)';
@@ -1127,20 +1127,20 @@ COMMENT ON COLUMN food_service_transaction_items.item_id IS 'References food_ser
 --
 
 CREATE TABLE food_service_transactions (
-    transaction_id serial PRIMARY KEY,
-    account_id integer NOT NULL,
-    student_id integer REFERENCES students(student_id),
-    school_id integer NOT NULL,
-    syear numeric(4,0) NOT NULL,
-    discount varchar(25),
-    balance numeric(9,2),
-    "timestamp" timestamp, -- TODO use created_at instead
-    short_name varchar(25),
-    description varchar(50),
-    seller_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                           transaction_id serial PRIMARY KEY,
+                                           account_id integer NOT NULL,
+                                           student_id integer REFERENCES students(student_id),
+                                           school_id integer NOT NULL,
+                                           syear numeric(4,0) NOT NULL,
+                                           discount varchar(25),
+                                           balance numeric(9,2),
+                                           "timestamp" timestamp, -- TODO use created_at instead
+                                           short_name varchar(25),
+                                           description varchar(50),
+                                           seller_id integer,
+                                           created_at timestamp DEFAULT current_timestamp,
+                                           updated_at timestamp,
+                                           FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1149,16 +1149,16 @@ CREATE TABLE food_service_transactions (
 --
 
 CREATE TABLE gradebook_assignment_types (
-    assignment_type_id serial PRIMARY KEY,
-    staff_id integer NOT NULL REFERENCES staff(staff_id),
-    course_id integer NOT NULL REFERENCES courses(course_id),
-    title text NOT NULL,
-    final_grade_percent numeric(6,5),
-    sort_order numeric,
-    color varchar(30),
-    created_mp integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                            assignment_type_id serial PRIMARY KEY,
+                                            staff_id integer NOT NULL REFERENCES staff(staff_id),
+                                            course_id integer NOT NULL REFERENCES courses(course_id),
+                                            title text NOT NULL,
+                                            final_grade_percent numeric(6,5),
+                                            sort_order numeric,
+                                            color varchar(30),
+                                            created_mp integer,
+                                            created_at timestamp DEFAULT current_timestamp,
+                                            updated_at timestamp
 );
 
 
@@ -1167,23 +1167,23 @@ CREATE TABLE gradebook_assignment_types (
 --
 
 CREATE TABLE gradebook_assignments (
-    assignment_id serial PRIMARY KEY,
-    staff_id integer NOT NULL REFERENCES staff(staff_id),
-    marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
-    course_period_id integer REFERENCES course_periods(course_period_id),
-    course_id integer REFERENCES courses(course_id),
-    assignment_type_id integer NOT NULL,
-    title text NOT NULL,
-    assigned_date date,
-    due_date date,
-    points integer NOT NULL,
-    description text,
-    file text,
-    default_points integer,
-    submission varchar(1),
-    weight integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                       assignment_id serial PRIMARY KEY,
+                                       staff_id integer NOT NULL REFERENCES staff(staff_id),
+                                       marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
+                                       course_period_id integer REFERENCES course_periods(course_period_id),
+                                       course_id integer REFERENCES courses(course_id),
+                                       assignment_type_id integer NOT NULL,
+                                       title text NOT NULL,
+                                       assigned_date date,
+                                       due_date date,
+                                       points integer NOT NULL,
+                                       description text,
+                                       file text,
+                                       default_points integer,
+                                       submission varchar(1),
+                                       weight integer,
+                                       created_at timestamp DEFAULT current_timestamp,
+                                       updated_at timestamp
 );
 
 
@@ -1192,15 +1192,15 @@ CREATE TABLE gradebook_assignments (
 --
 
 CREATE TABLE gradebook_grades (
-    student_id integer NOT NULL REFERENCES students(student_id),
-    period_id integer, -- @deprecated since 6.9 SQL gradebook_grades column PERIOD_ID.
-    course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
-    assignment_id integer NOT NULL,
-    points numeric(6,2),
-    comment text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (student_id, assignment_id, course_period_id)
+                                  student_id integer NOT NULL REFERENCES students(student_id),
+                                  period_id integer, -- @deprecated since 6.9 SQL gradebook_grades column PERIOD_ID.
+                                  course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
+                                  assignment_id integer NOT NULL,
+                                  points numeric(6,2),
+                                  comment text,
+                                  created_at timestamp DEFAULT current_timestamp,
+                                  updated_at timestamp,
+                                  PRIMARY KEY (student_id, assignment_id, course_period_id)
 );
 
 
@@ -1210,12 +1210,12 @@ CREATE TABLE gradebook_grades (
 -- Idea: could be dynamic, like a view?
 
 CREATE TABLE grades_completed (
-    staff_id integer NOT NULL REFERENCES staff(staff_id),
-    marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
-    course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (staff_id, marking_period_id, course_period_id)
+                                  staff_id integer NOT NULL REFERENCES staff(staff_id),
+                                  marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
+                                  course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
+                                  created_at timestamp DEFAULT current_timestamp,
+                                  updated_at timestamp,
+                                  PRIMARY KEY (staff_id, marking_period_id, course_period_id)
 );
 
 
@@ -1224,20 +1224,20 @@ CREATE TABLE grades_completed (
 --
 
 CREATE TABLE lunch_period (
-    student_id integer NOT NULL REFERENCES students(student_id),
-    school_date date NOT NULL,
-    period_id integer NOT NULL,
-    attendance_code integer,
-    attendance_teacher_code integer,
-    attendance_reason varchar(100),
-    admin varchar(1),
-    course_period_id integer REFERENCES course_periods(course_period_id),
-    marking_period_id integer REFERENCES school_marking_periods(marking_period_id),
-    comment varchar(100),
-    table_name integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (student_id, school_date, period_id)
+                              student_id integer NOT NULL REFERENCES students(student_id),
+                              school_date date NOT NULL,
+                              period_id integer NOT NULL,
+                              attendance_code integer,
+                              attendance_teacher_code integer,
+                              attendance_reason varchar(100),
+                              admin varchar(1),
+                              course_period_id integer REFERENCES course_periods(course_period_id),
+                              marking_period_id integer REFERENCES school_marking_periods(marking_period_id),
+                              comment varchar(100),
+                              table_name integer,
+                              created_at timestamp DEFAULT current_timestamp,
+                              updated_at timestamp,
+                              PRIMARY KEY (student_id, school_date, period_id)
 );
 
 
@@ -1246,16 +1246,16 @@ CREATE TABLE lunch_period (
 --
 
 CREATE TABLE history_marking_periods (
-    parent_id integer,
-    mp_type varchar(20),
-    name varchar(50) NOT NULL,
-    short_name varchar(10),
-    post_end_date date,
-    school_id integer NOT NULL,
-    syear numeric(4,0),
-    marking_period_id integer PRIMARY KEY DEFAULT nextval('school_marking_periods_marking_period_id_seq'),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                         parent_id integer,
+                                         mp_type varchar(20),
+                                         name varchar(50) NOT NULL,
+                                         short_name varchar(10),
+                                         post_end_date date,
+                                         school_id integer NOT NULL,
+                                         syear numeric(4,0),
+                                         marking_period_id integer PRIMARY KEY DEFAULT nextval('school_marking_periods_marking_period_id_seq'),
+                                         created_at timestamp DEFAULT current_timestamp,
+                                         updated_at timestamp
 );
 
 
@@ -1264,7 +1264,7 @@ CREATE TABLE history_marking_periods (
 --
 
 CREATE VIEW marking_periods AS
-    SELECT school_marking_periods.marking_period_id, 'Rosario'::text AS mp_source, school_marking_periods.syear, school_marking_periods.school_id, CASE WHEN ((school_marking_periods.mp)::text = 'FY'::text) THEN 'year'::text WHEN ((school_marking_periods.mp)::text = 'SEM'::text) THEN 'semester'::text WHEN ((school_marking_periods.mp)::text = 'QTR'::text) THEN 'quarter'::text ELSE NULL::text END AS mp_type, school_marking_periods.title, school_marking_periods.short_name, school_marking_periods.sort_order, CASE WHEN (school_marking_periods.parent_id > (0)::numeric) THEN school_marking_periods.parent_id ELSE ((-1))::numeric END AS parent_id, CASE WHEN ((SELECT smp.parent_id FROM school_marking_periods smp WHERE (smp.marking_period_id = school_marking_periods.parent_id)) > (0)::numeric) THEN (SELECT smp.parent_id FROM school_marking_periods smp WHERE (smp.marking_period_id = school_marking_periods.parent_id)) ELSE ((-1))::numeric END AS grandparent_id, school_marking_periods.start_date, school_marking_periods.end_date, school_marking_periods.post_start_date, school_marking_periods.post_end_date, school_marking_periods.does_grades, school_marking_periods.does_comments FROM school_marking_periods
+SELECT school_marking_periods.marking_period_id, 'Rosario'::text AS mp_source, school_marking_periods.syear, school_marking_periods.school_id, CASE WHEN ((school_marking_periods.mp)::text = 'FY'::text) THEN 'year'::text WHEN ((school_marking_periods.mp)::text = 'SEM'::text) THEN 'semester'::text WHEN ((school_marking_periods.mp)::text = 'QTR'::text) THEN 'quarter'::text ELSE NULL::text END AS mp_type, school_marking_periods.title, school_marking_periods.short_name, school_marking_periods.sort_order, CASE WHEN (school_marking_periods.parent_id > (0)::numeric) THEN school_marking_periods.parent_id ELSE ((-1))::numeric END AS parent_id, CASE WHEN ((SELECT smp.parent_id FROM school_marking_periods smp WHERE (smp.marking_period_id = school_marking_periods.parent_id)) > (0)::numeric) THEN (SELECT smp.parent_id FROM school_marking_periods smp WHERE (smp.marking_period_id = school_marking_periods.parent_id)) ELSE ((-1))::numeric END AS grandparent_id, school_marking_periods.start_date, school_marking_periods.end_date, school_marking_periods.post_start_date, school_marking_periods.post_end_date, school_marking_periods.does_grades, school_marking_periods.does_comments FROM school_marking_periods
     UNION SELECT history_marking_periods.marking_period_id, 'History'::text AS mp_source, history_marking_periods.syear, history_marking_periods.school_id, history_marking_periods.mp_type, history_marking_periods.name AS title, history_marking_periods.short_name, NULL::numeric AS sort_order, history_marking_periods.parent_id, (-1) AS grandparent_id, NULL::date AS start_date, history_marking_periods.post_end_date AS end_date, NULL::date AS post_start_date, history_marking_periods.post_end_date, 'Y'::varchar AS does_grades, NULL::varchar AS does_comments FROM history_marking_periods;
 
 
@@ -1273,12 +1273,12 @@ CREATE VIEW marking_periods AS
 --
 
 CREATE TABLE moodlexrosario (
-    "column" varchar(100) NOT NULL,
-    rosario_id integer NOT NULL,
-    moodle_id integer NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY ("column", rosario_id)
+                                "column" varchar(100) NOT NULL,
+                                rosario_id integer NOT NULL,
+                                moodle_id integer NOT NULL,
+                                created_at timestamp DEFAULT current_timestamp,
+                                updated_at timestamp,
+                                PRIMARY KEY ("column", rosario_id)
 );
 
 
@@ -1287,12 +1287,12 @@ CREATE TABLE moodlexrosario (
 --
 
 CREATE TABLE people (
-    person_id serial PRIMARY KEY,
-    last_name varchar(50) NOT NULL,
-    first_name varchar(50) NOT NULL,
-    middle_name varchar(50),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                        person_id serial PRIMARY KEY,
+                        last_name varchar(50) NOT NULL,
+                        first_name varchar(50) NOT NULL,
+                        middle_name varchar(50),
+                        created_at timestamp DEFAULT current_timestamp,
+                        updated_at timestamp
 );
 
 
@@ -1301,13 +1301,13 @@ CREATE TABLE people (
 --
 
 CREATE TABLE people_field_categories (
-    id serial PRIMARY KEY,
-    title text NOT NULL,
-    sort_order numeric,
-    custody char(1),
-    emergency char(1),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                         id serial PRIMARY KEY,
+                                         title text NOT NULL,
+                                         sort_order numeric,
+                                         custody char(1),
+                                         emergency char(1),
+                                         created_at timestamp DEFAULT current_timestamp,
+                                         updated_at timestamp
 );
 
 
@@ -1316,16 +1316,16 @@ CREATE TABLE people_field_categories (
 --
 
 CREATE TABLE people_fields (
-    id serial PRIMARY KEY,
-    type varchar(10),
-    title text NOT NULL,
-    sort_order numeric,
-    select_options text,
-    category_id integer,
-    required varchar(1),
-    default_selection text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                               id serial PRIMARY KEY,
+                               type varchar(10),
+                               title text NOT NULL,
+                               sort_order numeric,
+                               select_options text,
+                               category_id integer,
+                               required varchar(1),
+                               default_selection text,
+                               created_at timestamp DEFAULT current_timestamp,
+                               updated_at timestamp
 );
 
 
@@ -1334,12 +1334,12 @@ CREATE TABLE people_fields (
 --
 
 CREATE TABLE people_join_contacts (
-    id serial PRIMARY KEY,
-    person_id integer,
-    title varchar(100),
-    value varchar(100),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                      id serial PRIMARY KEY,
+                                      person_id integer,
+                                      title varchar(100),
+                                      value varchar(100),
+                                      created_at timestamp DEFAULT current_timestamp,
+                                      updated_at timestamp
 );
 
 
@@ -1348,21 +1348,21 @@ CREATE TABLE people_join_contacts (
 --
 
 CREATE TABLE portal_notes (
-    id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    syear numeric(4,0) NOT NULL,
-    title text NOT NULL,
-    content text,
-    sort_order numeric,
-    published_user integer,
-    published_date timestamp, -- @deprecated since 11.0 use created_at instead
-    start_date date,
-    end_date date,
-    published_profiles text,
-    file_attached text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                              id serial PRIMARY KEY,
+                              school_id integer NOT NULL,
+                              syear numeric(4,0) NOT NULL,
+                              title text NOT NULL,
+                              content text,
+                              sort_order numeric,
+                              published_user integer,
+                              published_date timestamp, -- @deprecated since 11.0 use created_at instead
+                              start_date date,
+                              end_date date,
+                              published_profiles text,
+                              file_attached text,
+                              created_at timestamp DEFAULT current_timestamp,
+                              updated_at timestamp,
+                              FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1371,14 +1371,14 @@ CREATE TABLE portal_notes (
 --
 
 CREATE TABLE portal_poll_questions (
-    id serial PRIMARY KEY,
-    portal_poll_id integer NOT NULL,
-    question text NOT NULL,
-    type varchar(20),
-    options text,
-    votes text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                       id serial PRIMARY KEY,
+                                       portal_poll_id integer NOT NULL,
+                                       question text NOT NULL,
+                                       type varchar(20),
+                                       options text,
+                                       votes text,
+                                       created_at timestamp DEFAULT current_timestamp,
+                                       updated_at timestamp
 );
 
 
@@ -1387,23 +1387,23 @@ CREATE TABLE portal_poll_questions (
 --
 
 CREATE TABLE portal_polls (
-    id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    syear numeric(4,0) NOT NULL,
-    title text NOT NULL,
-    votes_number integer,
-    display_votes varchar(1),
-    sort_order numeric,
-    published_user integer,
-    published_date timestamp, -- @deprecated since 11.0 use created_at instead
-    start_date date,
-    end_date date,
-    published_profiles text,
-    students_teacher_id integer,
-    excluded_users text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                              id serial PRIMARY KEY,
+                              school_id integer NOT NULL,
+                              syear numeric(4,0) NOT NULL,
+                              title text NOT NULL,
+                              votes_number integer,
+                              display_votes varchar(1),
+                              sort_order numeric,
+                              published_user integer,
+                              published_date timestamp, -- @deprecated since 11.0 use created_at instead
+                              start_date date,
+                              end_date date,
+                              published_profiles text,
+                              students_teacher_id integer,
+                              excluded_users text,
+                              created_at timestamp DEFAULT current_timestamp,
+                              updated_at timestamp,
+                              FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1412,13 +1412,13 @@ CREATE TABLE portal_polls (
 --
 
 CREATE TABLE profile_exceptions (
-    profile_id integer NOT NULL,
-    modname varchar(150) NOT NULL,
-    can_use varchar(1),
-    can_edit varchar(1),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (profile_id, modname)
+                                    profile_id integer NOT NULL,
+                                    modname varchar(150) NOT NULL,
+                                    can_use varchar(1),
+                                    can_edit varchar(1),
+                                    created_at timestamp DEFAULT current_timestamp,
+                                    updated_at timestamp,
+                                    PRIMARY KEY (profile_id, modname)
 );
 
 
@@ -1427,14 +1427,14 @@ CREATE TABLE profile_exceptions (
 --
 
 CREATE TABLE program_config (
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    program varchar(100) NOT NULL,
-    title varchar(100) NOT NULL,
-    value text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                syear numeric(4,0) NOT NULL,
+                                school_id integer NOT NULL,
+                                program varchar(100) NOT NULL,
+                                title varchar(100) NOT NULL,
+                                value text,
+                                created_at timestamp DEFAULT current_timestamp,
+                                updated_at timestamp,
+                                FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1443,13 +1443,13 @@ CREATE TABLE program_config (
 --
 
 CREATE TABLE program_user_config (
-    user_id integer NOT NULL,
-    program varchar(100) NOT NULL,
-    title varchar(100) NOT NULL,
-    value text,
-    school_id integer, -- Can be NULL.
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                     user_id integer NOT NULL,
+                                     program varchar(100) NOT NULL,
+                                     title varchar(100) NOT NULL,
+                                     value text,
+                                     school_id integer, -- Can be NULL.
+                                     created_at timestamp DEFAULT current_timestamp,
+                                     updated_at timestamp
 );
 
 
@@ -1458,17 +1458,17 @@ CREATE TABLE program_user_config (
 --
 
 CREATE TABLE report_card_comment_categories (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    course_id integer REFERENCES courses(course_id),
-    sort_order numeric,
-    title text NOT NULL,
-    rollover_id integer,
-    color varchar(30),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                                id serial PRIMARY KEY,
+                                                syear numeric(4,0) NOT NULL,
+                                                school_id integer NOT NULL,
+                                                course_id integer REFERENCES courses(course_id),
+                                                sort_order numeric,
+                                                title text NOT NULL,
+                                                rollover_id integer,
+                                                color varchar(30),
+                                                created_at timestamp DEFAULT current_timestamp,
+                                                updated_at timestamp,
+                                                FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1477,14 +1477,14 @@ CREATE TABLE report_card_comment_categories (
 --
 
 CREATE TABLE report_card_comment_code_scales (
-    id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    title varchar(25) NOT NULL,
-    comment varchar(100),
-    sort_order numeric,
-    rollover_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                                 id serial PRIMARY KEY,
+                                                 school_id integer NOT NULL,
+                                                 title varchar(25) NOT NULL,
+                                                 comment varchar(100),
+                                                 sort_order numeric,
+                                                 rollover_id integer,
+                                                 created_at timestamp DEFAULT current_timestamp,
+                                                 updated_at timestamp
 );
 
 
@@ -1493,15 +1493,15 @@ CREATE TABLE report_card_comment_code_scales (
 --
 
 CREATE TABLE report_card_comment_codes (
-    id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    scale_id integer NOT NULL,
-    title varchar(5) NOT NULL,
-    short_name varchar(100),
-    comment varchar(100),
-    sort_order numeric,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                           id serial PRIMARY KEY,
+                                           school_id integer NOT NULL,
+                                           scale_id integer NOT NULL,
+                                           title varchar(5) NOT NULL,
+                                           short_name varchar(100),
+                                           comment varchar(100),
+                                           sort_order numeric,
+                                           created_at timestamp DEFAULT current_timestamp,
+                                           updated_at timestamp
 );
 
 
@@ -1510,17 +1510,17 @@ CREATE TABLE report_card_comment_codes (
 --
 
 CREATE TABLE report_card_comments (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    course_id integer, -- Can be 0, so no REFERENCES courses(course_id).
-    category_id integer,
-    scale_id integer,
-    sort_order numeric,
-    title text NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                      id serial PRIMARY KEY,
+                                      syear numeric(4,0) NOT NULL,
+                                      school_id integer NOT NULL,
+                                      course_id integer, -- Can be 0, so no REFERENCES courses(course_id).
+                                      category_id integer,
+                                      scale_id integer,
+                                      sort_order numeric,
+                                      title text NOT NULL,
+                                      created_at timestamp DEFAULT current_timestamp,
+                                      updated_at timestamp,
+                                      FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1529,21 +1529,21 @@ CREATE TABLE report_card_comments (
 --
 
 CREATE TABLE report_card_grade_scales (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    title text NOT NULL,
-    comment text,
-    hhr_gpa_value numeric(7,2),
-    hr_gpa_value numeric(7,2),
-    sort_order numeric,
-    rollover_id integer,
-    gp_scale numeric(7,2) NOT NULL,
-    gp_passing_value numeric(7,2),
-    hrs_gpa_value numeric(7,2),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                          id serial PRIMARY KEY,
+                                          syear numeric(4,0) NOT NULL,
+                                          school_id integer NOT NULL,
+                                          title text NOT NULL,
+                                          comment text,
+                                          hhr_gpa_value numeric(7,2),
+                                          hr_gpa_value numeric(7,2),
+                                          sort_order numeric,
+                                          rollover_id integer,
+                                          gp_scale numeric(7,2) NOT NULL,
+                                          gp_passing_value numeric(7,2),
+                                          hrs_gpa_value numeric(7,2),
+                                          created_at timestamp DEFAULT current_timestamp,
+                                          updated_at timestamp,
+                                          FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1552,19 +1552,19 @@ CREATE TABLE report_card_grade_scales (
 --
 
 CREATE TABLE report_card_grades (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    title varchar(5) NOT NULL,
-    sort_order numeric,
-    gpa_value numeric(7,2),
-    break_off numeric(7,2),
-    comment text,
-    grade_scale_id integer,
-    unweighted_gp numeric(7,2),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                    id serial PRIMARY KEY,
+                                    syear numeric(4,0) NOT NULL,
+                                    school_id integer NOT NULL,
+                                    title varchar(5) NOT NULL,
+                                    sort_order numeric,
+                                    gpa_value numeric(7,2),
+                                    break_off numeric(7,2),
+                                    comment text,
+                                    grade_scale_id integer,
+                                    unweighted_gp numeric(7,2),
+                                    created_at timestamp DEFAULT current_timestamp,
+                                    updated_at timestamp,
+                                    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1573,14 +1573,14 @@ CREATE TABLE report_card_grades (
 --
 
 CREATE TABLE resources (
-    id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    title text NOT NULL,
-    link text,
-    published_profiles text,
-    published_grade_levels text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                           id serial PRIMARY KEY,
+                           school_id integer NOT NULL,
+                           title text NOT NULL,
+                           link text,
+                           published_profiles text,
+                           published_grade_levels text,
+                           created_at timestamp DEFAULT current_timestamp,
+                           updated_at timestamp
 );
 
 
@@ -1589,22 +1589,22 @@ CREATE TABLE resources (
 --
 
 CREATE TABLE schedule (
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    start_date date NOT NULL,
-    end_date date,
-    modified_date date, -- @deprecated since 5.0 Use updated_at.
-    modified_by varchar(255),
-    course_id integer NOT NULL REFERENCES courses(course_id),
-    course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
-    mp varchar(3),
-    marking_period_id integer REFERENCES school_marking_periods(marking_period_id),
-    scheduler_lock varchar(1),
-    id integer, -- Any IDea?
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                          syear numeric(4,0) NOT NULL,
+                          school_id integer NOT NULL,
+                          student_id integer NOT NULL REFERENCES students(student_id),
+                          start_date date NOT NULL,
+                          end_date date,
+                          modified_date date, -- @deprecated since 5.0 Use updated_at.
+                          modified_by varchar(255),
+                          course_id integer NOT NULL REFERENCES courses(course_id),
+                          course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
+                          mp varchar(3),
+                          marking_period_id integer REFERENCES school_marking_periods(marking_period_id),
+                          scheduler_lock varchar(1),
+                          id integer, -- Any IDea?
+                          created_at timestamp DEFAULT current_timestamp,
+                          updated_at timestamp,
+                          FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1613,21 +1613,21 @@ CREATE TABLE schedule (
 --
 
 CREATE TABLE schedule_requests (
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    request_id serial PRIMARY KEY,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    subject_id integer,
-    course_id integer REFERENCES courses(course_id),
-    marking_period_id integer REFERENCES school_marking_periods(marking_period_id), -- Not used...
-    priority integer,
-    with_teacher_id integer,
-    not_teacher_id integer,
-    with_period_id integer,
-    not_period_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                   syear numeric(4,0) NOT NULL,
+                                   school_id integer NOT NULL,
+                                   request_id serial PRIMARY KEY,
+                                   student_id integer NOT NULL REFERENCES students(student_id),
+                                   subject_id integer,
+                                   course_id integer REFERENCES courses(course_id),
+                                   marking_period_id integer REFERENCES school_marking_periods(marking_period_id), -- Not used...
+                                   priority integer,
+                                   with_teacher_id integer,
+                                   not_teacher_id integer,
+                                   with_period_id integer,
+                                   not_period_id integer,
+                                   created_at timestamp DEFAULT current_timestamp,
+                                   updated_at timestamp,
+                                   FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1636,15 +1636,15 @@ CREATE TABLE schedule_requests (
 --
 
 CREATE TABLE school_fields (
-    id serial PRIMARY KEY,
-    type varchar(10) NOT NULL,
-    title text NOT NULL,
-    sort_order numeric,
-    select_options text,
-    required varchar(1),
-    default_selection text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                               id serial PRIMARY KEY,
+                               type varchar(10) NOT NULL,
+                               title text NOT NULL,
+                               sort_order numeric,
+                               select_options text,
+                               required varchar(1),
+                               default_selection text,
+                               created_at timestamp DEFAULT current_timestamp,
+                               updated_at timestamp
 );
 
 
@@ -1653,14 +1653,14 @@ CREATE TABLE school_fields (
 --
 
 CREATE TABLE school_gradelevels (
-    id serial PRIMARY KEY,
-    school_id integer NOT NULL,
-    short_name varchar(3),
-    title varchar(50) NOT NULL,
-    next_grade_id integer,
-    sort_order numeric,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                    id serial PRIMARY KEY,
+                                    school_id integer NOT NULL,
+                                    short_name varchar(3),
+                                    title varchar(50) NOT NULL,
+                                    next_grade_id integer,
+                                    sort_order numeric,
+                                    created_at timestamp DEFAULT current_timestamp,
+                                    updated_at timestamp
 );
 
 
@@ -1669,21 +1669,21 @@ CREATE TABLE school_gradelevels (
 --
 
 CREATE TABLE school_periods (
-    period_id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    sort_order numeric,
-    title varchar(100) NOT NULL,
-    short_name varchar(10),
-    length integer,
-    start_time varchar(10),
-    end_time varchar(10),
-    block varchar(10),
-    attendance varchar(1),
-    rollover_id integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                period_id serial PRIMARY KEY,
+                                syear numeric(4,0) NOT NULL,
+                                school_id integer NOT NULL,
+                                sort_order numeric,
+                                title varchar(100) NOT NULL,
+                                short_name varchar(10),
+                                length integer,
+                                start_time varchar(10),
+                                end_time varchar(10),
+                                block varchar(10),
+                                attendance varchar(1),
+                                rollover_id integer,
+                                created_at timestamp DEFAULT current_timestamp,
+                                updated_at timestamp,
+                                FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1692,13 +1692,13 @@ CREATE TABLE school_periods (
 --
 
 CREATE TABLE staff_exceptions (
-    user_id integer NOT NULL REFERENCES staff(staff_id),
-    modname varchar(150) NOT NULL,
-    can_use varchar(1),
-    can_edit varchar(1),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (user_id, modname)
+                                  user_id integer NOT NULL REFERENCES staff(staff_id),
+                                  modname varchar(150) NOT NULL,
+                                  can_use varchar(1),
+                                  can_edit varchar(1),
+                                  created_at timestamp DEFAULT current_timestamp,
+                                  updated_at timestamp,
+                                  PRIMARY KEY (user_id, modname)
 );
 
 
@@ -1707,17 +1707,17 @@ CREATE TABLE staff_exceptions (
 --
 
 CREATE TABLE staff_field_categories (
-    id serial PRIMARY KEY,
-    title text NOT NULL,
-    sort_order numeric,
-    columns numeric(4,0),
-    include varchar(100),
-    admin char(1),
-    teacher char(1),
-    parent char(1),
-    "none" char(1),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                        id serial PRIMARY KEY,
+                                        title text NOT NULL,
+                                        sort_order numeric,
+                                        columns numeric(4,0),
+                                        include varchar(100),
+                                        admin char(1),
+                                        teacher char(1),
+                                        parent char(1),
+                                        "none" char(1),
+                                        created_at timestamp DEFAULT current_timestamp,
+                                        updated_at timestamp
 );
 
 
@@ -1726,16 +1726,16 @@ CREATE TABLE staff_field_categories (
 --
 
 CREATE TABLE staff_fields (
-    id serial PRIMARY KEY,
-    type varchar(10) NOT NULL,
-    title text NOT NULL,
-    sort_order numeric,
-    select_options text,
-    category_id integer,
-    required varchar(1),
-    default_selection text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                              id serial PRIMARY KEY,
+                              type varchar(10) NOT NULL,
+                              title text NOT NULL,
+                              sort_order numeric,
+                              select_options text,
+                              category_id integer,
+                              required varchar(1),
+                              default_selection text,
+                              created_at timestamp DEFAULT current_timestamp,
+                              updated_at timestamp
 );
 
 
@@ -1744,12 +1744,12 @@ CREATE TABLE staff_fields (
 --
 
 CREATE TABLE student_assignments (
-    assignment_id integer NOT NULL,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    data text, -- @since 11.0 Use JSON instead of PHP serialize
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (assignment_id, student_id)
+                                     assignment_id integer NOT NULL,
+                                     student_id integer NOT NULL REFERENCES students(student_id),
+                                     data text, -- @since 11.0 Use JSON instead of PHP serialize
+                                     created_at timestamp DEFAULT current_timestamp,
+                                     updated_at timestamp,
+                                     PRIMARY KEY (assignment_id, student_id)
 );
 
 
@@ -1758,11 +1758,11 @@ CREATE TABLE student_assignments (
 --
 
 CREATE TABLE student_eligibility_activities (
-    syear numeric(4,0),
-    student_id integer NOT NULL REFERENCES students(student_id),
-    activity_id integer NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                                syear numeric(4,0),
+                                                student_id integer NOT NULL REFERENCES students(student_id),
+                                                activity_id integer NOT NULL,
+                                                created_at timestamp DEFAULT current_timestamp,
+                                                updated_at timestamp
 );
 
 
@@ -1771,15 +1771,15 @@ CREATE TABLE student_eligibility_activities (
 --
 
 CREATE TABLE student_enrollment_codes (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    title varchar(100) NOT NULL,
-    short_name varchar(10),
-    type varchar(4),
-    default_code varchar(1),
-    sort_order numeric,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                          id serial PRIMARY KEY,
+                                          syear numeric(4,0) NOT NULL,
+                                          title varchar(100) NOT NULL,
+                                          short_name varchar(10),
+                                          type varchar(4),
+                                          default_code varchar(1),
+                                          sort_order numeric,
+                                          created_at timestamp DEFAULT current_timestamp,
+                                          updated_at timestamp
 );
 
 
@@ -1788,13 +1788,13 @@ CREATE TABLE student_enrollment_codes (
 --
 
 CREATE TABLE student_field_categories (
-    id serial PRIMARY KEY,
-    title text NOT NULL,
-    sort_order numeric,
-    columns numeric(4,0),
-    include varchar(100),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                          id serial PRIMARY KEY,
+                                          title text NOT NULL,
+                                          sort_order numeric,
+                                          columns numeric(4,0),
+                                          include varchar(100),
+                                          created_at timestamp DEFAULT current_timestamp,
+                                          updated_at timestamp
 );
 
 
@@ -1803,13 +1803,13 @@ CREATE TABLE student_field_categories (
 --
 
 CREATE TABLE student_medical (
-    id serial PRIMARY KEY,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    type varchar(25),
-    medical_date date,
-    comments varchar(100),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                 id serial PRIMARY KEY,
+                                 student_id integer NOT NULL REFERENCES students(student_id),
+                                 type varchar(25),
+                                 medical_date date,
+                                 comments varchar(100),
+                                 created_at timestamp DEFAULT current_timestamp,
+                                 updated_at timestamp
 );
 
 
@@ -1818,11 +1818,11 @@ CREATE TABLE student_medical (
 --
 
 CREATE TABLE student_medical_alerts (
-    id serial PRIMARY KEY,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    title varchar(100),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                        id serial PRIMARY KEY,
+                                        student_id integer NOT NULL REFERENCES students(student_id),
+                                        title varchar(100),
+                                        created_at timestamp DEFAULT current_timestamp,
+                                        updated_at timestamp
 );
 
 
@@ -1831,16 +1831,16 @@ CREATE TABLE student_medical_alerts (
 --
 
 CREATE TABLE student_medical_visits (
-    id serial PRIMARY KEY,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    school_date date,
-    time_in varchar(20),
-    time_out varchar(20),
-    reason varchar(100),
-    result varchar(100),
-    comments text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                        id serial PRIMARY KEY,
+                                        student_id integer NOT NULL REFERENCES students(student_id),
+                                        school_date date,
+                                        time_in varchar(20),
+                                        time_out varchar(20),
+                                        reason varchar(100),
+                                        result varchar(100),
+                                        comments text,
+                                        created_at timestamp DEFAULT current_timestamp,
+                                        updated_at timestamp
 );
 
 
@@ -1849,13 +1849,13 @@ CREATE TABLE student_medical_visits (
 --
 
 CREATE TABLE student_mp_comments (
-    student_id integer NOT NULL REFERENCES students(student_id),
-    syear numeric(4,0) NOT NULL,
-    marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
-    comment text, -- @since 11.0 Use JSON instead of PHP serialize
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (student_id, syear, marking_period_id)
+                                     student_id integer NOT NULL REFERENCES students(student_id),
+                                     syear numeric(4,0) NOT NULL,
+                                     marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
+                                     comment text, -- @since 11.0 Use JSON instead of PHP serialize
+                                     created_at timestamp DEFAULT current_timestamp,
+                                     updated_at timestamp,
+                                     PRIMARY KEY (student_id, syear, marking_period_id)
 );
 
 
@@ -1866,31 +1866,31 @@ CREATE TABLE student_mp_comments (
 --
 
 CREATE TABLE student_mp_stats (
-    student_id integer NOT NULL REFERENCES students(student_id),
-    marking_period_id integer NOT NULL, -- Can be History, so no REFERENCES school_marking_periods(marking_period_id).
-    cum_weighted_factor numeric,
-    cum_unweighted_factor numeric,
-    cum_rank integer,
-    mp_rank integer,
-    class_size integer,
-    sum_weighted_factors numeric,
-    sum_unweighted_factors numeric,
-    count_weighted_factors integer,
-    count_unweighted_factors integer,
-    grade_level_short varchar(3),
-    cr_weighted_factors numeric,
-    cr_unweighted_factors numeric,
-    count_cr_factors integer,
-    cum_cr_weighted_factor numeric,
-    cum_cr_unweighted_factor numeric,
-    credit_attempted numeric,
-    credit_earned numeric,
-    gp_credits numeric,
-    cr_credits numeric,
-    comments varchar(75),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (student_id, marking_period_id)
+                                  student_id integer NOT NULL REFERENCES students(student_id),
+                                  marking_period_id integer NOT NULL, -- Can be History, so no REFERENCES school_marking_periods(marking_period_id).
+                                  cum_weighted_factor numeric,
+                                  cum_unweighted_factor numeric,
+                                  cum_rank integer,
+                                  mp_rank integer,
+                                  class_size integer,
+                                  sum_weighted_factors numeric,
+                                  sum_unweighted_factors numeric,
+                                  count_weighted_factors integer,
+                                  count_unweighted_factors integer,
+                                  grade_level_short varchar(3),
+                                  cr_weighted_factors numeric,
+                                  cr_unweighted_factors numeric,
+                                  count_cr_factors integer,
+                                  cum_cr_weighted_factor numeric,
+                                  cum_cr_unweighted_factor numeric,
+                                  credit_attempted numeric,
+                                  credit_earned numeric,
+                                  gp_credits numeric,
+                                  cr_credits numeric,
+                                  comments varchar(75),
+                                  created_at timestamp DEFAULT current_timestamp,
+                                  updated_at timestamp,
+                                  PRIMARY KEY (student_id, marking_period_id)
 );
 
 
@@ -1899,17 +1899,17 @@ CREATE TABLE student_mp_stats (
 --
 
 CREATE TABLE student_report_card_comments (
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
-    report_card_comment_id integer NOT NULL,
-    comment varchar(5),
-    marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (syear, student_id, course_period_id, marking_period_id, report_card_comment_id),
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                              syear numeric(4,0) NOT NULL,
+                                              school_id integer NOT NULL,
+                                              student_id integer NOT NULL REFERENCES students(student_id),
+                                              course_period_id integer NOT NULL REFERENCES course_periods(course_period_id),
+                                              report_card_comment_id integer NOT NULL,
+                                              comment varchar(5),
+                                              marking_period_id integer NOT NULL REFERENCES school_marking_periods(marking_period_id),
+                                              created_at timestamp DEFAULT current_timestamp,
+                                              updated_at timestamp,
+                                              PRIMARY KEY (syear, student_id, course_period_id, marking_period_id, report_card_comment_id),
+                                              FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1918,29 +1918,29 @@ CREATE TABLE student_report_card_comments (
 --
 
 CREATE TABLE student_report_card_grades (
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    course_period_id integer REFERENCES course_periods(course_period_id),
-    report_card_grade_id integer,
-    report_card_comment_id integer,
-    comment text,
-    grade_percent numeric(4,1),
-    marking_period_id integer NOT NULL, -- EditReportCardGrades.php, so no REFERENCES school_marking_periods(marking_period_id).
-    grade_letter varchar(5),
-    weighted_gp numeric(7,2),
-    unweighted_gp numeric(7,2),
-    gp_scale numeric(7,2),
-    credit_attempted numeric,
-    credit_earned numeric,
-    credit_category varchar(10),
-    course_title text NOT NULL,
-    id serial PRIMARY KEY,
-    school text,
-    class_rank varchar(1),
-    credit_hours numeric(6,2),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                            syear numeric(4,0) NOT NULL,
+                                            school_id integer NOT NULL,
+                                            student_id integer NOT NULL REFERENCES students(student_id),
+                                            course_period_id integer REFERENCES course_periods(course_period_id),
+                                            report_card_grade_id integer,
+                                            report_card_comment_id integer,
+                                            comment text,
+                                            grade_percent numeric(4,1),
+                                            marking_period_id integer NOT NULL, -- EditReportCardGrades.php, so no REFERENCES school_marking_periods(marking_period_id).
+                                            grade_letter varchar(5),
+                                            weighted_gp numeric(7,2),
+                                            unweighted_gp numeric(7,2),
+                                            gp_scale numeric(7,2),
+                                            credit_attempted numeric,
+                                            credit_earned numeric,
+                                            credit_category varchar(10),
+                                            course_title text NOT NULL,
+                                            id serial PRIMARY KEY,
+                                            school text,
+                                            class_rank varchar(1),
+                                            credit_hours numeric(6,2),
+                                            created_at timestamp DEFAULT current_timestamp,
+                                            updated_at timestamp
     -- History, so no FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
@@ -1950,21 +1950,21 @@ CREATE TABLE student_report_card_grades (
 --
 
 CREATE TABLE student_enrollment (
-    id serial PRIMARY KEY,
-    syear numeric(4,0) NOT NULL,
-    school_id integer NOT NULL,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    grade_id integer,
-    start_date date,
-    end_date date,
-    enrollment_code integer,
-    drop_code integer,
-    next_school integer,
-    calendar_id integer,
-    last_school integer,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
+                                    id serial PRIMARY KEY,
+                                    syear numeric(4,0) NOT NULL,
+                                    school_id integer NOT NULL,
+                                    student_id integer NOT NULL REFERENCES students(student_id),
+                                    grade_id integer,
+                                    start_date date,
+                                    end_date date,
+                                    enrollment_code integer,
+                                    drop_code integer,
+                                    next_school integer,
+                                    calendar_id integer,
+                                    last_school integer,
+                                    created_at timestamp DEFAULT current_timestamp,
+                                    updated_at timestamp,
+                                    FOREIGN KEY (school_id,syear) REFERENCES schools(id,syear)
 );
 
 
@@ -1973,7 +1973,7 @@ CREATE TABLE student_enrollment (
 --
 
 CREATE VIEW enroll_grade AS
-    SELECT e.id, e.syear, e.school_id, e.student_id, e.start_date, e.end_date, sg.short_name, sg.title FROM student_enrollment e, school_gradelevels sg WHERE (e.grade_id = sg.id);
+SELECT e.id, e.syear, e.school_id, e.student_id, e.start_date, e.end_date, sg.short_name, sg.title FROM student_enrollment e, school_gradelevels sg WHERE (e.grade_id = sg.id);
 
 
 --
@@ -1981,22 +1981,22 @@ CREATE VIEW enroll_grade AS
 --
 
 CREATE TABLE students_join_address (
-    id serial PRIMARY KEY,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    address_id integer NOT NULL,
-    contact_seq numeric(10,0),
-    gets_mail varchar(1),
-    primary_residence varchar(1),
-    legal_residence varchar(1),
-    am_bus varchar(1),
-    pm_bus varchar(1),
-    mailing varchar(1),
-    residence varchar(1),
-    bus varchar(1),
-    bus_pickup varchar(1),
-    bus_dropoff varchar(1),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                       id serial PRIMARY KEY,
+                                       student_id integer NOT NULL REFERENCES students(student_id),
+                                       address_id integer NOT NULL,
+                                       contact_seq numeric(10,0),
+                                       gets_mail varchar(1),
+                                       primary_residence varchar(1),
+                                       legal_residence varchar(1),
+                                       am_bus varchar(1),
+                                       pm_bus varchar(1),
+                                       mailing varchar(1),
+                                       residence varchar(1),
+                                       bus varchar(1),
+                                       bus_pickup varchar(1),
+                                       bus_dropoff varchar(1),
+                                       created_at timestamp DEFAULT current_timestamp,
+                                       updated_at timestamp
 );
 
 
@@ -2005,15 +2005,15 @@ CREATE TABLE students_join_address (
 --
 
 CREATE TABLE students_join_people (
-    id serial PRIMARY KEY,
-    student_id integer NOT NULL REFERENCES students(student_id),
-    person_id integer NOT NULL,
-    address_id integer,
-    custody varchar(1),
-    emergency varchar(1),
-    student_relation varchar(100),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                                      id serial PRIMARY KEY,
+                                      student_id integer NOT NULL REFERENCES students(student_id),
+                                      person_id integer NOT NULL,
+                                      address_id integer,
+                                      custody varchar(1),
+                                      emergency varchar(1),
+                                      student_relation varchar(100),
+                                      created_at timestamp DEFAULT current_timestamp,
+                                      updated_at timestamp
 );
 
 
@@ -2022,11 +2022,11 @@ CREATE TABLE students_join_people (
 --
 
 CREATE TABLE students_join_users (
-    student_id integer NOT NULL REFERENCES students(student_id),
-    staff_id integer NOT NULL REFERENCES staff(staff_id),
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (student_id, staff_id)
+                                     student_id integer NOT NULL REFERENCES students(student_id),
+                                     staff_id integer NOT NULL REFERENCES staff(staff_id),
+                                     created_at timestamp DEFAULT current_timestamp,
+                                     updated_at timestamp,
+                                     PRIMARY KEY (student_id, staff_id)
 );
 
 
@@ -2035,12 +2035,12 @@ CREATE TABLE students_join_users (
 --
 
 CREATE TABLE templates (
-    modname varchar(150) NOT NULL,
-    staff_id integer NOT NULL, -- Can be 0, no REFERENCES staff(staff_id).
-    template text,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp,
-    PRIMARY KEY (modname, staff_id)
+                           modname varchar(150) NOT NULL,
+                           staff_id integer NOT NULL, -- Can be 0, no REFERENCES staff(staff_id).
+                           template text,
+                           created_at timestamp DEFAULT current_timestamp,
+                           updated_at timestamp,
+                           PRIMARY KEY (modname, staff_id)
 );
 
 
@@ -2050,16 +2050,16 @@ CREATE TABLE templates (
 -- Add history grades in Transripts
 
 CREATE VIEW transcript_grades AS
-    SELECT mp.syear,mp.school_id,mp.marking_period_id,mp.mp_type,
-    mp.short_name,mp.parent_id,mp.grandparent_id,
-    (SELECT mp2.end_date
+SELECT mp.syear,mp.school_id,mp.marking_period_id,mp.mp_type,
+       mp.short_name,mp.parent_id,mp.grandparent_id,
+       (SELECT mp2.end_date
         FROM student_report_card_grades
-            JOIN marking_periods mp2
-            ON mp2.marking_period_id = student_report_card_grades.marking_period_id
+                 JOIN marking_periods mp2
+                      ON mp2.marking_period_id = student_report_card_grades.marking_period_id
         WHERE student_report_card_grades.student_id = sms.student_id
-        AND (student_report_card_grades.marking_period_id = mp.parent_id
+          AND (student_report_card_grades.marking_period_id = mp.parent_id
             OR student_report_card_grades.marking_period_id = mp.grandparent_id)
-        AND student_report_card_grades.course_title = srcg.course_title
+          AND student_report_card_grades.course_title = srcg.course_title
         ORDER BY mp2.end_date LIMIT 1) AS parent_end_date,
     mp.end_date,sms.student_id,
     (sms.cum_weighted_factor * COALESCE(schools.reporting_gp_scale, (SELECT reporting_gp_scale FROM schools WHERE mp.school_id = id ORDER BY syear LIMIT 1))) AS cum_weighted_gpa,
@@ -2095,11 +2095,11 @@ CREATE VIEW transcript_grades AS
 --
 
 CREATE TABLE user_profiles (
-    id serial PRIMARY KEY,
-    profile varchar(30),
-    title text NOT NULL,
-    created_at timestamp DEFAULT current_timestamp,
-    updated_at timestamp
+                               id serial PRIMARY KEY,
+                               profile varchar(30),
+                               title text NOT NULL,
+                               created_at timestamp DEFAULT current_timestamp,
+                               updated_at timestamp
 );
 
 
@@ -3747,17 +3747,17 @@ CREATE TRIGGER srcg_mp_stats_update AFTER INSERT OR DELETE OR UPDATE ON student_
 
 CREATE OR REPLACE FUNCTION set_updated_at_triggers() RETURNS void AS $$
 DECLARE
-    t text;
+t text;
 BEGIN
-    FOR t IN
-        SELECT table_name FROM information_schema.columns
-        WHERE column_name = 'updated_at'
+FOR t IN
+SELECT table_name FROM information_schema.columns
+WHERE column_name = 'updated_at'
     LOOP
         EXECUTE
             'CREATE TRIGGER set_updated_at
             BEFORE UPDATE ON ' || t || '
             FOR EACH ROW EXECUTE PROCEDURE set_updated_at()';
-    END LOOP;
+END LOOP;
 END;
 $$ LANGUAGE plpgsql;
 
