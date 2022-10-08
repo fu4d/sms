@@ -63,8 +63,8 @@ foreach ( (array) $fields_RET as $field )
 					'staff[EMAIL]',
 					$field['TITLE'],
 					'size=22 maxlength=255 type="email" placeholder="' . AttrEscape( _( 'Email' ) ) . '"' .
-						( ! empty( $_REQUEST['moodle_create_user'] ) || ! empty( $old_user_in_moodle )
-							|| $field['REQUIRED'] ? ' required' : '' ),
+					( ! empty( $_REQUEST['moodle_create_user'] ) || ! empty( $old_user_in_moodle )
+					  || $field['REQUIRED'] ? ' required' : '' ),
 					empty( $_REQUEST['moodle_create_user'] )
 				);
 			}

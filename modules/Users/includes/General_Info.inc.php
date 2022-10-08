@@ -3,19 +3,19 @@ echo '<table class="general-info width-100p valign-top fixed-col"><tr class="st"
 
 // IMAGE.
 if ( AllowEdit()
-	&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) ):
-?>
-	<a href="#" onclick="$('.user-photo-form,.user-photo').toggle(); return false;"><?php
-	echo button( 'add', '', '', 'smaller' ) . '&nbsp;' . _( 'User Photo' );
-?></a><br />
-	<div class="user-photo-form hide"><?php
-	echo FileInput(
-		'photo',
-		_( 'User Photo' ) . ' (.jpg, .png, .gif)',
-		// Fix photo use mime types, not file extensions so mobile browsers allow camera
-		'accept="image/jpeg, image/png, image/gif"'
-	);
-?></div>
+     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) ):
+	?>
+    <a href="#" onclick="$('.user-photo-form,.user-photo').toggle(); return false;"><?php
+		echo button( 'add', '', '', 'smaller' ) . '&nbsp;' . _( 'User Photo' );
+		?></a><br />
+    <div class="user-photo-form hide"><?php
+		echo FileInput(
+			'photo',
+			_( 'User Photo' ) . ' (.jpg, .png, .gif)',
+			// Fix photo use mime types, not file extensions so mobile browsers allow camera
+			'accept="image/jpeg, image/png, image/gif"'
+		);
+		?></div>
 <?php endif;
 
 // @since 9.0 Fix Improper Access Control security issue: add random string to photo file name.
@@ -24,7 +24,7 @@ $picture_path = (array) glob( $UserPicturesPath . UserSyear() . '/' . UserStaffI
 $picture_path = end( $picture_path );
 
 if ( ! $picture_path
-	&& ! empty( $staff['ROLLOVER_ID'] ) )
+     && ! empty( $staff['ROLLOVER_ID'] ) )
 {
 	// Use Last Year's if Missing.
 	// @since 9.0 Fix Improper Access Control security issue: add random string to photo file name.
@@ -34,8 +34,8 @@ if ( ! $picture_path
 }
 
 if ( $_REQUEST['staff_id'] !== 'new' && $picture_path ):
-?>
-	<img src="<?php echo URLEscape( $picture_path ); ?>" class="user-photo" alt="<?php echo AttrEscape( _( 'User Photo' ) ); ?>" />
+	?>
+    <img src="<?php echo URLEscape( $picture_path ); ?>" class="user-photo" alt="<?php echo AttrEscape( _( 'User Photo' ) ); ?>" />
 <?php endif;
 // END IMAGE
 
@@ -69,48 +69,48 @@ if ( AllowEdit() && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	$div = false;
 
 	$user_name_html = '<table class="cellspacing-0"><tr class="st"><td>' .
-	SelectInput(
-		issetVal( $staff['TITLE'], '' ),
-		'staff[TITLE]',
-		_( 'Title' ),
-		$titles_array,
-		'',
-		'',
-		$div
-	) . '</td><td>' .
-	TextInput(
-		issetVal( $staff['FIRST_NAME'], '' ),
-		'staff[FIRST_NAME]',
-		_( 'First Name' ),
-		'size=12 maxlength=50 required',
-		$div
-	) . '</td><td>' .
-	TextInput(
-		issetVal( $staff['MIDDLE_NAME'], '' ),
-		'staff[MIDDLE_NAME]',
-		_( 'Middle Name' ),
-		'maxlength=50',
-		$div
-	) . '</td><td>' .
-	TextInput(
-		issetVal( $staff['LAST_NAME'], '' ),
-		'staff[LAST_NAME]',
-		_( 'Last Name' ),
-		'size=12 maxlength=50 required',
-		$div
-	) . '</td><td>' .
-	SelectInput(
-		issetVal( $staff['NAME_SUFFIX'], '' ),
-		'staff[NAME_SUFFIX]',
-		_( 'Suffix' ),
-		$suffixes_array,
-		'',
-		'',
-		$div
-	) . '</td></tr></table>';
+	                  SelectInput(
+		                  issetVal( $staff['TITLE'], '' ),
+		                  'staff[TITLE]',
+		                  _( 'Title' ),
+		                  $titles_array,
+		                  '',
+		                  '',
+		                  $div
+	                  ) . '</td><td>' .
+	                  TextInput(
+		                  issetVal( $staff['FIRST_NAME'], '' ),
+		                  'staff[FIRST_NAME]',
+		                  _( 'First Name' ),
+		                  'size=12 maxlength=50 required',
+		                  $div
+	                  ) . '</td><td>' .
+	                  TextInput(
+		                  issetVal( $staff['MIDDLE_NAME'], '' ),
+		                  'staff[MIDDLE_NAME]',
+		                  _( 'Middle Name' ),
+		                  'maxlength=50',
+		                  $div
+	                  ) . '</td><td>' .
+	                  TextInput(
+		                  issetVal( $staff['LAST_NAME'], '' ),
+		                  'staff[LAST_NAME]',
+		                  _( 'Last Name' ),
+		                  'size=12 maxlength=50 required',
+		                  $div
+	                  ) . '</td><td>' .
+	                  SelectInput(
+		                  issetVal( $staff['NAME_SUFFIX'], '' ),
+		                  'staff[NAME_SUFFIX]',
+		                  _( 'Suffix' ),
+		                  $suffixes_array,
+		                  '',
+		                  '',
+		                  $div
+	                  ) . '</td></tr></table>';
 
 	if ( $_REQUEST['staff_id'] === 'new'
-		|| ! empty( $_REQUEST['moodle_create_user'] ) )
+	     || ! empty( $_REQUEST['moodle_create_user'] ) )
 	{
 		echo $user_name_html;
 	}
@@ -131,7 +131,7 @@ else
 {
 	echo NoInput(
 		trim( $staff_title . ' ' . $staff['FIRST_NAME'] . ' ' .
-			$staff['MIDDLE_NAME'] . ' ' . $staff['LAST_NAME'] . ' ' . $staff_suffix ),
+		      $staff['MIDDLE_NAME'] . ' ' . $staff['LAST_NAME'] . ' ' . $staff_suffix ),
 		_( 'Name' )
 	);
 }
@@ -139,7 +139,7 @@ else
 echo '</td></tr>';
 
 if ( ! isset( $_REQUEST['staff_id'] )
-	|| $_REQUEST['staff_id'] !== 'new' )
+     || $_REQUEST['staff_id'] !== 'new' )
 {
 	echo '<tr class="st"><td>';
 
@@ -204,7 +204,6 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 	echo '<tr class="st"><td>';
 
 	$profile_options = [
-		'' => _( '' ),
 		'admin' => _( 'Administrator' ),
 		'teacher' => _( 'Teacher' ),
 		'parent' => _( 'Parent' ),
@@ -212,8 +211,8 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 	];
 
 	$admin_user_profile_restriction = User( 'PROFILE' ) === 'admin'
-		&& AllowEdit()
-		&& ! AllowEdit( 'Users/User.php&category_id=1&user_profile' );
+	                                  && AllowEdit()
+	                                  && ! AllowEdit( 'Users/User.php&category_id=1&user_profile' );
 
 	// User Profile restrictions.
 	if ( $admin_user_profile_restriction )
@@ -266,18 +265,18 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 				WHERE PROFILE='" . $staff['PROFILE'] . "'
 				ORDER BY ID" );
 
-            $permissions_options[_( 'Custom' )] = _( 'Custom' );
 			foreach ( (array) $permissions_RET as $permission )
 			{
 				$permissions_options[$permission['ID']] = _( $permission['TITLE'] );
 			}
+
+			$na = _( 'Custom' );
 		}
 		else
 		{
-            $permissions_options[_( 'Default' )] = _( 'Default' );
+			$na = _( 'Default' );
 		}
 
-        $na = '';
 		echo SelectInput(
 			issetVal( $staff['PROFILE_ID'], '' ),
 			'staff[PROFILE_ID]',
@@ -287,21 +286,21 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 		);
 
 		if ( User( 'PROFILE' ) === 'admin'
-			&& AllowEdit( 'Users/Exceptions.php' )
-			&& ! $staff['PROFILE_ID']
-			&& UserStaffID() )
+		     && AllowEdit( 'Users/Exceptions.php' )
+		     && ! $staff['PROFILE_ID']
+		     && UserStaffID() )
 		{
 			// Add link to User Permissions.
 			echo '<div><a href="Modules.php?modname=Users/Exceptions.php">' .
-			_( 'User Permissions' ) . '</a></div>';
+			     _( 'User Permissions' ) . '</a></div>';
 		}
 	}
 
 	// User Profile restrictions.
 
 	if ( $_REQUEST['staff_id'] !== 'new'
-		&& ( $admin_user_profile_restriction
-			|| $non_admin_user_profile_restriction ) )
+	     && ( $admin_user_profile_restriction
+	          || $non_admin_user_profile_restriction ) )
 	{
 		// Reactivate AllowEdit.
 		$_ROSARIO['allow_edit'] = true;
@@ -323,8 +322,8 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 		if ( $schools_RET )
 		{
 			$admin_schools_restriction = ( User( 'PROFILE' ) !== 'admin' && AllowEdit() )
-				|| ( User( 'PROFILE' ) === 'admin' && AllowEdit()
-					&& ! AllowEdit( 'Users/User.php&category_id=1&schools' ) );
+			                             || ( User( 'PROFILE' ) === 'admin' && AllowEdit()
+			                                  && ! AllowEdit( 'Users/User.php&category_id=1&schools' ) );
 
 			// Admin Schools restriction.
 			if ( $admin_schools_restriction )
@@ -336,25 +335,8 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 			$i = 0;
 
 			$schools_html = '<table class="cellspacing-0 width-100p"><tr class="st">';
-            $schools_html .= '</tr><tr class="st">';
-            $school_options = [];
 
-            foreach ( (array) $schools_RET as $school )
-            {
-                $school_options[$school['ID']] = _( $school['TITLE'] );
-            }
-
-            $na = '';
-            $schools_html .= '<td>' . SelectInput(
-                issetVal( $staff['PROFILE_ID'], '' ),
-                'staff[SCHOOLS]',
-                _( 'Schools' ),
-                    $school_options,
-                $na
-            ). '&nbsp;</td>';
-
-
-			/*$school_titles = [];
+			$school_titles = [];
 
 			foreach ( (array) $schools_RET as $school )
 			{
@@ -364,17 +346,17 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 				}
 
 				$value = isset( $staff['SCHOOLS'] )
-					&& mb_strpos( $staff['SCHOOLS'], ',' . $school['ID'] . ',' ) !== false ? 'Y' : '';
+				         && mb_strpos( $staff['SCHOOLS'], ',' . $school['ID'] . ',' ) !== false ? 'Y' : '';
 
 				$schools_html .= '<td>' . CheckboxInput(
-					$value,
-					'staff[SCHOOLS][' . $school['ID'] . ']',
-					$school['TITLE'],
-					'',
-					true,
-					button( 'check' ),
-					button( 'x' )
-				) . '&nbsp;</td>';
+						$value,
+						'staff[SCHOOLS][' . $school['ID'] . ']',
+						$school['TITLE'],
+						'',
+						true,
+						button( 'check' ),
+						button( 'x' )
+					) . '&nbsp;</td>';
 
 				if ( $value )
 				{
@@ -382,18 +364,17 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 				}
 
 				$i++;
-			}*/
+			}
 
 			$schools_html .= '</tr></table>';
-            echo $schools_html;
 
-			/*$id = 'schools';
+			$id = 'schools';
 
 			$title = FormatInputTitle( _( 'Schools' ), $id );
 			$title_nobr = FormatInputTitle( _( 'Schools' ), $id, false, '' );
 
 			if ( $_REQUEST['staff_id'] !== 'new'
-				&& AllowEdit() )
+			     && AllowEdit() )
 			{
 				echo InputDivOnclick(
 					$id,
@@ -402,14 +383,14 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 					$title
 				);
 			}
-			elseif ( AllowEdit() )
+            elseif ( AllowEdit() )
 			{
 				echo $schools_html . $title_nobr;
 			}
 
 			// Admin Schools restriction.
-			elseif ( $_REQUEST['staff_id'] === 'new'
-				&& $admin_schools_restriction )
+            elseif ( $_REQUEST['staff_id'] === 'new'
+			         && $admin_schools_restriction )
 			{
 				// Assign new user to current school only.
 				echo SchoolInfo( 'TITLE' ) . $title;
@@ -417,8 +398,8 @@ if ( basename( $_SERVER['PHP_SELF'] ) != 'index.php' )
 			else
 			{
 				echo ( $school_titles ? implode( ', ', $school_titles ) : _( 'All Schools' ) ) .
-					$title;
-			}*/
+				     $title;
+			}
 
 			// Admin Schools restriction.
 			if ( $admin_schools_restriction )
