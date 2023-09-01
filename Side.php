@@ -623,16 +623,15 @@ if ( ! isset( $_REQUEST['sidefunc'] )
 
             <?php endif;
 
-            /**
-             * Error: current CoursePeriod not found
-             * reset current CoursePeriod
-             * and unset current Student
-             */
-            if ( ! $current_cp_found )
-            {
-                // Do not use SetUserCoursePeriod() here as this is safe.
-                $_SESSION['UserCoursePeriod'] = $cp_RET[1]['COURSE_PERIOD_ID'];
-
+			/**
+			 * Error: current CoursePeriod not found
+			 * reset current CoursePeriod
+			 * and unset current Student
+			 */
+			if ( ! $current_cp_found )
+			{
+				// Do not use SetUserCoursePeriod() here as this is safe.
+				$_SESSION['UserCoursePeriod'] = issetVal( $cp_RET[1]['COURSE_PERIOD_ID'] );
                 unset( $_SESSION['student_id'] );
             }
             ?>
