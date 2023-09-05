@@ -141,6 +141,7 @@ AppPackages/
 
 # Others
 .idea/
+.idea/php.xml
 sql/
 *.Cache
 ClientBin/
