@@ -725,6 +725,8 @@ if (  ( UserStaffID()
 			WHERE " . ( $profile ? DBEscapeIdentifier( $profile ) . "='Y'" : "ID='1'" ) . "
 			ORDER BY SORT_ORDER IS NULL,SORT_ORDER,TITLE" );
 
+		$tabs = [];
+
 		foreach ( (array) $categories_RET as $category )
 		{
 			if ( ! empty( $can_use_RET['Users/User.php&category_id=' . $category['ID']] ) )
@@ -744,7 +746,7 @@ if (  ( UserStaffID()
 		PopTable( 'header', $tabs, 'width="100%"' );
 		$PopTable_opened = true;
 
-		if ( $can_use_RET['Users/User.php&category_id=' . $category_id] )
+		if ( ! empty( $can_use_RET['Users/User.php&category_id=' . $category_id] ) )
 		{
 			if ( ! mb_strpos( $include, '/' ) )
 			{
@@ -773,7 +775,7 @@ if (  ( UserStaffID()
 		echo '<br /><div class="center">' . SubmitButton() . '</div>';
 		echo '</form>';
 	}
-	elseif ( $can_use_RET['Users/User.php&category_id=' . $category_id] )
+	elseif ( ! empty( $can_use_RET['Users/User.php&category_id=' . $category_id] ) )
 	{
 		// Is Deleting from Other tab.
 		if ( ! mb_strpos( $include, '/' ) )

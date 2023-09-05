@@ -24,6 +24,12 @@ if ( $_REQUEST['modfunc'] === 'save' )
 
 		$insert_columns = [];
 
+		if ( User( 'PROFILE' ) === 'teacher' )
+		{
+			// Limit relator to Teacher.
+			$_REQUEST['values']['STAFF_ID'] = $_POST['values']['STAFF_ID'] = User( 'STAFF_ID' );
+		}
+
 		foreach ( (array) $_REQUEST['values'] as $column => $value )
 		{
 			$column_data_type = isset( $categories_RET[str_replace( 'CATEGORY_', '', $column )][1]['DATA_TYPE'] ) ?
@@ -68,12 +74,6 @@ if ( $_REQUEST['modfunc'] === 'save' )
 
 		foreach ( $_REQUEST['st_arr'] as $student_id )
 		{
-			if ( User( 'PROFILE' ) === 'teacher' )
-			{
-				// Limit relator to Teacher.
-				$_REQUEST['values']['STAFF_ID'] = $_POST['values']['STAFF_ID'] = User( 'STAFF_ID' );
-			}
-
 			$referral_id = DBInsert(
 				'discipline_referrals',
 				[
@@ -93,8 +93,8 @@ if ( $_REQUEST['modfunc'] === 'save' )
 				require_once 'modules/Discipline/includes/EmailReferral.fnc.php';
 
 				$emails = array_merge(
-					(array) $_REQUEST['admin_emails'],
-					(array) $_REQUEST['teacher_emails']
+					issetVal( $_REQUEST['admin_emails'], [] ),
+					issetVal( $_REQUEST['teacher_emails'], [] )
 				);
 
 				if ( EmailReferral( $referral_id, $emails ) )

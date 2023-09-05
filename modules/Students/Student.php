@@ -769,6 +769,8 @@ if (  ( UserStudentID()
 		// Hook.
 		do_action( 'Students/Student.php|header' );
 
+		$tabs = [];
+
 		foreach ( (array) $categories_RET as $category )
 		{
 			if ( isset( $can_use_RET['Students/Student.php&category_id=' . $category['ID']] ) )
@@ -805,7 +807,7 @@ if (  ( UserStudentID()
 
 		$PopTable_opened = true;
 
-		if ( $can_use_RET['Students/Student.php&category_id=' . $category_id] )
+		if ( ! empty( $can_use_RET['Students/Student.php&category_id=' . $category_id] ) )
 		{
 			if ( ! mb_strpos( $include, '/' ) )
 			{
@@ -834,7 +836,7 @@ if (  ( UserStudentID()
 		echo '<br /><div class="center">' . SubmitButton() . '</div>';
 		echo '</form>';
 	}
-	elseif ( $can_use_RET['Students/Student.php&category_id=' . $category_id] )
+	elseif ( ! empty( $can_use_RET['Students/Student.php&category_id=' . $category_id] ) )
 	{
 		// Is Deleting from Other tab.
 		if ( ! mb_strpos( $include, '/' ) )

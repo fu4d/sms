@@ -489,23 +489,23 @@ if ( ! isset( $_REQUEST['sidefunc'] )
 
         endif;
 
-        // SchoolYear SELECT.
-        if ( User( 'PROFILE' ) !== 'student' )
-        {
-            $sql = "SELECT sy.SYEAR
+		// SchoolYear SELECT.
+		if ( User( 'STAFF_ID' ) )
+		{
+			$sql = "SELECT sy.SYEAR
 				FROM schools sy,staff s
 				WHERE sy.ID='" . UserSchool() . "'
 				AND s.SYEAR=sy.SYEAR
 				AND (s.SCHOOLS IS NULL OR position(CONCAT(',', sy.ID, ',') IN s.SCHOOLS)>0)
 				AND s.USERNAME=(SELECT USERNAME
 					FROM staff
-					WHERE STAFF_ID='" . (int) $_SESSION['STAFF_ID'] . "')";
-        }
-        else
-        {
-            // FJ limit school years to the years the student was enrolled.
-            //$sql = "SELECT DISTINCT sy.SYEAR FROM schools sy,student_enrollment s WHERE s.SYEAR=sy.SYEAR";
-            $sql = "SELECT DISTINCT sy.SYEAR
+					WHERE STAFF_ID='" . User( 'STAFF_ID' ) . "')";
+		}
+		else
+		{
+			// FJ limit school years to the years the student was enrolled.
+			//$sql = "SELECT DISTINCT sy.SYEAR FROM schools sy,student_enrollment s WHERE s.SYEAR=sy.SYEAR";
+			$sql = "SELECT DISTINCT sy.SYEAR
 				FROM schools sy,student_enrollment s
 				WHERE s.SYEAR=sy.SYEAR
 				AND s.STUDENT_ID='" . UserStudentID() . "'";
@@ -623,15 +623,15 @@ if ( ! isset( $_REQUEST['sidefunc'] )
 
             <?php endif;
 
-            /**
-             * Error: current CoursePeriod not found
-             * reset current CoursePeriod
-             * and unset current Student
-             */
-            if ( ! $current_cp_found )
-            {
-                // Do not use SetUserCoursePeriod() here as this is safe.
-                $_SESSION['UserCoursePeriod'] = $cp_RET[1]['COURSE_PERIOD_ID'];
+			/**
+			 * Error: current CoursePeriod not found
+			 * reset current CoursePeriod
+			 * and unset current Student
+			 */
+			if ( ! $current_cp_found )
+			{
+				// Do not use SetUserCoursePeriod() here as this is safe.
+				$_SESSION['UserCoursePeriod'] = issetVal( $cp_RET[1]['COURSE_PERIOD_ID'] );
 
                 unset( $_SESSION['student_id'] );
             }

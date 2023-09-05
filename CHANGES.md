@@ -34,6 +34,11 @@ Changes in 11.2
 - Add Action hook Filter each menu item in the loop in Kiosk.php & Actions.php
 - FS transaction item ID references food_service_menu_items(menu_item_id) in ServeMenus.php, rosariosis.sql & rosariosis_mysql.sql
 - CSS WPadmin theme style fieldset legend like FlatSIS theme in stylesheet.css
+- Fix Select Multiple from Options answer count when none selected in PortalPollsNotes.fnc.php
+- Fix regression since 11.0 Reporter not saved when logged in as a Teacher in MakeReferral.php
+- Fix SQL error when no MP array is empty in Grades.fnc.php
+- Add Student Account fields table after action hook in Actions.php & Food_Service/Students/Accounts.php
+- Add Food Service tab fields table after action hook in Actions.php & Food_Service/Student.inc.php
 
 Changes in 11.1.2
 -----------------
