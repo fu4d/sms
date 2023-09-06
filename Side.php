@@ -632,6 +632,7 @@ if ( ! isset( $_REQUEST['sidefunc'] )
 			{
 				// Do not use SetUserCoursePeriod() here as this is safe.
 				$_SESSION['UserCoursePeriod'] = issetVal( $cp_RET[1]['COURSE_PERIOD_ID'] );
+
                 unset( $_SESSION['student_id'] );
             }
             ?>
