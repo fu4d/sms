@@ -7,6 +7,12 @@
 function SaveEnrollment()
 {
 	global $error, $student_id;
+	/*echo 'POST <br>';
+	var_dump($_POST);
+	echo '****************************************** <br>';
+	echo 'REQUEST <br>';
+	var_dump($_REQUEST);
+	echo '++++++++++++++++++++++++++++++++++++++ <br>';*/
 
 	if ( ! empty( $_POST['month_values']['student_enrollment'] )
 	     || ! empty( $_POST['values']['student_enrollment'] ) )
@@ -18,9 +24,9 @@ function SaveEnrollment()
 			if ( $stu_enrol_id == 'new' && ! $stu_enrol_month['START_DATE'] )
 			{
 				unset( $_REQUEST['values']['student_enrollment'][$stu_enrol_id] );
-				unset( $_REQUEST['day_values']['student_enrollment'][$stu_enrol_id] );
-				unset( $_REQUEST['month_values']['student_enrollment'][$stu_enrol_id] );
-				unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
+//				unset( $_REQUEST['day_values']['student_enrollment'][$stu_enrol_id] );
+//				unset( $_REQUEST['month_values']['student_enrollment'][$stu_enrol_id] );
+//				unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
 			}
 			elseif ( $stu_enrol_id == 'new'
 			         && $_REQUEST['values']['student_enrollment']['new']['SCHOOL_ID'] )
@@ -30,12 +36,13 @@ function SaveEnrollment()
 				if ( $enrollment_school_id != UserSchool() )
 				{
 					// @since 5.4 Update current school to enrollment school.
+					// FUAD RECHECK
 					$_SESSION['UserSchool'] = DBGetOne( "SELECT ID FROM schools
 						WHERE SYEAR='" . UserSyear() . "'
 						AND ID='" . (int) $enrollment_school_id . "'" );
 				}
 
-				if ( ! empty( $stu_enrol_month['START_DATE'] ) )
+				if ( ! empty( $stu_enrol_data['START_DATE'] ) )
 				{
 					$found_RET = 1;
 
@@ -54,9 +61,9 @@ function SaveEnrollment()
 					if ( $found_RET )
 					{
 						unset( $_REQUEST['values']['student_enrollment'][$stu_enrol_id] );
-						unset( $_REQUEST['day_values']['student_enrollment'][$stu_enrol_id] );
-						unset( $_REQUEST['month_values']['student_enrollment'][$stu_enrol_id] );
-						unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
+//						unset( $_REQUEST['day_values']['student_enrollment'][$stu_enrol_id] );
+//						unset( $_REQUEST['month_values']['student_enrollment'][$stu_enrol_id] );
+//						unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
 
 						if ( $date )
 						{
@@ -65,7 +72,7 @@ function SaveEnrollment()
 					}
 				}
 			}
-			elseif ( UserStudentID() && ! empty( $stu_enrol_month['START_DATE'] ) )
+			elseif ( UserStudentID() && ! empty( $stu_enrol_data['START_DATE'] ) )
 			{
 				$date = $_REQUEST['values']['student_enrollment'][$stu_enrol_id]['START_DATE'];
 
@@ -84,9 +91,9 @@ function SaveEnrollment()
 				if ( $found_RET )
 				{
 					unset( $_REQUEST['values']['student_enrollment'][$stu_enrol_id] );
-					unset( $_REQUEST['day_values']['student_enrollment'][$stu_enrol_id] );
-					unset( $_REQUEST['month_values']['student_enrollment'][$stu_enrol_id] );
-					unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
+//					unset( $_REQUEST['day_values']['student_enrollment'][$stu_enrol_id] );
+//					unset( $_REQUEST['month_values']['student_enrollment'][$stu_enrol_id] );
+//					unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
 
 					if ( $date )
 					{

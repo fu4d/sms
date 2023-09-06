@@ -33,6 +33,19 @@ function DateInput( $value, $name, $title = '', $div = true, $allow_na = true, $
 
 	$ftitle = FormatInputTitle( $title, '', $value == '' && $required );
 
+//	$input_name = strtolower(explode('[', str_replace(']','',$name))[1]);
+	$input_name = strtolower($name);
+	$input_date = '<input type="date"class="field-value input-date" id="'.$input_name.'" name="'.$input_name.'" value="'.$value.'">';
+	$input_date .= '<label for="' . $input_name . '">' .
+	               _( $ftitle ) . '</label>';
+	return InputDivOnclick(
+		$id,
+		$input_date,
+		( $value != '' ? ProperDate( $value ) : '-' ),
+		FormatInputTitle( $title )
+	);
+    return $input_date;
+
 	if ( ! AllowEdit()
 	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
@@ -112,9 +125,15 @@ function TextInput( $value, $name, $title = '', $extra = '', $div = true )
 	// Specify input type via $extra (email,...).
 	$type = mb_strpos( $extra, 'type=' ) === false ? 'type="text"' : '';
 
+<<<<<<< HEAD
+	$input = '<input class="input"' . $type . ' id="' . $id . '" name="' . AttrEscape( $name ) .
+		'" value="' . AttrEscape( $value ) . '" ' . $extra . ' placeholder="'.$title.'" />' .
+		FormatInputTitle( $title, $id, $required );
+=======
 	$input = '<input ' . $type . ' id="' . $id . '" name="' . AttrEscape( $name ) .
 	         '" value="' . AttrEscape( $value ) . '" ' . $extra . '>' .
 	         FormatInputTitle( $title, $id, $required );
+>>>>>>> develop
 
 	if ( is_null( $value )
 	     || trim( $value ) == ''
@@ -191,8 +210,8 @@ function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 
 	$extra .= ' type="password" autocomplete="new-password"';
 
-	$input = TextInput( ( $value !== str_repeat( '*', 8 ) ? $value : '' ), $name, '', $extra, false );
-
+	$input = TextInput( ( $value !== str_repeat( '*', 8 ) ? $value : '' ), $name, $title, $extra, false );
+    $input .= FormatInputTitle( $title, $id, $required );
 	$lock_icons = button( 'unlocked', '', '', 'password-toggle password-show' ) .
 	              button( 'locked', '', '', 'password-toggle password-hide' );
 
@@ -911,12 +930,17 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 
 		return $display_val . FormatInputTitle( $title );
 	}
+    $selectedValue = '';
+    foreach ( (array) $values as $value )
+    {
+        $selectedValue = $value;
+    }
 
-	$select = '<select name="' . AttrEscape( $name ) . '" id="' . $id . '" ' . $extra . '>';
+	$select = '<select name="' . AttrEscape( $name ) . '" id="' . $id . '" ' . $extra . ' class="select" onchange=" this.dataset.chosen = this.value;" data-chosen="'.$selectedValue.'">';
 
 	if ( $allow_na !== false )
 	{
-		$select .= '<option value="">' . ( $allow_na === 'N/A' ? _( 'N/A' ) : $allow_na ) . '</option>';
+		$select .= '<option value="">' . ( $allow_na === 'N/A' ? '' : $allow_na ) . '</option>';
 	}
 
 	$make_option = function( $values, $key, $val )
@@ -924,14 +948,15 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 		$selected = '';
 
 		$key .= '';
-
+        // No need to set first as default
 		foreach ( (array) $values as $value )
 		{
 			if ( $value == $key
 			     && ( !( $value == false && $value !== $key )
 			          || ( $value === '0' && $key === 0 ) ) )
 			{
-				$selected = ' selected';
+
+				$selected = ' selected ';
 
 				break;
 			}
@@ -1040,7 +1065,7 @@ function MLSelectInput( $value, $name, $title, $options, $allow_na = 'N/A', $ext
 
 	if ( count( $RosarioLocales ) < 2 )
 	{
-		return SelectInput( ParseMLField( $value, $locale ), $name, $title, $options, $div );
+		return SelectInput( ParseMLField( $value, $locale ), $name, '', $options, $div );
 	}
 
 	$id = GetInputID( $name );
@@ -1882,7 +1907,7 @@ function InputDivOnclick( $id, $input_html, $value, $input_ftitle )
 
 	$script = '<script>var html' . $id_var_name_sanitized . '=' . json_encode( $input_html ).';</script>';
 
-	$value = $value == '' ? '-' : $value;
+	$value = strpos($id,'new') ? '<span class="field-value input-date">-</span>' : '<span class="underline-dots">'.$value.'</span>';
 
 	$onfocus_js = 'addHTML(html' . $id_var_name_sanitized . ',"div' . $id_var_name_sanitized . '",true);
 		$("#' . $id_var_name_sanitized . '").focus();
@@ -1890,10 +1915,17 @@ function InputDivOnclick( $id, $input_html, $value, $input_ftitle )
 
 	$div_onclick = '<div id="div' . $id_var_name_sanitized . '">
 		<div class="onclick" tabindex="0" onfocus="' . AttrEscape( $onfocus_js ) . '">' .
+<<<<<<< HEAD
+		( mb_strpos( $value, '<div' ) === 0 ?
+			'<div class="underline-dots">' . $value . '</div>' :
+			$value ) .
+		$input_ftitle . '</div></div>';
+=======
 	               ( mb_strpos( $value, '<div' ) === 0 ?
 		               '<div class="underline-dots">' . $value . '</div>' :
 		               '<span class="underline-dots">' . $value . '</span>' ) .
 	               $input_ftitle . '</div></div>';
+>>>>>>> develop
 
 	return $script . $div_onclick;
 }

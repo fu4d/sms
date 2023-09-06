@@ -60,7 +60,7 @@ if ( empty( $_REQUEST['search_modfunc'] ) )
 					[]
 			);
 
-			echo '</table><div class="center">';
+			echo '</table><div class="footer-form">';
 
 			if ( ! empty( $extra['search_second_col'] ) )
 			{
@@ -89,7 +89,7 @@ if ( empty( $_REQUEST['search_modfunc'] ) )
 			echo '<label><input type="checkbox" name="include_inactive" value="Y">&nbsp;' .
 			     _( 'Include Inactive Students' ) . '</label><br />';
 
-			echo '<br />' . Buttons( _( 'Submit' ) ) . '</div><br />';
+			echo '<div class="btn_action">' . Buttons( _( 'Submit' ) ) . '</div>';
 
 			if ( ! empty( $extra['search'] )
 			     || ! empty( $extra['extra_search'] )
