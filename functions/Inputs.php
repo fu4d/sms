@@ -124,7 +124,6 @@ function TextInput( $value, $name, $title = '', $extra = '', $div = true )
 
 	// Specify input type via $extra (email,...).
 	$type = mb_strpos( $extra, 'type=' ) === false ? 'type="text"' : '';
-
 	$input = '<input class="input"' . $type . ' id="' . $id . '" name="' . AttrEscape( $name ) .
 		'" value="' . AttrEscape( $value ) . '" ' . $extra . ' placeholder="'.$title.'" />' .
 		FormatInputTitle( $title, $id, $required );
