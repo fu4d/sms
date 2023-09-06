@@ -125,15 +125,9 @@ function TextInput( $value, $name, $title = '', $extra = '', $div = true )
 	// Specify input type via $extra (email,...).
 	$type = mb_strpos( $extra, 'type=' ) === false ? 'type="text"' : '';
 
-<<<<<<< HEAD
 	$input = '<input class="input"' . $type . ' id="' . $id . '" name="' . AttrEscape( $name ) .
 		'" value="' . AttrEscape( $value ) . '" ' . $extra . ' placeholder="'.$title.'" />' .
 		FormatInputTitle( $title, $id, $required );
-=======
-	$input = '<input ' . $type . ' id="' . $id . '" name="' . AttrEscape( $name ) .
-	         '" value="' . AttrEscape( $value ) . '" ' . $extra . '>' .
-	         FormatInputTitle( $title, $id, $required );
->>>>>>> develop
 
 	if ( is_null( $value )
 	     || trim( $value ) == ''
@@ -1915,17 +1909,10 @@ function InputDivOnclick( $id, $input_html, $value, $input_ftitle )
 
 	$div_onclick = '<div id="div' . $id_var_name_sanitized . '">
 		<div class="onclick" tabindex="0" onfocus="' . AttrEscape( $onfocus_js ) . '">' .
-<<<<<<< HEAD
 		( mb_strpos( $value, '<div' ) === 0 ?
 			'<div class="underline-dots">' . $value . '</div>' :
 			$value ) .
 		$input_ftitle . '</div></div>';
-=======
-	               ( mb_strpos( $value, '<div' ) === 0 ?
-		               '<div class="underline-dots">' . $value . '</div>' :
-		               '<span class="underline-dots">' . $value . '</span>' ) .
-	               $input_ftitle . '</div></div>';
->>>>>>> develop
 
 	return $script . $div_onclick;
 }
