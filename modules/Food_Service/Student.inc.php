@@ -5,8 +5,8 @@ require_once 'ProgramFunctions/TipMessage.fnc.php';
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( UserStudentID()
-		&& AllowEdit()
-		&& ! empty( $_REQUEST['food_service'] ) )
+	     && AllowEdit()
+	     && ! empty( $_REQUEST['food_service'] ) )
 	{
 		$sql = "UPDATE food_service_student_accounts SET ";
 
@@ -27,14 +27,18 @@ if ( $_REQUEST['modfunc'] === 'update' )
 }
 
 if ( ! $_REQUEST['modfunc']
-	&& UserStudentID() )
+     && UserStudentID() )
 {
 	$student = DBGet( "SELECT s.STUDENT_ID," . DisplayNameSQL( 's' ) . " AS FULL_NAME,
-		fssa.ACCOUNT_ID,fssa.STATUS,fssa.DISCOUNT,fssa.BARCODE,
-		(SELECT BALANCE FROM food_service_accounts WHERE ACCOUNT_ID=fssa.ACCOUNT_ID) AS BALANCE
-		FROM students s,food_service_student_accounts fssa
-		WHERE s.STUDENT_ID='" . UserStudentID() . "'
-		AND fssa.STUDENT_ID=s.STUDENT_ID" );
+		(SELECT BALANCE FROM food_service_accounts WHERE ACCOUNT_ID=(SELECT ACCOUNT_ID
+			FROM food_service_student_accounts
+			WHERE STUDENT_ID=s.STUDENT_ID)) AS BALANCE,
+		(SELECT ACCOUNT_ID FROM food_service_student_accounts WHERE STUDENT_ID=s.STUDENT_ID) AS ACCOUNT_ID,
+		(SELECT STATUS FROM food_service_student_accounts WHERE STUDENT_ID=s.STUDENT_ID) AS STATUS,
+		(SELECT DISCOUNT FROM food_service_student_accounts WHERE STUDENT_ID=s.STUDENT_ID) AS DISCOUNT,
+		(SELECT BARCODE FROM food_service_student_accounts WHERE STUDENT_ID=s.STUDENT_ID) AS BARCODE
+		FROM students s
+		WHERE s.STUDENT_ID='" . UserStudentID() . "'" );
 
 	$student = $student[1];
 
@@ -50,9 +54,9 @@ if ( ! $_REQUEST['modfunc']
 	echo NoInput(  ( $student['BALANCE'] < 0 ? '<span style="color:red">' : '' ) . $student['BALANCE'] . ( $student['BALANCE'] < 0 ? '</span>' : '' ), _( 'Balance' ) );
 
 	echo '</td></tr></table>';
-	echo '<hr />';
+	echo '<hr>';
 
-	echo '<table class="width-100 valign-top fixed-col"><tr><td>';
+	echo '<table class="width-100p valign-top fixed-col"><tr><td>';
 
 	echo TextInput(
 		$student['ACCOUNT_ID'],
@@ -91,14 +95,39 @@ if ( ! $_REQUEST['modfunc']
 	}
 
 	echo '</td>';
+
 	$options = [ 'Inactive' => _( 'Inactive' ), 'Disabled' => _( 'Disabled' ), 'Closed' => _( 'Closed' ) ];
-	echo '<td>' . SelectInput( $student['STATUS'], 'food_service[STATUS]', _( 'Status' ), $options, _( 'Active' ) ) . '</td>';
-	echo '</tr><tr>';
+
+	echo '<td>' . SelectInput(
+		$student['STATUS'],
+		'food_service[STATUS]',
+		_( 'Status' ),
+		$options,
+		_( 'Active' )
+	) . '</td></tr>';
 
 	$options = [ 'Reduced' => _( 'Reduced' ), 'Free' => _( 'Free' ) ];
 
-	echo '<td>' . SelectInput( $student['DISCOUNT'], 'food_service[DISCOUNT]', _( 'Discount' ), $options, _( 'Full' ) ) . '</td>';
-	echo '<td>' . TextInput( $student['BARCODE'], 'food_service[BARCODE]', _( 'Barcode' ), 'size=12 maxlength=25' ) . '</td>';
-	echo '</tr>';
-	echo '</table>';
+	echo '<tr><td>' . SelectInput(
+		$student['DISCOUNT'],
+		'food_service[DISCOUNT]',
+		_( 'Discount' ),
+		$options,
+		_( 'Full' )
+	) . '</td>';
+
+	echo '<td>' . TextInput(
+		$student['BARCODE'],
+		'food_service[BARCODE]',
+		_( 'Barcode' ),
+		'size=12 maxlength=25'
+	) . '</td></tr></table>';
+
+	/**
+	 * Food Service tab fields table after action hook
+	 * Add your own fields
+	 *
+	 * @since 11.2
+	 */
+	do_action( 'Food_Service/Student.inc.php|table_after', [ $student ] );
 }

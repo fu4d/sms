@@ -71,7 +71,10 @@ if ( ! empty( $_REQUEST['values'] )
 			$_REQUEST['values']['Preferences']['DEFAULT_FAMILIES'] = 'N';
 		}
 
-		if ( $_REQUEST['tab'] == 'student_listing' && User( 'PROFILE' ) === 'admin' && $_REQUEST['values']['Preferences']['DEFAULT_ALL_SCHOOLS'] != 'Y' )
+		if ( $_REQUEST['tab'] == 'student_listing'
+			&& User( 'PROFILE' ) === 'admin'
+			&& ( empty( $_REQUEST['values']['Preferences']['DEFAULT_ALL_SCHOOLS'] )
+				|| $_REQUEST['values']['Preferences']['DEFAULT_ALL_SCHOOLS'] != 'Y' ) )
 		{
 			$_REQUEST['values']['Preferences']['DEFAULT_ALL_SCHOOLS'] = 'N';
 		}
@@ -471,6 +474,12 @@ if ( ! $_REQUEST['modfunc'] )
 		echo PasswordInput( '', 'values[current]', _( 'Current Password' ), 'required' );
 
 		echo '</td></tr><tr><td>';
+
+		// @since 11.1 Prevent using App name, username, or email in the password
+		$_ROSARIO['PasswordInput']['user_inputs'] = [
+			User( 'USERNAME' ),
+			User( 'EMAIL' ),
+		];
 
 		// New Password.
 		echo PasswordInput( '', 'values[new]', _( 'New Password' ), 'required strength' );

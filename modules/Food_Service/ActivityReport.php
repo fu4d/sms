@@ -9,22 +9,22 @@ else
 
 
 $header = '<a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-	'&day_date=' . $_REQUEST['day_date'] . '&month_date=' . $_REQUEST['month_date'] .
-	'&year_date=' . $_REQUEST['year_date'] . '&type=student' ) . '">' .
-	( ! isset( $_REQUEST['type'] ) || $_REQUEST['type'] === 'student' ?
-		'<b>' . _( 'Students' ) . '</b>' : _( 'Students' ) ) . '</a>';
+                                   '&day_date=' . $_REQUEST['day_date'] . '&month_date=' . $_REQUEST['month_date'] .
+                                   '&year_date=' . $_REQUEST['year_date'] . '&type=student' ) . '">' .
+          ( ! isset( $_REQUEST['type'] ) || $_REQUEST['type'] === 'student' ?
+	          '<b>' . _( 'Students' ) . '</b>' : _( 'Students' ) ) . '</a>';
 
 $header .= ' | <a href="' . URLEscape( 'Modules.php?modname='.$_REQUEST['modname'] .
-	'&day_date=' . $_REQUEST['day_date'] . '&month_date=' . $_REQUEST['month_date'] .
-	'&year_date=' . $_REQUEST['year_date'] . '&type=staff' ) . '">' .
-	( isset( $_REQUEST['type'] ) && $_REQUEST['type'] === 'staff' ?
-		'<b>' . _( 'Users' ) . '</b>' : _( 'Users' ) ) . '</a>';
+                                       '&day_date=' . $_REQUEST['day_date'] . '&month_date=' . $_REQUEST['month_date'] .
+                                       '&year_date=' . $_REQUEST['year_date'] . '&type=staff' ) . '">' .
+           ( isset( $_REQUEST['type'] ) && $_REQUEST['type'] === 'staff' ?
+	           '<b>' . _( 'Users' ) . '</b>' : _( 'Users' ) ) . '</a>';
 
 DrawHeader(($_REQUEST['type']=='staff' ? _('User') : _('Student')).' &minus; '.ProgramTitle());
 User( 'PROFILE' ) === 'student'?'':DrawHeader($header);
 
 if ( $_REQUEST['modfunc'] === 'delete'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( $_REQUEST['item_id'] != '' )
 	{
@@ -109,7 +109,7 @@ foreach ( (array) $menus_RET as $menu )
 
 
 require_once 'modules/Food_Service/' .
-	( $_REQUEST['type'] === 'staff' ? 'Users' : 'Students' ) . '/ActivityReport.php';
+             ( $_REQUEST['type'] === 'staff' ? 'Users' : 'Students' ) . '/ActivityReport.php';
 
 // echo '<pre>'; var_dump($RET); echo '</pre>';
 
@@ -160,7 +160,7 @@ function last( &$array )
 function bump_count( $value )
 {
 	global $THIS_RET,
-		$types;
+	       $types;
 
 	if ( $types[ $value ] )
 	{
@@ -185,11 +185,17 @@ function bump_count( $value )
 function bump_items_count( $value )
 {
 	global $THIS_RET,
-		$types;
+	       $types;
 
 	if ( $types[ $THIS_RET['TRANSACTION_SHORT_NAME'] ]['ITEMS'][ $value ] )
 	{
 		$types[ $THIS_RET['TRANSACTION_SHORT_NAME'] ]['ITEMS'][ $value ][1]['COUNT']++;
+
+		if ( ! isset( $types[ $THIS_RET['TRANSACTION_SHORT_NAME'] ]['ITEMS'][ $value ][1]['AMOUNT'] ) )
+		{
+			$types[ $THIS_RET['TRANSACTION_SHORT_NAME'] ]['ITEMS'][ $value ][1]['AMOUNT'] = 0;
+		}
+
 		$types[ $THIS_RET['TRANSACTION_SHORT_NAME'] ]['ITEMS'][ $value ][1]['AMOUNT'] += $THIS_RET['AMOUNT'];
 	}
 	else

@@ -2,6 +2,8 @@
 /**
  * Get Marking Period functions
  *
+ * @since 11.1 Allow override GetFullYearMP(), GetAllMP(), GetParentMP(), GetChildrenMP() & GetCurrentMP() functions
+ *
  * @package RosarioSIS
  * @package functions
  */
@@ -44,7 +46,7 @@ function GetMP( $mp_id, $column = 'TITLE' )
 		$_ROSARIO['GetMP'][ $mp_id ][1][ $column ];
 }
 
-
+if ( ! function_exists( 'GetFullYearMP' ) ) :
 /**
  * Get Full Year MP ID
  *
@@ -61,8 +63,10 @@ function GetFullYearMP()
 		AND SYEAR='" . UserSyear() . "'
 		ORDER BY SORT_ORDER IS NULL,SORT_ORDER" );
 }
+endif;
 
 
+if ( ! function_exists( 'GetAllMP' ) ) :
 /**
  * Get All Marking Periods
  *
@@ -208,8 +212,9 @@ function GetAllMP( $mp, $marking_period_id = '0' )
 
 	return issetVal( $all_mp[ $mp ][ $marking_period_id ] );
 }
+endif;
 
-
+if ( ! function_exists( 'GetParentMP' ) ) :
 /**
  * Get Parent Marking Period ID
  *
@@ -271,8 +276,9 @@ function GetParentMP( $mp, $marking_period_id )
 		'' :
 		$parent_mp[ $mp ][ $marking_period_id ][1]['PARENT_ID'];
 }
+endif;
 
-
+if ( ! function_exists( 'GetChildrenMP' ) ) :
 /**
  * Get Children Marking Period IDs
  *
@@ -305,7 +311,8 @@ function GetChildrenMP( $mp, $marking_period_id = '0' )
 			FROM school_marking_periods
 			WHERE MP='QTR'
 			AND SYEAR='" . UserSyear() . "'
-			AND SCHOOL_ID='" . UserSchool() . "'";
+			AND SCHOOL_ID='" . UserSchool() . "'
+			ORDER BY SORT_ORDER IS NULL,SORT_ORDER,START_DATE";
 
 		switch ( $mp )
 		{
@@ -362,7 +369,8 @@ function GetChildrenMP( $mp, $marking_period_id = '0' )
 					FROM school_marking_periods
 					WHERE MP='PRO'
 					AND SYEAR='" . UserSyear() . "'
-					AND SCHOOL_ID='" . UserSchool() . "'", [], [ 'PARENT_ID' ] );
+					AND SCHOOL_ID='" . UserSchool() . "'
+					ORDER BY SORT_ORDER IS NULL,SORT_ORDER,START_DATE", [], [ 'PARENT_ID' ] );
 
 				foreach ( $pro_RET as $qtr => $pros )
 				{
@@ -382,8 +390,9 @@ function GetChildrenMP( $mp, $marking_period_id = '0' )
 
 	return issetVal( $children_mp[ $mp ][ $marking_period_id ], '' );
 }
+endif;
 
-
+if ( ! function_exists( 'GetCurrentMP' ) ) :
 /**
  * Get Current Marking Period ID
  *
@@ -421,3 +430,4 @@ function GetCurrentMP( $mp, $date, $error = true )
 		return ErrorMessage( [ _( 'You are not currently in a marking period' ) ], 'fatal' );
 	}
 }
+endif;

@@ -4,16 +4,17 @@ require_once 'ProgramFunctions/TipMessage.fnc.php';
 
 DrawHeader( ProgramTitle() );
 
-$sem = GetParentMP( 'SEM', UserMP() );
-$fy = GetParentMP( 'FY', $sem );
-$pros = GetChildrenMP( 'PRO', UserMP() );
+// Get all the MP's associated with the current MP
+$all_mp_ids = explode( "','", trim( GetAllMP( 'PRO', UserMP() ), "'" ) );
 
-$all_mp = GetAllMP( 'PRO', UserMP() );
+if ( ! empty( $_REQUEST['mp'] )
+     && ! in_array( $_REQUEST['mp'], $all_mp_ids ) )
+{
+	// Requested MP not found, reset.
+	RedirectURL( 'mp' );
+}
 
-// If the UserMP has been changed, the REQUESTed MP may not work.
-
-if ( empty( $_REQUEST['mp'] )
-	|| mb_strpos( $all_mp, "'" . $_REQUEST['mp'] . "'" ) === false )
+if ( empty( $_REQUEST['mp'] ) )
 {
 	$_REQUEST['mp'] = UserMP();
 }
@@ -30,48 +31,35 @@ $periods_RET = DBGet( "SELECT sp.PERIOD_ID,sp.TITLE,COALESCE(sp.SHORT_NAME,sp.TI
 		AND cp.SYEAR='" . UserSyear() . "')
 	ORDER BY sp.SORT_ORDER IS NULL,sp.SORT_ORDER,sp.TITLE", [], [ 'PERIOD_ID' ] );
 
-$period_select = '<select name="period" id="period" onchange="ajaxPostForm(this.form,true);">
+$period_select = '<select name="school_period" id="school_period" onchange="ajaxPostForm(this.form,true);">
 	<option value="">' . _( 'All' ) . '</option>';
 
-$_REQUEST['period'] = issetVal( $_REQUEST['period'], false );
+$_REQUEST['school_period'] = issetVal( $_REQUEST['school_period'], false );
 
 foreach ( (array) $periods_RET as $id => $period )
 {
 	$period_select .= '<option value="' . AttrEscape( $id ) . '"' .
-		(  ( $_REQUEST['period'] == $id ) ? ' selected' : '' ) . '>' .
-		$period[1]['TITLE'] . '</option>';
+	                  (  ( $_REQUEST['school_period'] == $id ) ? ' selected' : '' ) . '>' .
+	                  $period[1]['TITLE'] . '</option>';
 }
 
 $period_select .= '</select>
-	<label for="period" class="a11y-hidden">' . _( 'Periods' ) . '</label>';
+	<label for="school_period" class="a11y-hidden">' . _( 'Period' ) . '</label>';
 
 $mp_select = '<select name="mp" id="mp-select" onchange="ajaxPostForm(this.form,true);">';
 
-if ( $pros != '' )
+foreach ( (array) $all_mp_ids as $mp_id )
 {
-	foreach ( explode( ',', str_replace( "'", '', $pros ) ) as $pro )
+	if ( GetMP( $mp_id, 'DOES_GRADES' ) == 'Y' || $mp_id == UserMP() )
 	{
-		if ( GetMP( $pro, 'DOES_GRADES' ) == 'Y' )
+		$mp_select .= '<option value="' . AttrEscape( $mp_id ) . '"' .
+		              ( $mp_id == $_REQUEST['mp'] ? ' selected' : '' ) . '>' . GetMP( $mp_id ) . '</option>';
+
+		if ( $mp_id === $_REQUEST['mp'] )
 		{
-			$mp_select .= '<option value="' . AttrEscape( $pro ) . '"' . (  ( $pro == $_REQUEST['mp'] ) ? ' selected' : '' ) . '>' .
-				GetMP( $pro ) . '</option>';
+			$user_mp_title = GetMP( $mp_id );
 		}
 	}
-}
-
-$mp_select .= '<option value="' . AttrEscape( UserMP() ) . '"' . (  ( UserMP() == $_REQUEST['mp'] ) ? ' selected' : '' ) . '>' .
-	GetMP( UserMP() ) . '</option>';
-
-if ( GetMP( $sem, 'DOES_GRADES' ) == 'Y' )
-{
-	$mp_select .= '<option value="' . AttrEscape( $sem ) . '"' . (  ( $sem == $_REQUEST['mp'] ) ? ' selected' : '' ) . '>' .
-		GetMP( $sem ) . '</option>';
-}
-
-if ( GetMP( $fy, 'DOES_GRADES' ) == 'Y' )
-{
-	$mp_select .= '<option value="' . AttrEscape( $fy ) . '"' . (  ( $fy == $_REQUEST['mp'] ) ? ' selected' : '' ) . '>' .
-		GetMP( $fy ) . '</option>';
 }
 
 $mp_select .= '</select>
@@ -89,17 +77,17 @@ WHERE
 sp.PERIOD_ID = cp.PERIOD_ID AND cp.GRADE_SCALE_ID IS NOT NULL
 AND cp.TEACHER_ID=s.STAFF_ID AND cp.MARKING_PERIOD_ID IN (".GetAllMP('QTR',UserMP()).")
 AND cp.SYEAR='".UserSyear()."' AND cp.SCHOOL_ID='".UserSchool()."' AND s.PROFILE='teacher'
-".(($_REQUEST['period'])?" AND cp.PERIOD_ID='".$_REQUEST['period']."'":'')."
+".(($_REQUEST['school_period'])?" AND cp.PERIOD_ID='".$_REQUEST['school_period']."'":'')."
 ORDER BY FULL_NAME";*/
 
 $RET = DBGet( "SELECT s.STAFF_ID," . DisplayNameSQL( 's' ) . " AS FULL_NAME,s.ROLLOVER_ID,
-	sp.TITLE,cpsp.PERIOD_ID,cp.TITLE AS COURSE_TITLE,
+	sp.TITLE,cpsp.PERIOD_ID,cp.TITLE AS CP_TITLE,c.TITLE AS COURSE_TITLE,
 	(SELECT 'Y'
 		FROM grades_completed ac
 		WHERE ac.STAFF_ID=cp.TEACHER_ID
 		AND ac.MARKING_PERIOD_ID='" . (int) $_REQUEST['mp'] . "'
 		AND ac.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID) AS COMPLETED
-	FROM staff s,course_periods cp,school_periods sp,course_period_school_periods cpsp
+	FROM staff s,course_periods cp,school_periods sp,course_period_school_periods cpsp,courses c
 	WHERE cp.COURSE_PERIOD_ID=cpsp.COURSE_PERIOD_ID
 	AND sp.PERIOD_ID=cpsp.PERIOD_ID
 	AND cp.GRADE_SCALE_ID IS NOT NULL
@@ -107,11 +95,12 @@ $RET = DBGet( "SELECT s.STAFF_ID," . DisplayNameSQL( 's' ) . " AS FULL_NAME,s.RO
 	AND cp.MARKING_PERIOD_ID IN (" . GetAllMP( 'QTR', UserMP() ) . ")
 	AND cp.SYEAR='" . UserSyear() . "'
 	AND cp.SCHOOL_ID='" . UserSchool() . "'
+	AND c.COURSE_ID=cp.COURSE_ID
 	AND s.PROFILE='teacher'" .
-	( $_REQUEST['period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['period'] . "'" : '' ) .
-	" ORDER BY FULL_NAME", [ 'FULL_NAME' => 'makePhotoTipMessage' ], [ 'STAFF_ID' ] );
+              ( $_REQUEST['school_period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['school_period'] . "'" : '' ) .
+              " ORDER BY FULL_NAME", [ 'FULL_NAME' => 'makePhotoTipMessage' ], [ 'STAFF_ID' ] );
 
-if ( empty( $_REQUEST['period'] ) )
+if ( empty( $_REQUEST['school_period'] ) )
 {
 	$i = 0;
 
@@ -130,17 +119,17 @@ if ( empty( $_REQUEST['period'] ) )
 					$staff_RET[$i][$period['PERIOD_ID']] = '';
 				}
 
-				$staff_RET[$i][$period['PERIOD_ID']] .= makeTipMessage(
-					$period['COURSE_TITLE'],
-					_( 'Course Title' ),
-					button( $period['COMPLETED'] === 'Y' ? 'check' : 'x' )
-				);
+				$staff_RET[$i][$period['PERIOD_ID']] .= MakeTipMessage(
+					                                        $period['CP_TITLE'],
+					                                        $period['COURSE_TITLE'],
+					                                        button( $period['COMPLETED'] === 'Y' ? 'check' : 'x' )
+				                                        ) . ' ';
 			}
 			else
 			{
 				$staff_RET[$i][$period['PERIOD_ID']] = $period['COMPLETED'] === 'Y' ?
-				_( 'Yes' ) . ' ' :
-				_( 'No' ) . ' ';
+					_( 'Yes' ) . ' ' :
+					_( 'No' ) . ' ';
 			}
 		}
 	}
@@ -164,7 +153,7 @@ if ( empty( $_REQUEST['period'] ) )
 }
 else
 {
-	$period_title = $periods_RET[$_REQUEST['period']][1]['TITLE'];
+	$period_title = $periods_RET[$_REQUEST['school_period']][1]['TITLE'];
 
 	foreach ( (array) $RET as $staff_id => $periods )
 	{
@@ -183,7 +172,7 @@ else
 
 	ListOutput(
 		$RET,
-		[ 'FULL_NAME' => _( 'Teacher' ), 'COURSE_TITLE' => _( 'Course' ), 'COMPLETED' => _( 'Completed' ) ],
+		[ 'FULL_NAME' => _( 'Teacher' ), 'CP_TITLE' => _( 'Course Period' ), 'COMPLETED' => _( 'Completed' ) ],
 		sprintf( _( 'Teacher who enters grades for %s' ), $period_title ),
 		sprintf( _( 'Teachers who enter grades for %s' ), $period_title ),
 		false,

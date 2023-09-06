@@ -189,7 +189,7 @@ if ( $_REQUEST['modfunc'] === 'update'
 		}
 
 		// FJ other fields required.
-		$required_error = $required_error || CheckRequiredCustomFields( 'staff_fields', $_REQUEST['staff'] );
+		$required_error = $required_error || CheckRequiredCustomFields( 'staff_fields', issetVal( $_REQUEST['staff'], [] ) );
 
 		// FJ textarea fields MarkDown sanitize.
 		$_REQUEST['staff'] = FilterCustomFieldsMarkdown( 'staff_fields', 'staff' );
@@ -224,14 +224,14 @@ if ( $_REQUEST['modfunc'] === 'update'
 			$error[] = _( 'Please fill in the required fields' );
 		}
 
-		if ( isset( $_REQUEST['staff']['USERNAME'] ) )
+		if ( ! empty( $_REQUEST['staff']['USERNAME'] ) )
 		{
-			// Check username unicity.
+			// Check username uniqueness.
 			$existing_username = DBGet( "SELECT 'exists'
 				FROM staff
 				WHERE USERNAME='" . $_REQUEST['staff']['USERNAME'] . "'
 				AND SYEAR='" . UserSyear() . "'
-				AND STAFF_ID!='" . UserStaffID() . "'
+				AND STAFF_ID!='" . (int) UserStaffID() . "'
 				UNION SELECT 'exists'
 				FROM students
 				WHERE USERNAME='" . $_REQUEST['staff']['USERNAME'] . "'" );
@@ -443,7 +443,11 @@ if ( $_REQUEST['modfunc'] === 'update'
 				[],
 				'.jpg',
 				// @since 9.0 Fix Improper Access Control security issue: add random string to photo file name.
-				UserStaffID() . '.' . bin2hex( openssl_random_pseudo_bytes( 16 ) )
+				// @since 11.0 Fix PHP fatal error if openssl PHP extension is missing
+				UserStaffID() . '.' . bin2hex( function_exists( 'openssl_random_pseudo_bytes' ) ?
+					openssl_random_pseudo_bytes( 16 ) :
+					( function_exists( 'random_bytes' ) ? random_bytes( 16 ) :
+						mb_substr( sha1( rand( 999999999, 9999999999 ), true ), 0, 16 ) ) )
 			);
 
 			if ( $new_photo_file )
@@ -707,18 +711,25 @@ if (  ( UserStaffID()
 		// Hook.
 		do_action( 'Users/User.php|header' );
 
-		$profile = DBGetOne( "SELECT PROFILE
-			FROM staff WHERE
-			STAFF_ID='" . UserStaffID() . "'" );
+		$profile = '';
+
+		if ( UserStaffID() )
+		{
+			$profile = DBGetOne( "SELECT PROFILE
+				FROM staff WHERE
+				STAFF_ID='" . UserStaffID() . "'" );
+		}
 
 		$categories_RET = DBGet( "SELECT ID,TITLE,INCLUDE
 			FROM staff_field_categories
 			WHERE " . ( $profile ? DBEscapeIdentifier( $profile ) . "='Y'" : "ID='1'" ) . "
 			ORDER BY SORT_ORDER IS NULL,SORT_ORDER,TITLE" );
 
+		$tabs = [];
+
 		foreach ( (array) $categories_RET as $category )
 		{
-			if ( $can_use_RET['Users/User.php&category_id=' . $category['ID']] )
+			if ( ! empty( $can_use_RET['Users/User.php&category_id=' . $category['ID']] ) )
 			{
 				$tabs[] = [
 					'title' => $category['TITLE'],
@@ -735,7 +746,7 @@ if (  ( UserStaffID()
 		PopTable( 'header', $tabs, 'width="100%"' );
 		$PopTable_opened = true;
 
-		if ( $can_use_RET['Users/User.php&category_id=' . $category_id] )
+		if ( ! empty( $can_use_RET['Users/User.php&category_id=' . $category_id] ) )
 		{
 			if ( ! mb_strpos( $include, '/' ) )
 			{
@@ -753,7 +764,7 @@ if (  ( UserStaffID()
 					require 'modules/' . $include . '.inc.php';
 				}
 
-				$separator = '<hr />';
+				$separator = '<hr>';
 
 				require_once 'modules/Users/includes/Other_Info.inc.php';
 			}
@@ -764,7 +775,7 @@ if (  ( UserStaffID()
 		echo '<br /><div class="center">' . SubmitButton() . '</div>';
 		echo '</form>';
 	}
-	elseif ( $can_use_RET['Users/User.php&category_id=' . $category_id] )
+	elseif ( ! empty( $can_use_RET['Users/User.php&category_id=' . $category_id] ) )
 	{
 		// Is Deleting from Other tab.
 		if ( ! mb_strpos( $include, '/' ) )

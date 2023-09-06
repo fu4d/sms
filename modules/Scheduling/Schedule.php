@@ -25,7 +25,7 @@ if ( ! $date )
 	// If today < first attendance day.
 
 	if ( $min_date
-		&& $date < $min_date )
+	     && $date < $min_date )
 	{
 		$date = $min_date;
 	}
@@ -48,15 +48,13 @@ Search( 'student_id', $extra );
 AddRequestedDates( 'schedule', 'post' );
 
 if ( $_REQUEST['modfunc'] === 'modify'
-	&& ! empty( $_REQUEST['schedule'] )
-	&& AllowEdit() )
+     && ! empty( $_REQUEST['schedule'] )
+     && AllowEdit() )
 {
 	foreach ( (array) $_REQUEST['schedule'] as $course_period_id => $start_dates )
 	{
 		foreach ( (array) $start_dates as $start_date => $columns )
 		{
-			$sql = "UPDATE schedule SET ";
-
 			if ( isset( $columns['MARKING_PERIOD_ID'] ) )
 			{
 				$mp = GetMP( $columns['MARKING_PERIOD_ID'], 'MP' );
@@ -68,16 +66,15 @@ if ( $_REQUEST['modfunc'] === 'modify'
 				}
 			}
 
-			foreach ( (array) $columns as $column => $value )
-			{
-				$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-			}
-
-			$sql = mb_substr( $sql, 0, -1 ) . " WHERE STUDENT_ID='" . UserStudentID() . "'
-			AND COURSE_PERIOD_ID='" . (int) $course_period_id . "'
-			AND START_DATE='" . $start_date . "'";
-
-			DBQuery( $sql );
+			DBUpdate(
+				'schedule',
+				$columns,
+				[
+					'STUDENT_ID' => UserStudentID(),
+					'COURSE_PERIOD_ID' => (int) $course_period_id,
+					'START_DATE' => $start_date,
+				]
+			);
 
 			if ( ! empty( $columns['START_DATE'] ) || ! empty( $columns['END_DATE'] ) )
 			{
@@ -139,8 +136,8 @@ if ( $_REQUEST['modfunc'] === 'modify'
 					DBQuery( "DELETE FROM attendance_period
 						WHERE STUDENT_ID='" . UserStudentID() . "'
 						AND COURSE_PERIOD_ID='" . (int) $course_period_id . "'
-						AND (" . ( $columns['START_DATE'] ? "SCHOOL_DATE<'" . $columns['START_DATE'] . "'" : 'FALSE' ) .
-							' OR ' . ( $columns['END_DATE'] ? "SCHOOL_DATE>'" . $columns['END_DATE'] . "'" : 'FALSE' ) . ")" );
+						AND (" . ( ! empty( $columns['START_DATE'] ) ? "SCHOOL_DATE<'" . $columns['START_DATE'] . "'" : 'FALSE' ) .
+					         ' OR ' . ( ! empty( $columns['END_DATE'] ) ? "SCHOOL_DATE>'" . $columns['END_DATE'] . "'" : 'FALSE' ) . ")" );
 				}
 			}
 		}
@@ -149,14 +146,16 @@ if ( $_REQUEST['modfunc'] === 'modify'
 	if ( empty( $schedule_deletion_pending ) )
 	{
 		// Unset modfunc & schedule & redirect URL.
-		RedirectURL( [ 'modfunc', 'schedule' ] );
+		RedirectURL( [ 'modfunc', 'schedule', 'day_schedule', 'month_schedule', 'year_schedule' ] );
 	}
 }
 
 if ( UserStudentID()
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
-	echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=modify' ) . '" method="POST">';
+	$form_url = PreparePHP_SELF( $_REQUEST, [], [ 'modfunc' => 'modify' ] );
+
+	echo '<form action="' . $form_url . '" method="POST">';
 
 	DrawHeader( PrepareDate( $date, '_date', false, [ 'submit' => true ] ), SubmitButton() );
 
@@ -169,40 +168,40 @@ if ( UserStudentID()
 
 	// Add Horizontal format option.
 	$print_schedules_link = 'Modules.php?modname=Scheduling/PrintSchedules.php&modfunc=save&st_arr[]=' .
-		UserStudentID() . '&_ROSARIO_PDF=true&schedule_table=Yes';
+	                        UserStudentID() . '&_ROSARIO_PDF=true&schedule_table=Yes';
 	?>
 	<script>
-		function horizontalFormatSwitch()
-		{
-			var byId = function( id ) {
-				return document.getElementById( id );
-			};
+        function horizontalFormatSwitch()
+        {
+            var byId = function( id ) {
+                return document.getElementById( id );
+            };
 
-			if (byId("horizontalFormat").checked==true) {
-				byId("printSchedulesLink").href=byId("printSchedulesLink").href+'&horizontalFormat';
-			}
-			else {
-				byId("printSchedulesLink").href=byId("printSchedulesLink").href.replace('&horizontalFormat','');
-			}
-		}
+            if (byId("horizontalFormat").checked==true) {
+                byId("printSchedulesLink").href=byId("printSchedulesLink").href+'&horizontalFormat';
+            }
+            else {
+                byId("printSchedulesLink").href=byId("printSchedulesLink").href.replace('&horizontalFormat','');
+            }
+        }
 	</script>
 	<?php
 //FJ add schedule table
 	?>
 	<script>
-		function timeTableSwitch()
-		{
-			var byId = function( id ) {
-				return document.getElementById( id );
-			};
+        function timeTableSwitch()
+        {
+            var byId = function( id ) {
+                return document.getElementById( id );
+            };
 
-			if (byId("schedule_table").checked==true) {
-				byId("printSchedulesLink").href=byId("printSchedulesLink").href.replace('Yes','No');
-			}
-			else {
-				byId("printSchedulesLink").href=byId("printSchedulesLink").href.replace('No','Yes');
-			}
-		}
+            if (byId("schedule_table").checked==true) {
+                byId("printSchedulesLink").href=byId("printSchedulesLink").href.replace('Yes','No');
+            }
+            else {
+                byId("printSchedulesLink").href=byId("printSchedulesLink").href.replace('No','Yes');
+            }
+        }
 	</script>
 	<?php
 	if ( AllowUse( 'Scheduling/PrintSchedules.php' ) )
@@ -270,9 +269,9 @@ if ( UserStudentID()
 	);
 
 	$popup_url = URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-		'&modfunc=choose_course&day_date=' . $_REQUEST['day_date'] .
-		'&month_date=' . $_REQUEST['month_date'] .
-		'&year_date=' . $_REQUEST['year_date'] );
+	                        '&modfunc=choose_course&day_date=' . $_REQUEST['day_date'] .
+	                        '&month_date=' . $_REQUEST['month_date'] .
+	                        '&year_date=' . $_REQUEST['year_date'] );
 
 	// FJ bugfix SQL bug $_SESSION['student_id'] is not set
 	$link['add']['link'] = '"#" onclick="' . AttrEscape( 'popups.open(
@@ -288,9 +287,17 @@ if ( UserStudentID()
 		'PERIOD_PULLDOWN' => _( 'Period' ) . ' ' . _( 'Days' ) . ' - ' . _( 'Short Name' ) . ' - ' . _( 'Teacher' ),
 		'ROOM' => _( 'Room' ),
 		'COURSE_MARKING_PERIOD_ID' => _( 'Term' ),
-		'SCHEDULER_LOCK' => '<img src="assets/themes/' . Preferences( 'THEME' ) .
-			'/btn/locked.png" class="button bigger" alt="' . AttrEscape( _( 'Locked' ) ) . '">' .
-			'<span class="a11y-hidden">' . _( 'Locked' ) . '</span>',
+	];
+
+	if ( AllowEdit() )
+	{
+		$columns['SCHEDULER_LOCK'] = '<img src="assets/themes/' . Preferences( 'THEME' ) .
+		                             '/btn/locked.png" class="button bigger" alt="' . AttrEscape( _( 'Locked' ) ) . '">' .
+		                             '<span class="a11y-hidden">' . _( 'Locked' ) . '</span>';
+
+	}
+
+	$columns += [
 		'START_DATE' => _( 'Enrolled' ),
 		'END_DATE' => _( 'Dropped' ),
 	];
@@ -414,7 +421,7 @@ if ( $_REQUEST['modfunc'] == 'choose_course' )
 
 		$mps = GetAllMP( $mp_RET[1]['MP'], $mp_RET[1]['MARKING_PERIOD_ID'] );
 
-		if ( $mp_RET[1]['TOTAL_SEATS'] )
+		if ( ! empty( $mp_RET[1]['TOTAL_SEATS'] ) )
 		{
 			$seats = calcSeats0( $mp_RET[1], $date );
 
@@ -445,7 +452,7 @@ if ( $_REQUEST['modfunc'] == 'choose_course' )
 		FROM schedule s,course_period_school_periods cpsp
 		WHERE cpsp.COURSE_PERIOD_ID=s.COURSE_PERIOD_ID
 		AND s.STUDENT_ID='" . UserStudentID() . "'
-		AND cpsp.PERIOD_ID='" . (int) $mp_RET[1]['PERIOD_ID'] . "'
+		AND cpsp.PERIOD_ID='" . (int) issetVal( $mp_RET[1]['PERIOD_ID'] ) . "'
 		AND s.MARKING_PERIOD_ID IN (" . $mps . ")
 		AND (s.END_DATE IS NULL OR '" . DBDate() . "'<=s.END_DATE)" );
 
@@ -478,19 +485,28 @@ if ( $_REQUEST['modfunc'] == 'choose_course' )
 
 		if ( empty( $warnings ) || Prompt( 'Confirm', _( 'There is a conflict.' ) . ' ' . _( 'Are you sure you want to add this section?' ), ErrorMessage( $warnings, 'warning' ) ) )
 		{
-			DBQuery( "INSERT INTO schedule (SYEAR,SCHOOL_ID,STUDENT_ID,START_DATE,COURSE_ID,COURSE_PERIOD_ID,MP,MARKING_PERIOD_ID)
-				VALUES('" . UserSyear() . "','" . UserSchool() . "','" . UserStudentID() . "','" .
-				$date . "','" . $_REQUEST['course_id'] . "','" . $_REQUEST['course_period_id'] . "','" .
-				$mp_RET[1]['MP'] . "','" . $mp_RET[1]['MARKING_PERIOD_ID'] . "')" );
+			DBInsert(
+				'schedule',
+				[
+					'SYEAR' => UserSyear(),
+					'SCHOOL_ID' => UserSchool(),
+					'STUDENT_ID' => UserStudentID(),
+					'COURSE_ID' => (int) $_REQUEST['course_id'],
+					'COURSE_PERIOD_ID' => (int) $_REQUEST['course_period_id'],
+					'MP' => $mp_RET[1]['MP'],
+					'MARKING_PERIOD_ID' => (int) $mp_RET[1]['MARKING_PERIOD_ID'],
+					'START_DATE' => $date,
+				]
+			);
 
 			// Hook.
 			do_action( 'Scheduling/Schedule.php|schedule_student' );
 
 			$opener_URL = URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&year_date=' . $_REQUEST['year_date'] .
-			'&month_date=' . $_REQUEST['month_date'] .
-			'&day_date=' . $_REQUEST['day_date'] .
-			'&time=' . time() );
+			                         '&year_date=' . $_REQUEST['year_date'] .
+			                         '&month_date=' . $_REQUEST['month_date'] .
+			                         '&day_date=' . $_REQUEST['day_date'] .
+			                         '&time=' . time() );
 
 			echo '<script>window.opener.ajaxLink(' . json_encode( $opener_URL ) . '); window.close();</script>';
 		}
@@ -542,13 +558,13 @@ function _makeLock( $value, $column )
 	$title_alt = $value == 'Y' ? _( 'Locked' ) : _( 'Unlocked' );
 
 	return $return . '<img src="assets/themes/' .
-	Preferences( 'THEME' ) . '/btn/' . ( $value == 'Y' ? 'locked' : 'unlocked' ) .
-		'.png" title="' . AttrEscape( $title_alt ) . '"
+	       Preferences( 'THEME' ) . '/btn/' . ( $value == 'Y' ? 'locked' : 'unlocked' ) .
+	       '.png" title="' . AttrEscape( $title_alt ) . '"
 		alt="' . AttrEscape( $title_alt ) . '"
 		class="button bigger" style="cursor: pointer;"' .
-		( AllowEdit() ? ' onclick="switchLock(this, \'' . $lock_id . '\');" />
+	       ( AllowEdit() ? ' onclick="switchLock(this, \'' . $lock_id . '\');" />
 			<input type="hidden" name="' . AttrEscape( $lock_name ) . '" id="' . $lock_id . '" value="' . AttrEscape( $value ) . '" />' :
-		' />' );
+		       ' />' );
 }
 
 /**
@@ -577,17 +593,17 @@ function _makePeriodSelect( $course_period_id, $column )
 		}
 
 		$periods[$value['COURSE_PERIOD_ID']] = $value['TITLE'] .
-			( ( $value['MARKING_PERIOD_ID'] != $fy_id
-				&& $value['COURSE_PERIOD_ID'] != $course_period_id ) ?
-				' (' . GetMP( $value['MARKING_PERIOD_ID'] ) . ')' : '' ) .
-			( ( $value['TOTAL_SEATS']
-				&& $_REQUEST['include_seats']
-				&& $seats != '' ) ?
-				' ' . sprintf( _( '(%d seats)' ), ( $value['TOTAL_SEATS'] - $seats ) ) : '' ) .
-			( ( $value['COURSE_PERIOD_ID'] != $course_period_id
-				&& $value['COURSE_PERIOD_ID'] != $value['PARENT_ID']
-				&& $value['PARENT'] ) ?
-				' -> ' . $value['PARENT'] : '' );
+		                                       ( ( $value['MARKING_PERIOD_ID'] != $fy_id
+		                                           && $value['COURSE_PERIOD_ID'] != $course_period_id ) ?
+			                                       ' (' . GetMP( $value['MARKING_PERIOD_ID'] ) . ')' : '' ) .
+		                                       ( ( $value['TOTAL_SEATS']
+		                                           && $_REQUEST['include_seats']
+		                                           && $seats != '' ) ?
+			                                       ' ' . sprintf( _( '(%d seats)' ), ( $value['TOTAL_SEATS'] - $seats ) ) : '' ) .
+		                                       ( ( $value['COURSE_PERIOD_ID'] != $course_period_id
+		                                           && $value['COURSE_PERIOD_ID'] != $value['PARENT_ID']
+		                                           && $value['PARENT'] ) ?
+			                                       ' -> ' . $value['PARENT'] : '' );
 	}
 
 	return SelectInput(
@@ -617,14 +633,14 @@ function _makeMPSelect( $mp_id, $name )
 			WHERE MP='SEM'
 			AND SYEAR='" . UserSyear() . "'
 			AND SCHOOL_ID='" . UserSchool() . "'
-			ORDER BY SORT_ORDER IS NULL,SORT_ORDER" );
+			ORDER BY SORT_ORDER IS NULL,SORT_ORDER,START_DATE" );
 
 		$quarters_RET = DBGet( "SELECT MARKING_PERIOD_ID,TITLE,PARENT_ID
 			FROM school_marking_periods
 			WHERE MP='QTR'
 			AND SYEAR='" . UserSyear() . "'
 			AND SCHOOL_ID='" . UserSchool() . "'
-			ORDER BY SORT_ORDER IS NULL,SORT_ORDER" );
+			ORDER BY SORT_ORDER IS NULL,SORT_ORDER,START_DATE" );
 
 		$_ROSARIO['_makeMPSelect'][$fy_id][1] = [
 			'MARKING_PERIOD_ID' => $fy_id,
@@ -647,7 +663,7 @@ function _makeMPSelect( $mp_id, $name )
 			WHERE MP='QTR'
 			AND SYEAR='" . UserSyear() . "'
 			AND SCHOOL_ID='" . UserSchool() . "'
-			ORDER BY SORT_ORDER IS NULL,SORT_ORDER", [], [ 'PARENT_ID' ] );
+			ORDER BY SORT_ORDER IS NULL,SORT_ORDER,START_DATE", [], [ 'PARENT_ID' ] );
 
 		foreach ( (array) $semesters_RET as $sem )
 		{
@@ -673,21 +689,21 @@ function _makeMPSelect( $mp_id, $name )
 		foreach ( (array) $_ROSARIO['_makeMPSelect'][$mp_id] as $value )
 		{
 			if ( $value['MARKING_PERIOD_ID'] != $THIS_RET['MARKING_PERIOD_ID']
-				&& $THIS_RET['TOTAL_SEATS']
-				&& $_REQUEST['include_seats'] )
+			     && $THIS_RET['TOTAL_SEATS']
+			     && $_REQUEST['include_seats'] )
 			{
 				$seats = calcSeats0( $THIS_RET );
 			}
 
 			$mps[$value['MARKING_PERIOD_ID']] = ( ( $value['MARKING_PERIOD_ID'] == $THIS_RET['MARKING_PERIOD_ID']
-				&& $value['MARKING_PERIOD_ID'] != $mp_id ) ?
-				'* ' : '' ) .
-				$value['TITLE'] .
-				( ( $value['MARKING_PERIOD_ID'] != $THIS_RET['MARKING_PERIOD_ID']
-					&& $THIS_RET['TOTAL_SEATS']
-					&& $_REQUEST['include_seats']
-					&& $seats != '' ) ?
-				' ' . sprintf( _( '(%d seats)' ), ( $THIS_RET['TOTAL_SEATS'] - $seats ) ) : '' );
+			                                        && $value['MARKING_PERIOD_ID'] != $mp_id ) ?
+					'* ' : '' ) .
+			                                    $value['TITLE'] .
+			                                    ( ( $value['MARKING_PERIOD_ID'] != $THIS_RET['MARKING_PERIOD_ID']
+			                                        && $THIS_RET['TOTAL_SEATS']
+			                                        && $_REQUEST['include_seats']
+			                                        && $seats != '' ) ?
+				                                    ' ' . sprintf( _( '(%d seats)' ), ( $THIS_RET['TOTAL_SEATS'] - $seats ) ) : '' );
 		}
 	}
 	else
@@ -744,16 +760,16 @@ function VerifySchedule( &$schedule )
 		for ( $j = $i + 1; $j <= $ij; $j++ )
 		{
 			if ( empty( $conflicts[$i] ) || empty( $conflicts[$j] ) )
-			// the following two if's are equivalent, the second matches the 'Add a Course' logic, the first is the demorgan equivalent and easier to follow
-			// if -not- marking periods don't overlap -or- dates don't overlap (i ends and j starts after i -or- j ends and i starts after j) then check further
-			//if ( ! (mb_strpos(GetAllMP(GetMP($schedule[ $i ]['MARKING_PERIOD_ID'],'MP'),$schedule[ $i ]['MARKING_PERIOD_ID']),"'".$schedule[ $j ]['MARKING_PERIOD_ID']."'")===false
-			//|| $schedule[ $i ]['END_EPOCH'] && $schedule[ $j ]['START_EPOCH']>$schedule[ $i ]['END_EPOCH'] || $schedule[ $j ]['END_EPOCH'] && $schedule[ $i ]['START_EPOCH']>$schedule[ $j ]['END_EPOCH']))
-			// if marking periods overlap -and- dates overlap (i doesn't end or j starts before i ends -and- j doesn't end or i starts before j ends) check further
+				// the following two if's are equivalent, the second matches the 'Add a Course' logic, the first is the demorgan equivalent and easier to follow
+				// if -not- marking periods don't overlap -or- dates don't overlap (i ends and j starts after i -or- j ends and i starts after j) then check further
+				//if ( ! (mb_strpos(GetAllMP(GetMP($schedule[ $i ]['MARKING_PERIOD_ID'],'MP'),$schedule[ $i ]['MARKING_PERIOD_ID']),"'".$schedule[ $j ]['MARKING_PERIOD_ID']."'")===false
+				//|| $schedule[ $i ]['END_EPOCH'] && $schedule[ $j ]['START_EPOCH']>$schedule[ $i ]['END_EPOCH'] || $schedule[ $j ]['END_EPOCH'] && $schedule[ $i ]['START_EPOCH']>$schedule[ $j ]['END_EPOCH']))
+				// if marking periods overlap -and- dates overlap (i doesn't end or j starts before i ends -and- j doesn't end or i starts before j ends) check further
 
 			{
 				if ( mb_strpos( GetAllMP( GetMP( $schedule[$i]['MARKING_PERIOD_ID'], 'MP' ), $schedule[$i]['MARKING_PERIOD_ID'] ), "'" . $schedule[$j]['MARKING_PERIOD_ID'] . "'" ) !== false
-					&& ( ! $schedule[$i]['END_EPOCH'] || $schedule[$j]['START_EPOCH'] <= $schedule[$i]['END_EPOCH'] ) && ( ! $schedule[$j]['END_EPOCH'] || $schedule[$i]['START_EPOCH'] <= $schedule[$j]['END_EPOCH'] ) )
-				// should not be enrolled in the same course with overlapping marking periods and dates
+				     && ( ! $schedule[$i]['END_EPOCH'] || $schedule[$j]['START_EPOCH'] <= $schedule[$i]['END_EPOCH'] ) && ( ! $schedule[$j]['END_EPOCH'] || $schedule[$i]['START_EPOCH'] <= $schedule[$j]['END_EPOCH'] ) )
+					// should not be enrolled in the same course with overlapping marking periods and dates
 
 				{
 					if ( $schedule[$i]['COURSE_ID'] == $schedule[$j]['COURSE_ID'] )
@@ -761,29 +777,29 @@ function VerifySchedule( &$schedule )
 						$conflicts[$i] = $conflicts[$j] = true;
 					}
 					else
-					// if different periods then okay
+						// if different periods then okay
 
-					if ( ! empty( $schedule[$i]['PERIOD_ID'] )
-						&& $schedule[$i]['PERIOD_ID'] == $schedule[$j]['PERIOD_ID'] )
-					// should not be enrolled in the same period on the same day
+						if ( ! empty( $schedule[$i]['PERIOD_ID'] )
+						     && $schedule[$i]['PERIOD_ID'] == $schedule[$j]['PERIOD_ID'] )
+							// should not be enrolled in the same period on the same day
 
-					{
-						if ( mb_strlen( $schedule[$i]['DAYS'] ) + mb_strlen( $schedule[$j]['DAYS'] ) > 7 )
 						{
-							$conflicts[$i] = $conflicts[$j] = true;
-						}
-						else
-						{
-							foreach ( _str_split( $schedule[$i]['DAYS'] ) as $k )
+							if ( mb_strlen( $schedule[$i]['DAYS'] ) + mb_strlen( $schedule[$j]['DAYS'] ) > 7 )
 							{
-								if ( mb_strpos( $schedule[$j]['DAYS'], $k ) !== false )
+								$conflicts[$i] = $conflicts[$j] = true;
+							}
+							else
+							{
+								foreach ( _str_split( $schedule[$i]['DAYS'] ) as $k )
 								{
-									$conflicts[$i] = $conflicts[$j] = true;
-									break;
+									if ( mb_strpos( $schedule[$j]['DAYS'], $k ) !== false )
+									{
+										$conflicts[$i] = $conflicts[$j] = true;
+										break;
+									}
 								}
 							}
 						}
-					}
 				}
 			}
 		}

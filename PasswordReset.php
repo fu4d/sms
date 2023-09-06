@@ -188,6 +188,12 @@ if ( isset( $_REQUEST['h'] )
 
 				$user_profile = $staff['PROFILE_ID'];
 
+				// @since 11.1 Prevent using App name, username, or email in the password
+				$_ROSARIO['PasswordInput']['user_inputs'] = [
+					$staff['USERNAME'],
+					$staff['EMAIL'],
+				];
+
 				break;
 			}
 		}
@@ -205,6 +211,12 @@ if ( isset( $_REQUEST['h'] )
 				$user_id = $student['ID'];
 
 				$user_type = 'student';
+
+				// @since 11.1 Prevent using App name, username, or email in the password
+				$_ROSARIO['PasswordInput']['user_inputs'] = [
+					$student['USERNAME'],
+					$student['EMAIL'],
+				];
 
 				break;
 			}
@@ -277,7 +289,7 @@ _printPageHead( _( 'Forgot your password?' ) );
 
 	<?php PopTable( 'header', _( 'Forgot your password?' ) ); ?>
 
-		<label><input type="text" name="email" id="email" size="25" maxlength="255" tabindex="1" pattern="[^ @]*@[^ @]*" required autofocus />
+		<label><input type="email" name="email" id="email" size="25" maxlength="255" tabindex="1" required autofocus />
 		<br />
 		<?php echo _( 'Email' ); ?></label>
 		<br />
@@ -358,7 +370,7 @@ function _sendPasswordResetEmail( $user_id, $user_type = 'staff', $email )
 	$hash = encrypt_password( $user_id . $username . $name . $password . $email . $last_login );
 
 	// Generate link.
-	$link = _currentPageURL() . '?h=' . $hash;
+	$link = RosarioURL( 'script' ) . '?h=' . $hash;
 
 	// Send email.
 	require_once 'ProgramFunctions/SendEmail.fnc.php';
@@ -392,32 +404,6 @@ function _sendPasswordResetEmail( $user_id, $user_type = 'staff', $email )
 	}
 
 	return true;
-}
-
-
-function _currentPageURL()
-{
-	$page_url = 'http';
-
-	if ( isset( $_SERVER['HTTPS'] )
-		&& $_SERVER['HTTPS'] == 'on' )
-	{
-		$page_url .= 's';
-	}
-
-	$page_url .= '://';
-
-	if ( $_SERVER['SERVER_PORT'] != '80'
-		&& $_SERVER['SERVER_PORT'] != '443' )
-	{
-		$page_url .= $_SERVER['SERVER_NAME'] . ':' . $_SERVER['SERVER_PORT'] . $_SERVER['REQUEST_URI'];
-	}
-	else
-	{
-		$page_url .= $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
-	}
-
-	return $page_url;
 }
 
 

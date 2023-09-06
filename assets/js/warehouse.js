@@ -95,8 +95,8 @@ var ColorBox = function() {
 	var cWidth = 640,
 		cHeight = 390;
 	if (screen.width < 768) {
-		cWidth = 300;
-		cHeight = 183;
+		cWidth = 320;
+		cHeight = 195;
 	}
 
 	$('.rt2colorBox').before(function(i) {
@@ -118,6 +118,8 @@ var ColorBox = function() {
 		inline: true,
 		maxWidth: '95%',
 		maxHeight: '85%',
+		minWidth: 306,
+		minHeight: 153,
 		scrolling: true
 	});
 }
@@ -127,25 +129,25 @@ var GetMDConverter = function() {
 	if (typeof GetMDConverter.marked === 'undefined') {
 		GetMDConverter.marked = function(markDown) {
 			// @since 6.0 JS MarkDown use marked instead of showdown (15KB smaller).
-			// Open links in new window.
-			// @link https://github.com/markedjs/marked/issues/144
-			var renderer = new marked.Renderer();
-
-			renderer.link = function(href, title, text) {
-			    var link = marked.Renderer.prototype.link.call(this, href, title, text);
-			    return link.replace("<a","<a target='_blank' ");
-			};
-
 			// Set options.
 			// @link https://marked.js.org/#/USING_ADVANCED.md
 			marked.setOptions({
 				breaks: true, // Add <br> on a single line break. Requires gfm be true.
 				gfm: true, // GitHub Flavored Markdown (GFM).
 				headerIds: false, // Include an id attribute when emitting headings (h1, h2, h3, etc).
-				renderer: renderer,
 			});
 
 			var md = marked.parse(markDown);
+
+			// Open links in new window.
+			// @link https://github.com/cure53/DOMPurify/issues/317
+			DOMPurify.addHook('afterSanitizeAttributes', function (node) {
+				// set all elements owning target to target=_blank
+				if ('target' in node) {
+					node.setAttribute('target', '_blank');
+					node.setAttribute('rel', 'noopener');
+				}
+			});
 
 			return DOMPurify.sanitize(md);
 		};
@@ -223,7 +225,14 @@ var ajaxOptions = function(target, url, form) {
 			// AJAX error hide.
 			$('.ajax-error').hide();
 
-			$('.loading').css('visibility', 'visible');
+			$('.loading.BottomButton').css('visibility', 'visible');
+
+			$('input[type="file"]').each(function(){
+				if (this.files.length) {
+					// Only show loading spinner if file input has selected files.
+					$(this).next('.loading').css('visibility', 'visible');
+				}
+			});
 		},
 		success: function(data, s, xhr) {
 			// See PHP RedirectURL().
@@ -481,6 +490,40 @@ var ajaxPopState = function() {
 	}, false);
 };
 
+/**
+ * Fix browser loading cached page when page full reload (F5) + logout + Back button
+ * This will reload the page
+ *
+ * @link https://stackoverflow.com/questions/17432899/javascript-bfcache-pageshow-event-event-persisted-always-set-to-false
+ * @link https://huntr.dev/bounties/efe6ef47-d17c-4773-933a-4836c32db85c/
+ */
+function browserHistoryCacheBuster(event) {
+	if (location.href.indexOf('Modules.php?') === -1) {
+		// Current page is not Modules.php, no login required, skip.
+		return;
+	}
+
+	// persisted indicates if the document is loading from a cache (not reliable)
+	if ((event && event.persisted)
+		|| window.performance && (performance.navigation.type == 2
+			|| (performance.getEntriesByType
+				&& performance.getEntriesByType("navigation")[0]
+				&& performance.getEntriesByType("navigation")[0].type === 'back_forward'))) {
+		location.reload();
+	}
+}
+
+browserHistoryCacheBuster();
+
+/**
+ * onpageshow: Same as above for Safari (does not execute Javascript on history back)
+ *
+ * @link https://web.dev/bfcache/
+ */
+window.onpageshow=function(event) {
+	browserHistoryCacheBuster(event);
+};
+
 // onunload: Fix for Firefox to execute Javascript on history back.
 window.onunload = function() {};
 
@@ -526,7 +569,14 @@ var openMenu = function() {
 
 	if (!window.modname || !modname || modname == 'misc/Portal.php') return;
 
-	$('.wp-submenu a[href$="' + modname + '"]').first().attr('id', 'selectedMenuLink');
+	// Fix #319 Try a full match first to identify selected menu link.
+	var $menuLink = $('.wp-submenu a[href="Modules.php' + window.location.search + '"]');
+
+	if ( ! $menuLink.length ) {
+		$menuLink = $('.wp-submenu a[href$="' + modname + '"]');
+	}
+
+	$menuLink.first().attr('id', 'selectedMenuLink');
 
 	// Add selectedModuleLink.
 	$('#selectedMenuLink').parents('.menu-module').children('.menu-top').attr('id', 'selectedModuleLink');
@@ -565,13 +615,13 @@ var showHelp = function() {
 		$fhc = $('#footerhelp .footerhelp-content');
 
 	if (modname !== showHelp.tmp) {
-		$('.loading').css('visibility', 'visible');
+		$('.loading.BottomButton').css('visibility', 'visible');
 		$.get("Bottom.php?bottomfunc=help&modname=" + encodeURIComponent(modname), function(data) {
 			showHelp.tmpdata = data;
 			$fhc.html(data);
 			$fh.scrollTop(0);
 		}).fail(ajaxError).always(function() {
-			$('.loading').css('visibility', 'hidden');
+			$('.loading.BottomButton').css('visibility', 'hidden');
 		});
 
 		showHelp.tmp = modname;

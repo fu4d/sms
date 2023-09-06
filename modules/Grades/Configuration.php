@@ -8,7 +8,7 @@ if ( ! empty( $_SESSION['is_secondary_teacher'] ) )
 DrawHeader( _( 'Gradebook' ) . ' - ' . ProgramTitle() );
 
 if ( User( 'PROFILE' ) === 'admin'
-	&& isset( $_REQUEST['GRADEBOOK_CONFIG_ADMIN_OVERRIDE'] ) )
+     && isset( $_REQUEST['GRADEBOOK_CONFIG_ADMIN_OVERRIDE'] ) )
 {
 	Config( 'GRADEBOOK_CONFIG_ADMIN_OVERRIDE', $_REQUEST['GRADEBOOK_CONFIG_ADMIN_OVERRIDE'] );
 
@@ -24,8 +24,7 @@ if ( User( 'PROFILE' ) === 'admin'
 	}
 }
 
-if ( ! empty( $_REQUEST['values'] )
-	&& ( User( 'PROFILE' ) === 'admin' || ! Config( 'GRADEBOOK_CONFIG_ADMIN_OVERRIDE' ) ) )
+if ( ! empty( $_REQUEST['values'] ) )
 {
 	ProgramUserConfig(
 		'Gradebook',
@@ -100,15 +99,12 @@ AND cp.GRADE_SCALE_ID IS NOT NULL
 AND cp.DOES_BREAKOFF='Y'
 ORDER BY rcg.BREAK_OFF IS NOT NULL DESC,rcg.BREAK_OFF DESC,rcg.SORT_ORDER IS NULL,rcg.SORT_ORDER DESC", [], [ 'COURSE_PERIOD_ID' ] );
 
-echo '<fieldset><legend>' . _( 'Assignments' ) . '</legend><table>';
+echo '<fieldset><legend>' . _( 'Assignments' ) . '</legend><table class="cellpadding-5">';
 
 if ( ! empty( $grades ) )
 {
 	// Allow Edit fields for teachers.
 	$_ROSARIO['allow_edit'] = true;
-
-	//if ( ! $gradebook_config['ROUNDING'])
-	//	$gradebook_config['ROUNDING'] = 'NORMAL';
 
 	$rounding_options = [
 		'UP' => _( 'Up' ),
@@ -117,12 +113,12 @@ if ( ! empty( $grades ) )
 	];
 
 	echo '<tr><td>' . RadioInput(
-		$gradebook_config['ROUNDING'],
-		'values[ROUNDING]',
-		_( 'Score Rounding' ),
-		$rounding_options,
-		_( 'None' )
-	) . '</td></tr>';
+			issetVal( $gradebook_config['ROUNDING'] ),
+			'values[ROUNDING]',
+			_( 'Score Rounding' ),
+			$rounding_options,
+			_( 'None' )
+		) . '</td></tr>';
 
 	// Allow Edit fields for teachers.
 	$_ROSARIO['allow_edit'] = ! Config( 'GRADEBOOK_CONFIG_ADMIN_OVERRIDE' );
@@ -140,63 +136,65 @@ $sorting_options = [
 ];
 
 echo '<tr><td>' . RadioInput(
-	$gradebook_config['ASSIGNMENT_SORTING'],
-	'values[ASSIGNMENT_SORTING]',
-	_( 'Assignment Sorting' ),
-	$sorting_options,
-	false
-) . '</td></tr>';
+		$gradebook_config['ASSIGNMENT_SORTING'],
+		'values[ASSIGNMENT_SORTING]',
+		_( 'Assignment Sorting' ),
+		$sorting_options,
+		false
+	) . '</td></tr>';
 
-echo '<tr><td><hr />' . CheckboxInput(
-	( array_key_exists( 'WEIGHT', $gradebook_config ) ? $gradebook_config['WEIGHT'] : '' ),
-	'values[WEIGHT]',
-	_( 'Weight Grades' ),
-	'',
-	( ! array_key_exists( 'WEIGHT', $gradebook_config ) )
-) . '</td></tr>';
+echo '<tr><td><hr>' . CheckboxInput(
+		( array_key_exists( 'WEIGHT', $gradebook_config ) ? $gradebook_config['WEIGHT'] : '' ),
+		'values[WEIGHT]',
+		_( 'Weight Assignment Categories' ),
+		'',
+		( ! array_key_exists( 'WEIGHT', $gradebook_config ) )
+	) . '</td></tr>';
+
+// @since 11.0 Add Weight Assignments option
+echo '<tr><td>' . CheckboxInput(
+		( array_key_exists( 'WEIGHT_ASSIGNMENTS', $gradebook_config ) ? $gradebook_config['WEIGHT_ASSIGNMENTS'] : '' ),
+		'values[WEIGHT_ASSIGNMENTS]',
+		_( 'Weight Assignments' ),
+		'',
+		( ! array_key_exists( 'WEIGHT', $gradebook_config ) )
+	) . '</td></tr>';
 
 echo '<tr><td>' . CheckboxInput(
-	( array_key_exists( 'DEFAULT_ASSIGNED', $gradebook_config ) ? $gradebook_config['DEFAULT_ASSIGNED'] : '' ),
-	'values[DEFAULT_ASSIGNED]',
-	_( 'Assigned Date defaults to today' ),
-	'',
-	( ! array_key_exists( 'DEFAULT_ASSIGNED', $gradebook_config ) )
-) . '</td></tr>';
+		( array_key_exists( 'DEFAULT_ASSIGNED', $gradebook_config ) ? $gradebook_config['DEFAULT_ASSIGNED'] : '' ),
+		'values[DEFAULT_ASSIGNED]',
+		_( 'Assigned Date defaults to today' ),
+		'',
+		( ! array_key_exists( 'DEFAULT_ASSIGNED', $gradebook_config ) )
+	) . '</td></tr>';
 
 echo '<tr><td>' . CheckboxInput(
-	( array_key_exists( 'DEFAULT_DUE', $gradebook_config ) ? $gradebook_config['DEFAULT_DUE'] : '' ),
-	'values[DEFAULT_DUE]',
-	_( 'Due Date defaults to today' ),
-	'',
-	( ! array_key_exists( 'DEFAULT_DUE', $gradebook_config ) )
-) . '</td></tr>';
+		( array_key_exists( 'DEFAULT_DUE', $gradebook_config ) ? $gradebook_config['DEFAULT_DUE'] : '' ),
+		'values[DEFAULT_DUE]',
+		_( 'Due Date defaults to today' ),
+		'',
+		( ! array_key_exists( 'DEFAULT_DUE', $gradebook_config ) )
+	) . '</td></tr>';
 
 if ( ProgramConfig( 'grades', 'GRADES_DOES_LETTER_PERCENT' ) <= 0 )
 {
 	// Global Config allows for Letter grades.
 	echo '<tr><td>' . CheckboxInput(
-		( array_key_exists( 'LETTER_GRADE_ALL', $gradebook_config ) ? $gradebook_config['LETTER_GRADE_ALL'] : '' ),
-		'values[LETTER_GRADE_ALL]',
-		_( 'Hide letter grades for all gradebook assignments' ),
-		'',
-		( ! array_key_exists( 'LETTER_GRADE_ALL', $gradebook_config ) )
-	) . '</td></tr>';
+			( array_key_exists( 'LETTER_GRADE_ALL', $gradebook_config ) ? $gradebook_config['LETTER_GRADE_ALL'] : '' ),
+			'values[LETTER_GRADE_ALL]',
+			_( 'Hide letter grades for all gradebook assignments' ),
+			'',
+			( ! array_key_exists( 'LETTER_GRADE_ALL', $gradebook_config ) )
+		) . '</td></tr>';
 }
 
 echo '<tr><td>' . CheckboxInput(
-	( array_key_exists( 'HIDE_PREVIOUS_ASSIGNMENT_TYPES', $gradebook_config ) ? $gradebook_config['HIDE_PREVIOUS_ASSIGNMENT_TYPES'] : '' ),
-	'values[HIDE_PREVIOUS_ASSIGNMENT_TYPES]',
-	_( 'Hide previous quarters assignment types' ),
-	'',
-	( ! array_key_exists( 'HIDE_PREVIOUS_ASSIGNMENT_TYPES', $gradebook_config ) )
-) . '</td></tr>';
-
-echo '<tr><td><hr />' . TextInput(
-	issetVal( $gradebook_config['LETTER_GRADE_MIN'], '' ),
-	'values[LETTER_GRADE_MIN]',
-	_( 'Minimum assignment points for letter grade' ),
-	'type="number" min="0" max="999"'
-) . '</td></tr>';
+		( array_key_exists( 'HIDE_PREVIOUS_ASSIGNMENT_TYPES', $gradebook_config ) ? $gradebook_config['HIDE_PREVIOUS_ASSIGNMENT_TYPES'] : '' ),
+		'values[HIDE_PREVIOUS_ASSIGNMENT_TYPES]',
+		_( 'Hide previous quarters assignment types' ),
+		'',
+		( ! array_key_exists( 'HIDE_PREVIOUS_ASSIGNMENT_TYPES', $gradebook_config ) )
+	) . '</td></tr>';
 
 $anomalous_max_value = ( ! empty( $gradebook_config['ANOMALOUS_MAX'] ) ? $gradebook_config['ANOMALOUS_MAX'] : '100' );
 
@@ -206,20 +204,20 @@ $anomalous_max_value = [
 ];
 
 echo '<tr><td>' . TextInput(
-	$anomalous_max_value,
-	'values[ANOMALOUS_MAX]',
-	_( 'Allowed maximum percent in Anomalous grades' ),
-	'type="number" min="1" max="999"',
-	( array_key_exists( 'ANOMALOUS_MAX', $gradebook_config ) )
-) . '</td></tr>';
+		$anomalous_max_value,
+		'values[ANOMALOUS_MAX]',
+		_( 'Allowed maximum percent in Anomalous grades' ),
+		'type="number" min="1" max="999"',
+		( array_key_exists( 'ANOMALOUS_MAX', $gradebook_config ) )
+	) . '</td></tr>';
 
 echo '<tr><td>' . TextInput(
-	(string) issetVal( $gradebook_config['LATENCY'] ),
-	'values[LATENCY]',
-	_( 'Days until ungraded assignment grade appears in Parent/Student gradebook views' ),
-	'type="number" min="-99" max="99"',
-	( isset( $gradebook_config['LATENCY'] ) )
-) . '</td></tr>';
+		(string) issetVal( $gradebook_config['LATENCY'] ),
+		'values[LATENCY]',
+		_( 'Days until ungraded assignment grade appears in Parent/Student gradebook views' ),
+		'type="number" min="-99" max="99"',
+		( isset( $gradebook_config['LATENCY'] ) )
+	) . '</td></tr>';
 
 
 echo '</table></fieldset><br />';
@@ -229,12 +227,12 @@ if ( $RosarioModules['Eligibility'] )
 	echo '<fieldset><legend>' . _( 'Eligibility' ) . '</legend><table>';
 
 	echo '<tr><td>' . CheckboxInput(
-		( array_key_exists( 'ELIGIBILITY_CUMULITIVE', $gradebook_config ) ? $gradebook_config['ELIGIBILITY_CUMULITIVE'] : '' ),
-		'values[ELIGIBILITY_CUMULITIVE]',
-		_( 'Calculate Eligibility using Cumulative Semester Grades' ),
-		'',
-		( ! array_key_exists( 'ELIGIBILITY_CUMULITIVE', $gradebook_config ) )
-	) . '</td></tr>';
+			( array_key_exists( 'ELIGIBILITY_CUMULITIVE', $gradebook_config ) ? $gradebook_config['ELIGIBILITY_CUMULITIVE'] : '' ),
+			'values[ELIGIBILITY_CUMULITIVE]',
+			_( 'Calculate Eligibility using Cumulative Semester Grades' ),
+			'',
+			( ! array_key_exists( 'ELIGIBILITY_CUMULITIVE', $gradebook_config ) )
+		) . '</td></tr>';
 
 	echo '</table></fieldset><br />';
 }
@@ -260,19 +258,19 @@ if ( $comment_codes_RET )
 			$select_options[ $comment['CODE_TITLE'] ] = $comment['CODE_TITLE'];
 
 			if ( isset( $gradebook_config['COMMENT_' . $id] )
-				&& $comment['CODE_TITLE'] == $gradebook_config['COMMENT_' . $id] )
+			     && $comment['CODE_TITLE'] == $gradebook_config['COMMENT_' . $id] )
 			{
 				$value = $comment['CODE_TITLE'];
 			}
 		}
 
 		echo '<tr><td>' . SelectInput(
-			$value,
-			'values[COMMENT_' . $id . ']',
-			sprintf( _( 'Default %s comment code' ), $comments[1]['TITLE'] ),
-			$select_options,
-			'N/A'
-		) . '</td></tr>';
+				$value,
+				'values[COMMENT_' . $id . ']',
+				sprintf( _( 'Default %s comment code' ), $comments[1]['TITLE'] ),
+				$select_options,
+				'N/A'
+			) . '</td></tr>';
 	}
 
 	echo '</table></fieldset><br />';
@@ -294,17 +292,17 @@ if ( ! empty( $grades ) )
 	// Allow Edit fields for teachers.
 	$_ROSARIO['allow_edit'] = true;
 
-	echo '<fieldset><legend>' . _( 'Score Breakoff Points' ) . '</legend><table>';
+	echo '<fieldset><legend>' . _( 'Score Breakoff Points' ) . '</legend>';
 
 	foreach ( (array) $grades as $course_period_id => $cp_grades )
 	{
 		$table = '<table class="cellpadding-5">';
-		$table .= '<tr><td colspan="9">' . $cp_grades[1]['COURSE_TITLE'] . ' &mdash; ' .
-		mb_substr(
-			$cp_grades[1]['CP_TITLE'],
-			0,
-			mb_strrpos( str_replace( ' - ', ' ^ ', $cp_grades[1]['CP_TITLE'] ), '^' )
-		) . '</td></tr><tr class="st">';
+		$table .= '<tr><td colspan="6">' . $cp_grades[1]['COURSE_TITLE'] . ' &mdash; ' .
+		          mb_substr(
+			          $cp_grades[1]['CP_TITLE'],
+			          0,
+			          mb_strrpos( str_replace( ' - ', ' ^ ', $cp_grades[1]['CP_TITLE'] ), '^' )
+		          ) . '</td></tr><tr class="st">';
 
 		$i = 0;
 
@@ -316,12 +314,12 @@ if ( ! empty( $grades ) )
 
 			$table .= '<td><span class="nobr">
 				<input name="' . AttrEscape( $input_name ) . '" id="' . $input_id . '" value="' .
-				AttrEscape( issetVal( $gradebook_config[$course_period_id . '-' . $grade['ID']], '' ) ) .
-				'" size="4" type="number" min=0 max=100 step=0.01 />%</span>' .
-				FormatInputTitle(
-					'&nbsp;' . $grade['TITLE'],
-					$input_id
-				) . '</td>';
+			          AttrEscape( issetVal( $gradebook_config[$course_period_id . '-' . $grade['ID']], '' ) ) .
+			          '" size="4" type="number" min=0 max=100 step=0.01 />%</span>' .
+			          FormatInputTitle(
+				          '&nbsp;' . $grade['TITLE'],
+				          $input_id
+			          ) . '</td>';
 
 			if ( ++$i % 6 == 0 )
 			{
@@ -331,20 +329,22 @@ if ( ! empty( $grades ) )
 
 		$table .= '</tr></table>';
 
-		echo '<tr><td>' . $table . '</td></tr>';
+		echo $table;
 	}
 
-	echo '</table></fieldset><br />';
+	echo '</fieldset><br />';
 
 	// Allow Edit fields for teachers.
 	$_ROSARIO['allow_edit'] = ! Config( 'GRADEBOOK_CONFIG_ADMIN_OVERRIDE' );
 }
 
+// @since 11.1 SQL Use GetFullYearMP() & GetChildrenMP() functions to limit Marking Periods
 $year = DBGet( "SELECT TITLE,MARKING_PERIOD_ID,DOES_GRADES
 	FROM school_marking_periods
 	WHERE MP='FY'
 	AND SYEAR='" . UserSyear() . "'
 	AND SCHOOL_ID='" . UserSchool() . "'
+	AND MARKING_PERIOD_ID='" . GetFullYearMP() . "'
 	ORDER BY SORT_ORDER IS NULL,SORT_ORDER" );
 
 $semesters = DBGet( "SELECT TITLE,MARKING_PERIOD_ID,DOES_GRADES
@@ -352,6 +352,7 @@ $semesters = DBGet( "SELECT TITLE,MARKING_PERIOD_ID,DOES_GRADES
 	WHERE MP='SEM'
 	AND SYEAR='" . UserSyear() . "'
 	AND SCHOOL_ID='" . UserSchool() . "'
+	AND MARKING_PERIOD_ID IN(" . ( GetChildrenMP( 'FY' ) ? GetChildrenMP( 'FY' ) : '0' ) . ")
 	ORDER BY SORT_ORDER IS NULL,SORT_ORDER" );
 
 $quarters = DBGet( "SELECT TITLE,MARKING_PERIOD_ID,PARENT_ID,DOES_GRADES
@@ -359,6 +360,7 @@ $quarters = DBGet( "SELECT TITLE,MARKING_PERIOD_ID,PARENT_ID,DOES_GRADES
 	WHERE MP='QTR'
 	AND SYEAR='" . UserSyear() . "'
 	AND SCHOOL_ID='" . UserSchool() . "'
+	AND MARKING_PERIOD_ID IN(" . ( GetChildrenMP( 'FY' ) ? GetChildrenMP( 'FY' ) : '0' ) . ")
 	ORDER BY SORT_ORDER IS NULL,SORT_ORDER", [], [ 'PARENT_ID' ] );
 
 echo '<fieldset><legend>' . _( 'Final Grading Percentages' ) . '</legend><table>';
@@ -373,14 +375,14 @@ foreach ( (array) $semesters as $sem )
 
 		$table = '<table class="cellpadding-5">';
 		$table .= '<tr class="st"><td><span class="legend-gray"><b>' .
-			$sem['TITLE'] . '</b></span>&nbsp;</td>';
+		          $sem['TITLE'] . '</b></span>&nbsp;</td>';
 
 		$total = 0;
 
 		if ( empty( $quarters[$sem['MARKING_PERIOD_ID']] ) )
 		{
 			$table .= '<td><span class="legend-red">' .
-				_( 'Error' ) . ': ' . _( 'No quarters found' ) . '</span></td>';
+			          _( 'Error' ) . ': ' . _( 'No quarters found' ) . '</span></td>';
 		}
 		else
 		{
@@ -396,11 +398,11 @@ foreach ( (array) $semesters as $sem )
 				];
 
 				$table .= '<td>' . TextInput(
-					$value,
-					'values[SEM-' . $qtr['MARKING_PERIOD_ID'] . ']',
-					$qtr['TITLE'],
-					'size="4" required type="number" min=0 max=100 step=0.01'
-				) . '</td>';
+						$value,
+						'values[SEM-' . $qtr['MARKING_PERIOD_ID'] . ']',
+						$qtr['TITLE'],
+						'size="4" required type="number" min=0 max=100 step=0.01'
+					) . '</td>';
 
 				$total += $gradebook_config_sem_qtr;
 			}
@@ -408,7 +410,7 @@ foreach ( (array) $semesters as $sem )
 			if ( $total != 100 )
 			{
 				$table .= '<td><span class="legend-red">' .
-					_( 'Total' ) . ' &#8800; 100%!</span></td>';
+				          _( 'Total' ) . ' &#8800; 100%!</span></td>';
 			}
 		}
 
@@ -424,7 +426,7 @@ if ( $year[1]['DOES_GRADES'] === 'Y' )
 
 	$table = '<table class="cellpadding-5">';
 	$table .= '<tr class="st"><td><span class="legend-gray"><b>' .
-		$year[1]['TITLE'] . '</b></span>&nbsp;</td>';
+	          $year[1]['TITLE'] . '</b></span>&nbsp;</td>';
 
 	$total = 0;
 
@@ -442,11 +444,11 @@ if ( $year[1]['DOES_GRADES'] === 'Y' )
 			];
 
 			$table .= '<td>' . TextInput(
-				$value,
-				'values[FY-' . $qtr['MARKING_PERIOD_ID'] . ']',
-				$qtr['TITLE'],
-				'size="4" required type="number" min=0 max=100 step=0.01'
-			) . '</td>';
+					$value,
+					'values[FY-' . $qtr['MARKING_PERIOD_ID'] . ']',
+					$qtr['TITLE'],
+					'size="4" required type="number" min=0 max=100 step=0.01'
+				) . '</td>';
 
 			$total += $gradebook_config_fy_qtr;
 		}
@@ -463,11 +465,11 @@ if ( $year[1]['DOES_GRADES'] === 'Y' )
 			];
 
 			$table .= '<td>' . TextInput(
-				$value,
-				'values[FY-' . $sem['MARKING_PERIOD_ID'] . ']',
-				$sem['TITLE'],
-				'size="4" required type="number" min=0 max=100 step=0.01'
-			) . '</td>';
+					$value,
+					'values[FY-' . $sem['MARKING_PERIOD_ID'] . ']',
+					$sem['TITLE'],
+					'size="4" required type="number" min=0 max=100 step=0.01'
+				) . '</td>';
 
 			$total += $gradebook_config_fy_sem;
 		}
@@ -476,7 +478,7 @@ if ( $year[1]['DOES_GRADES'] === 'Y' )
 	if ( $total != 100 )
 	{
 		$table .= '<td><span class="legend-red">' .
-			_( 'Total' ) . ' &#8800; 100%!</span></td>';
+		          _( 'Total' ) . ' &#8800; 100%!</span></td>';
 	}
 
 	$table .= '</tr></table>';

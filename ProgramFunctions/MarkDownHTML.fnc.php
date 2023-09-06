@@ -57,7 +57,7 @@ function MarkDownToHTML( $md, $column = '' )
  * @uses    Markdownify class
  *
  * @example require_once 'ProgramFunctions/MarkDownHTML.fnc.php';
- *          $_REQUEST['values']['textarea'] = SanitizeMarkDown( $_POST['values']['textarea'] );
+ *          $_REQUEST['values']['textarea'] = DBEscapeString( SanitizeMarkDown( $_POST['values']['textarea'] ) );
  *
  * @since   2.9
  * @since   4.3 Prevent XSS.
@@ -96,7 +96,7 @@ function SanitizeMarkDown( $md )
 	{
 		if ( ROSARIO_DEBUG )
 		{
-			echo 'Sanitized HTML:<br />';
+			echo 'Sanitized HTML:<br>';
 			var_dump( $sanitized_html );
 		}
 
@@ -148,7 +148,10 @@ function SanitizeMarkDown( $md )
  * @uses    UploadImage()
  *
  * @example require_once 'ProgramFunctions/MarkDownHTML.fnc.php';
- *          $_REQUEST['values']['textarea'] = SanitizeHTML( $_POST['values']['textarea'] );
+ *          $_REQUEST['values']['textarea'] = DBEscapeString( SanitizeHTML( $_POST['values']['textarea'] ) );
+ *
+ * @example SaveTemplate( DBEscapeString( SanitizeHTML( $_POST['email_text'], '', true ) ) );
+ *          $email_text_template = GetTemplate();
  *
  * @since 2.9
  * @since 5.5.3 Better base64 images detection.
@@ -229,7 +232,7 @@ function SanitizeHTML( $html, $image_path = '', $add_url_to_image_path = false )
 		if ( ROSARIO_DEBUG
 			&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 		{
-			echo 'Sanitized HTML:<br />';
+			echo 'Sanitized HTML:<br>';
 			var_dump( $sanitized_html_quotes );
 		}
 
@@ -272,50 +275,10 @@ function SanitizeHTML( $html, $image_path = '', $add_url_to_image_path = false )
 
 		$image_path = ImageUpload( $data, $target_dim, $image_path );
 
-		/**
-		 * RosarioSIS login page URL
-		 * Removes part beginning with 'Modules.php' or 'index.php' from URI.
-		 *
-		 * Local function
-		 *
-		 * @since 8.3
-		 *
-		 * @return string Login page URL.
-		 */
-		$rosarioLoginURL = function()
-		{
-			$page_url = 'http';
-
-			if ( isset( $_SERVER['HTTPS'] )
-				&& $_SERVER['HTTPS'] == 'on' )
-			{
-				$page_url .= 's';
-			}
-
-			$page_url .= '://';
-
-			$root_pos = strpos( $_SERVER['REQUEST_URI'], 'Modules.php' ) ?
-				strpos( $_SERVER['REQUEST_URI'], 'Modules.php' ) : strpos( $_SERVER['REQUEST_URI'], 'index.php' );
-
-			$root_uri = substr( $_SERVER['REQUEST_URI'], 0, $root_pos );
-
-			if ( $_SERVER['SERVER_PORT'] != '80'
-				&& $_SERVER['SERVER_PORT'] != '443' )
-			{
-				$page_url .= $_SERVER['SERVER_NAME'] . ':' . $_SERVER['SERVER_PORT'] . $root_uri;
-			}
-			else
-			{
-				$page_url .= $_SERVER['SERVER_NAME'] . $root_uri;
-			}
-
-			return $page_url;
-		};
-
 		if ( $add_url_to_image_path )
 		{
 			// Add URL to image path.
-			$image_path = $rosarioLoginURL() . $image_path;
+			$image_path = RosarioURL() . $image_path;
 		}
 
 		$base64_images[1][ $key ] = $image_path;
@@ -334,7 +297,7 @@ function SanitizeHTML( $html, $image_path = '', $add_url_to_image_path = false )
 		}
 		else
 		{
-			echo 'Sanitized HTML:<br />';
+			echo 'Sanitized HTML:<br>';
 			var_dump( $sanitized_html_quotes );
 		}
 	}

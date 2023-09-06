@@ -42,26 +42,6 @@ function UserMP()
 
 
 /**
- * User Period
- *
- * @deprecated since 6.9 is not used anymore.
- *
- * @return int Current User Period ID or null
- */
-function UserPeriod()
-{
-	if ( ! UserCoursePeriod() )
-	{
-		return null;
-	}
-
-	return DBGetOne( "SELECT PERIOD_ID
-		FROM course_period_school_periods
-		WHERE COURSE_PERIOD_ID='" . UserCoursePeriod() . "'" );;
-}
-
-
-/**
  * User Course Period
  * (Teachers & Admins using Teacher Programs only)
  *
@@ -70,30 +50,6 @@ function UserPeriod()
 function UserCoursePeriod()
 {
 	return issetVal( $_SESSION['UserCoursePeriod'] );
-}
-
-
-/**
- * User Course Period School Period
- * (Teachers & Admins using Teacher Programs only)
- *
- * FJ multiple school periods for a course period
- *
- * @deprecated since 6.9 Use UserPeriod() + UserCoursePeriod() instead.
- *
- * @return int Current User Course Period School Period ID or null
- */
-function UserCoursePeriodSchoolPeriod()
-{
-	if ( ! UserCoursePeriod() )
-	{
-		return null;
-	}
-
-	return DBGetOne( "SELECT COURSE_PERIOD_SCHOOL_PERIODS_ID
-		FROM course_period_school_periods
-		WHERE COURSE_PERIOD_ID='" . UserCoursePeriod() . "'" .
-		( UserPeriod() ? "AND PERIOD_ID='" . UserPeriod() . "'" : "" ) );
 }
 
 
@@ -149,7 +105,7 @@ function SetUserStaffID( $staff_id )
 	{
 		case 'parent':
 
-			if ( $staff_id !== User( 'STAFF_ID' ) )
+			if ( $staff_id != User( 'STAFF_ID' ) )
 			{
 				$isHack = true;
 			}
@@ -157,13 +113,13 @@ function SetUserStaffID( $staff_id )
 
 		case 'teacher':
 
-			if ( $staff_id !== User( 'STAFF_ID' ) )
+			if ( $staff_id != User( 'STAFF_ID' ) )
 			{
 				// Get teacher's related parents, include parents of inactive students.
 				$is_related_parent = DBGet( "SELECT 1
 					FROM staff s
 					WHERE s.SYEAR='" . UserSyear() . "'
-					AND (s.SCHOOLS LIKE '%," . UserSchool() . ",%' OR s.SCHOOLS IS NULL OR s.SCHOOLS='')
+					AND (s.SCHOOLS IS NULL OR position('," . UserSchool() . ",' IN s.SCHOOLS)>0)
 					AND (s.PROFILE='parent' AND exists(SELECT 1
 						FROM students_join_users _sju,student_enrollment _sem,schedule _ss
 						WHERE _sju.STAFF_ID=s.STAFF_ID
@@ -264,7 +220,7 @@ function SetUserStudentID( $student_id )
 	{
 		case 'student':
 
-			if ( $student_id !== $_SESSION['STUDENT_ID'] )
+			if ( $student_id != $_SESSION['STUDENT_ID'] )
 			{
 				$isHack = true;
 			}
@@ -356,4 +312,115 @@ function SetUserStudentID( $student_id )
 	}
 
 	$_SESSION['student_id'] = (string) (int) $student_id;
+}
+
+
+/**
+ * Set Current User Course Period
+ * Set $_SESSION['UserCoursePeriod']
+ * Forbid hacking user period ID in URL
+ * Adding `'&period=' . UserCoursePeriod()` to the Teacher form URL will prevent the following issue:
+ * If form is displayed for CP A, then Teacher opens a new browser tab and switches to CP B
+ * Then teacher submits the form, data would be saved for CP B...
+ *
+ * Note: use BEFORE UserImpersonateTeacher()
+ *
+ * @since 10.9
+ *
+ * Student & Parent:
+ * Forbidden
+ * Teacher:
+ * Check $course_period_id is currently taught by (Secondary) Teacher
+ * Set `$_SESSION['is_secondary_teacher']`
+ * Admin:
+ * Check $course_period_id is taught in current School & Year
+ *
+ * @example if ( ! empty( $_REQUEST['period'] ) ) SetUserCoursePeriod( $_REQUEST['period'] );
+ *
+ * @param  int  $course_period_id Course Period ID.
+ *
+ * @return void exit to HackingLog if not permitted
+ */
+function SetUserCoursePeriod( $course_period_id )
+{
+	$isHack = false;
+
+	switch ( User( 'PROFILE' ) )
+	{
+		case 'student':
+		case 'parent':
+
+			$isHack = true;
+		break;
+
+		case 'teacher':
+
+			if ( $course_period_id == UserCoursePeriod() )
+			{
+				break;
+			}
+
+			// Note: Teacher may teach a CP in other MPs (not related to current MP).
+			$all_mp = GetAllMP( 'QTR', UserMP() );
+
+			$all_mp_sql = $all_mp ? " AND MARKING_PERIOD_ID IN (" . $all_mp . ")" : '';
+
+			// Get all the Course Periods associated with current Teacher
+			$is_teaching_course_period = DBGet( "SELECT SECONDARY_TEACHER_ID
+				FROM course_periods
+				WHERE SYEAR='" . UserSyear() . "'
+				AND SCHOOL_ID='" . UserSchool() . "'
+				AND COURSE_PERIOD_ID='" . (int) $course_period_id . "'
+				AND (TEACHER_ID='" . User( 'STAFF_ID' ) . "'
+					OR SECONDARY_TEACHER_ID='" . User( 'STAFF_ID' ) . "')" . $all_mp_sql );
+
+			if ( ! $is_teaching_course_period )
+			{
+				$isHack = true;
+			}
+			else
+			{
+				$_SESSION['is_secondary_teacher'] = $is_teaching_course_period[1]['SECONDARY_TEACHER_ID'] == User( 'STAFF_ID' );
+			}
+		break;
+
+		case 'admin':
+
+			if ( $course_period_id == UserCoursePeriod() )
+			{
+				break;
+			}
+
+			// Get all the Course Periods taught in current School & Year
+			$is_course_period = DBGet( "SELECT 1
+				FROM course_periods
+				WHERE SYEAR='" . UserSyear() . "'
+				AND SCHOOL_ID='" . UserSchool() . "'
+				AND COURSE_PERIOD_ID='" . (int) $course_period_id . "'" );
+
+			if ( ! $is_course_period )
+			{
+				$isHack = true;
+			}
+		break;
+
+		default:
+			// FJ create account.
+			if ( User( 'PROFILE' )
+				|| basename( $_SERVER['PHP_SELF'] ) !== 'index.php' )
+			{
+				$isHack = true;
+			}
+
+		break;
+	}
+
+	if ( $isHack )
+	{
+		require_once 'ProgramFunctions/HackingLog.fnc.php';
+
+		HackingLog();
+	}
+
+	$_SESSION['UserCoursePeriod'] = (string) (int) $course_period_id;
 }

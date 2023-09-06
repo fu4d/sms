@@ -10,8 +10,11 @@
  * File Upload
  *
  * @example FileUpload( 'FILE_ATTACHED', $FileUploadsPath . UserSyear() . '/staff_' . User( 'STAFF_ID' ) . '/', FileExtensionWhiteList(), 0, $error );
+ * @example $file_attached = FileUpload( $input, $path, FileExtensionWhiteList(), 0, $error, '', FileNameTimestamp( $_FILES[ $input ]['name'] ) );
  *
  * @global $_FILES
+ *
+ * @since 10.6 Resize, compress & store image using ImageUpload()
  *
  * @param string $input            Name of the input file field, for example 'photo'.
  * @param string $path             Final path with trailing slash, for example $StudentPicturesPath . UserSyear() . '/'.
@@ -37,6 +40,10 @@ function FileUpload( $input, $path, $ext_white_list, $size_limit, &$error, $fina
 	{
 		$file_name = $file_name_no_ext . $final_ext;
 	}
+
+	$caller_function = debug_backtrace();
+
+	$caller_function = isset( $caller_function[1]['function'] ) ? $caller_function[1]['function'] : '';
 
 	if ( empty( $_FILES[ $input ]['tmp_name'] )
 		|| ! is_uploaded_file( $_FILES[ $input ]['tmp_name'] ) )
@@ -78,6 +85,21 @@ function FileUpload( $input, $path, $ext_white_list, $size_limit, &$error, $fina
 		$error[] = sprintf( _( 'Folder not writable' ) . ': %s', $path );
 	}
 
+	// Check if file is image.
+	elseif ( $caller_function !== 'ImageUpload'
+		&& in_array( $final_ext, [ '.jpg', '.jpeg', '.png', '.gif' ] ) )
+	{
+		// Resize, compress & store image using ImageUpload().
+		return ImageUpload(
+			$input,
+			[],
+			$path,
+			[],
+			$final_ext,
+			$file_name_no_ext
+		);
+	}
+
 	// Store file.
 	elseif ( ! move_uploaded_file(
 		$_FILES[ $input ]['tmp_name'],
@@ -116,7 +138,7 @@ function FileUpload( $input, $path, $ext_white_list, $size_limit, &$error, $fina
  * @param string $final_ext        Final file extension (useful for .jpg, if .jpeg submitted) (optional).
  * @param string $file_name_no_ext Final file name without extension, for example UserStudentID() . '.' . bin2hex( openssl_random_pseudo_bytes( 16 ) ) (optional).
  *
- * @return string|boolean Full path to file, or false if error
+ * @return string|boolean Full path to file, or false (or base64 data) if error
  */
 function ImageUpload( $input, $target_dim = [], $path = '', $ext_white_list = [], $final_ext = null, $file_name_no_ext = '' )
 {
@@ -288,7 +310,8 @@ function ImageUpload( $input, $target_dim = [], $path = '', $ext_white_list = []
 				( $extension === IMAGETYPE_JPEG ? 'FFFFFF' : null )
 			);
 
-			if ( filesize( $full_path ) < $original_image_size )
+			if ( filesize( $full_path ) < $original_image_size
+				|| ( $extension && $extension !== $image_resize_gd->getSourceType() ) )
 			{
 				return $full_path;
 			}
@@ -343,18 +366,21 @@ function ImageUpload( $input, $target_dim = [], $path = '', $ext_white_list = []
  * Input name must BEGIN with $request, for example: "valuesCUSTOM_3".
  *
  * @since 4.6
+ * @since 10.4 Add optional $id param
  *
  * @example FilesUploadUpdate( 'schools', 'values',	$FileUploadsPath . 'Schools/' . UserSchool() . '/' );
+ * @example FilesUploadUpdate( $table, 'tables' . $id, $FileUploadsPath . 'Hostel/', $id );
  *
  * @uses FileUpload()
  *
  * @param string $table   DB Table name.
  * @param string $request Request part of the input name.
  * @param string $path    Path, folder where the files will be uploaded to.
+ * @param int    $id      Table row ID. Optional.
  *
  * @return string Empty or last file full path.
  */
-function FilesUploadUpdate( $table, $request, $path )
+function FilesUploadUpdate( $table, $request, $path, $id = 0 )
 {
 	global $error;
 
@@ -377,14 +403,6 @@ function FilesUploadUpdate( $table, $request, $path )
 			continue;
 		}
 
-		$file_name_no_ext = no_accents( mb_substr(
-			$_FILES[ $input ]['name'],
-			0,
-			mb_strrpos( $_FILES[ $input ]['name'], '.' )
-		) );
-
-		$file_name_no_ext .= '_' . date( 'Y-m-d_His' );
-
 		$new_file = FileUpload(
 			$input,
 			$path,
@@ -392,7 +410,7 @@ function FilesUploadUpdate( $table, $request, $path )
 			0,
 			$error,
 			'',
-			$file_name_no_ext
+			FileNameTimestamp( $_FILES[ $input ]['name'] )
 		);
 
 		if ( $new_file )
@@ -403,27 +421,39 @@ function FilesUploadUpdate( $table, $request, $path )
 
 			if ( $table === 'schools' )
 			{
-				$where_sql = "ID='" . UserSchool() . "' AND SYEAR='" . UserSyear() . "'";
+				$id = $id ? $id : UserSchool();
+
+				$where_sql = "ID='" . (int) $id . "' AND SYEAR='" . UserSyear() . "'";
 			}
 			elseif ( $table === 'students' )
 			{
-				$where_sql = "STUDENT_ID='" . UserStudentID() . "'";
+				$id = $id ? $id : UserStudentID();
+
+				$where_sql = "STUDENT_ID='" . (int) $id . "'";
 			}
 			elseif ( $table === 'address' )
 			{
-				$where_sql = "ADDRESS_ID='" . (int) $_REQUEST['address_id'] . "'";
+				$id = $id ? $id : $_REQUEST['address_id'];
+
+				$where_sql = "ADDRESS_ID='" . (int) $id . "'";
 			}
 			elseif ( $table === 'people' )
 			{
-				$where_sql = "PERSON_ID='" . (int) $_REQUEST['person_id'] . "'";
+				$id = $id ? $id : $_REQUEST['person_id'];
+
+				$where_sql = "PERSON_ID='" . (int) $id . "'";
 			}
 			elseif ( $table === 'staff' )
 			{
-				$where_sql = "STAFF_ID='" . UserStaffID() . "'";
+				$id = $id ? $id : UserStaffID();
+
+				$where_sql = "STAFF_ID='" . (int) $id . "'";
 			}
 			else
 			{
-				$where_sql = "ID='" . (int) $_REQUEST['id'] . "'";
+				$id = $id ? $id : $_REQUEST['id'];
+
+				$where_sql = "ID='" . (int) $id . "'";
 			}
 
 			DBQuery( "UPDATE " . DBEscapeIdentifier( $table ) . "
@@ -519,16 +549,6 @@ function FileUploadMultiple( $input )
  */
 function no_accents( $string )
 {
-	if ( ! preg_match( '/[\x80-\xff]/', $string) )
-	{
-		// Replace characters others than letters, space, numbers & points with underscores  "_".
-		$string = preg_replace(
-			'/([^ _\-.a-z0-9]+)/i',
-			'_',
-			$string
-		);
-	}
-
 	if ( function_exists( 'transliterator_transliterate' ) )
 	{
 		/**
@@ -673,6 +693,49 @@ function no_accents( $string )
 }
 
 
+/**
+ * Add timestamp (including microseconds) to filename to make it harder to predict
+ * For example: my_file.jpg => my_file_2023-04-11_185030.123456.jpg
+ *
+ * @link https://huntr.dev/bounties/42f38a84-8954-484d-b5ff-706ca0918194/
+ *
+ * @since 11.1
+ *
+ * @uses no_accents()
+ *
+ * @param string $file_name File name. Can be empty.
+ * @param bool   $keep_ext  Keep extension. Defaults to false.
+ *
+ * @return string File name with timestamp.
+ */
+function FileNameTimestamp( $file_name, $keep_ext = false )
+{
+	$file_name_safe = no_accents( $file_name );
+
+	$file_ext_pos = mb_strrpos( $file_name_safe, '.' );
+
+	$file_name_no_ext = $file_name_safe;
+
+	if ( $file_ext_pos )
+	{
+		$file_name_no_ext = mb_substr( $file_name_safe, 0, $file_ext_pos );
+	}
+
+	// @since 11.0 Add microseconds to filename format to make it harder to predict.
+	$timestamp = date( 'Y-m-d_His' ) . '.' . substr( (string) microtime(), 2, 6 );
+
+	$file_name_timestamp = $file_name_no_ext ? $file_name_no_ext . '_' . $timestamp : $timestamp;
+
+	if ( ! $keep_ext
+		|| ! $file_ext_pos )
+	{
+		return $file_name_timestamp;
+	}
+
+	$file_ext = mb_substr( $file_name_safe, $file_ext_pos );
+
+	return $file_name_timestamp . $file_ext;
+}
 
 /**
  * Get server maximum file upload size (Mb)
@@ -778,22 +841,32 @@ function FileExtensionWhiteList() {
 		// Micro$oft Office.
 		'.doc',
 		'.docx',
+		'.dotx',
 		'.xls',
 		'.xlsm',
 		'.xlsx',
 		'.xlr',
 		'.pps',
+		'.ppsx',
 		'.ppt',
 		'.pptx',
 		'.wps',
 		'.wpd',
 		'.rtf',
+		'.mdb',
+		'.sldx',
 		// Libre Office.
 		'.odt',
 		'.ods',
 		'.odp',
-		// Keynote presentation.
+		'.odg',
+		'.odc',
+		'.odb',
+		'.odf',
+		// Apple iWork.
 		'.key',
+		'.numbers',
+		'.pages',
 		// Images.
 		'.jpg',
 		'.jpeg',
@@ -810,12 +883,15 @@ function FileExtensionWhiteList() {
 		'.webp',
 		// Audio.
 		'.mp3',
+		'.m4a',
 		'.ogg',
 		'.wav',
 		'.mid',
 		'.midi',
 		'.wma',
 		'.aif',
+		'.flac',
+		'.mka',
 		// Video.
 		'.avi',
 		'.mp4',
@@ -835,8 +911,11 @@ function FileExtensionWhiteList() {
 		'.pdf',
 		'.md',
 		'.csv',
+		'.tsv',
 		'.tex',
 		'.log',
+		'.json',
+		'.ics',
 		// Email.
 		'.email',
 		'.eml',

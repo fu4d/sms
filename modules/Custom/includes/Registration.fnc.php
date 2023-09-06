@@ -53,8 +53,14 @@ function RegistrationFormConfig()
 	];
 
 	// Save default.
-	DBQuery( "INSERT INTO config (CONFIG_VALUE,TITLE,SCHOOL_ID)
-		VALUES('" . serialize( $default_values ) . "','REGISTRATION_FORM','0')" );
+	DBInsert(
+		'config',
+		[
+			'CONFIG_VALUE' => serialize( $default_values ),
+			'TITLE' => 'REGISTRATION_FORM',
+			'SCHOOL_ID' => '0',
+		]
+	);
 
 	return $default_values;
 }
@@ -190,17 +196,20 @@ function RegistrationFormOutput( $config )
 
 	echo '<table><tr class="st">';
 
-	foreach ( $config['contact'] as $id => $config_contact )
+	if ( is_array( $config['contact'] ) )
 	{
-		echo '<td>';
-
-		RegistrationContact( 'contact[' . $id . ']', $config_contact );
-
-		echo '</td>';
-
-		if ( $id % 2 !== 0 )
+		foreach ( $config['contact'] as $id => $config_contact )
 		{
-			echo '</tr><tr class="st">';
+			echo '<td>';
+
+			RegistrationContact( 'contact[' . $id . ']', $config_contact );
+
+			echo '</td>';
+
+			if ( $id % 2 !== 0 )
+			{
+				echo '</tr><tr class="st">';
+			}
 		}
 	}
 
@@ -251,7 +260,7 @@ function RegistrationContact( $name, $contact )
 		echo '</td></tr>';
 	}
 
-	if ( ! empty( $contact['fields'] ) )
+	if ( ! empty( trim( $contact['fields'], '||' ) ) )
 	{
 		echo '<tr><td>';
 
@@ -301,7 +310,7 @@ function RegistrationAddress( $name )
 
 	echo '<td>' . TextInput( '', $name . '[STATE]', _( 'State' ), 'size="3" maxlength="50"' ) . '</td>';
 
-	echo '<td>' . TextInput( '', $name . '[ZIPCODE]', _( 'Zip' ), 'size="6" maxlength="10"' ) .
+	echo '<td>' . TextInput( '', $name . '[ZIPCODE]', _( 'Zip Code' ), 'size="6" maxlength="10"' ) .
 		'</td></tr></table>';
 
 	echo TextInput( '', $name . '[PHONE]', _( 'Phone' ), 'maxlength="30"' );
@@ -316,7 +325,7 @@ function RegistrationAddress( $name )
  */
 function RegistrationContactInfo( $name, $info, $info_required )
 {
-	$fields = explode( '||', mb_substr( $info, 2, -2 ) );
+	$fields = explode( '||', trim( $info, '||' ) );
 
 	$required = $info_required ? ' required' : '';
 
@@ -348,7 +357,12 @@ function RegistrationContactFields( $name, $categories )
 	global $request,
 		$field;
 
-	$category_ids = "'" . str_replace( '||', "','", mb_substr( $categories, 2, -2 ) ) . "'";
+	$category_ids = "'0'";
+
+	if ( trim( $categories, '||' ) )
+	{
+		$category_ids = "'" . str_replace( '||', "','", trim( $categories, '||' ) ) . "'";
+	}
 
 	$request = $name . '[fields]';
 
@@ -389,7 +403,7 @@ function RegistrationYourAddress( $address )
 
 	RegistrationAddress( 'address' );
 
-	if ( ! empty( $address['fields'] ) )
+	if ( ! empty( trim( $address['fields'], '||' ) ) )
 	{
 		echo '</td></tr><tr><td>';
 
@@ -416,7 +430,12 @@ function RegistrationAddressFields( $name, $categories )
 	global $request,
 		$field;
 
-	$category_ids = "'" . str_replace( '||', "','", mb_substr( $categories, 2, -2 ) ) . "'";
+	$category_ids = "'0'";
+
+	if ( trim( $categories, '||' ) )
+	{
+		$category_ids = "'" . str_replace( '||', "','", trim( $categories, '||' ) ) . "'";
+	}
 
 	$request = $name . '[fields]';
 
@@ -477,7 +496,7 @@ function RegistrationStudentFields( $name, $categories )
 	global $field,
 		$value;
 
-	$category_ids = explode( '||', mb_substr( $categories, 2, -2 ) );
+	$category_ids = explode( '||', trim( $categories, '||' ) );
 
 	$separator = '';
 

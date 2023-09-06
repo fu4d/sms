@@ -15,17 +15,17 @@ require_once 'ProgramFunctions/FirstLogin.fnc.php';
 
 // Logout.
 if ( isset( $_REQUEST['modfunc'] )
-	&& $_REQUEST['modfunc'] === 'logout' )
+     && $_REQUEST['modfunc'] === 'logout' )
 {
 	// Redirect to index.php with same locale as old session & eventual reason & redirect to URL.
-	header( 'Location: index.php?locale=' . $_SESSION['locale'] .
-		( isset( $_REQUEST['reason'] ) ? '&reason=' . $_REQUEST['reason'] : '' ) .
-		( isset( $_REQUEST['redirect_to'] ) ?
-			'&redirect_to=' . urlencode( $_REQUEST['redirect_to'] ) :
-			'' ) );
+	header( 'Location: ' . URLEscape( 'index.php?locale=' . $_SESSION['locale'] .
+	                                  ( isset( $_REQUEST['reason'] ) ? '&reason=' . $_REQUEST['reason'] : '' ) .
+	                                  ( isset( $_REQUEST['redirect_to'] ) ?
+		                                  '&redirect_to=' . urlencode( $_REQUEST['redirect_to'] ) :
+		                                  '' ) ) );
 
 	if ( ! empty( $_REQUEST['token'] )
-		&& $_SESSION['token'] === $_REQUEST['token'] )
+	     && $_SESSION['token'] === $_REQUEST['token'] )
 	{
 		session_unset();
 
@@ -37,7 +37,7 @@ if ( isset( $_REQUEST['modfunc'] )
 
 // First login.
 elseif ( isset( $_REQUEST['modfunc'] )
-	&& $_REQUEST['modfunc'] === 'first-login' )
+         && $_REQUEST['modfunc'] === 'first-login' )
 {
 	// @since 7.3 Before First Login form action hook.
 	// @example Parent Agreement plugin: Add a form before first login form without interfering with logic.
@@ -79,13 +79,13 @@ elseif ( isset( $_REQUEST['modfunc'] )
 
 // Login.
 elseif ( isset( $_POST['USERNAME'] )
-	&& $_REQUEST['USERNAME'] !== ''
-	&& isset( $_POST['PASSWORD'] )
-	&& $_REQUEST['PASSWORD'] !== '' )
+         && $_REQUEST['USERNAME'] !== ''
+         && isset( $_POST['PASSWORD'] )
+         && $_REQUEST['PASSWORD'] !== '' )
 {
 	// FJ check accept cookies.
 	if ( ! isset( $_COOKIE['RosarioSIS'] )
-		&& ! isset( $_COOKIE[ $default_session_name ] ) )
+	     && ! isset( $_COOKIE[ $default_session_name ] ) )
 	{
 		header( 'Location: index.php?modfunc=logout&reason=cookie&token=' . $_SESSION['token'] );
 
@@ -101,9 +101,13 @@ elseif ( isset( $_POST['USERNAME'] )
 		 * Add CSRF token to protect unauthenticated requests
 		 *
 		 * @since 9.0
+		 * @since 11.0 Fix PHP fatal error if openssl PHP extension is missing
 		 * @link https://stackoverflow.com/questions/5207160/what-is-a-csrf-token-what-is-its-importance-and-how-does-it-work
 		 */
-		$_SESSION['token'] = bin2hex( openssl_random_pseudo_bytes( 16 ) );
+		$_SESSION['token'] = bin2hex( function_exists( 'openssl_random_pseudo_bytes' ) ?
+			openssl_random_pseudo_bytes( 16 ) :
+			( function_exists( 'random_bytes' ) ? random_bytes( 16 ) :
+				mb_substr( sha1( rand( 999999999, 9999999999 ), true ), 0, 16 ) ) );
 	}
 
 	$username = $_REQUEST['USERNAME'];
@@ -117,7 +121,7 @@ elseif ( isset( $_POST['USERNAME'] )
 	AND UPPER(USERNAME)=UPPER('" . $username . "')" );
 
 	if ( $login_RET
-		&& match_password( $login_RET[1]['PASSWORD'], $_POST['PASSWORD'] ) )
+	     && match_password( $login_RET[1]['PASSWORD'], $_POST['PASSWORD'] ) )
 	{
 		unset( $_REQUEST['PASSWORD'], $_POST['PASSWORD'] );
 	}
@@ -137,7 +141,7 @@ elseif ( isset( $_POST['USERNAME'] )
 			AND UPPER(s.USERNAME)=UPPER('" . $username . "')" );
 
 		if ( $student_RET
-			&& match_password( $student_RET[1]['PASSWORD'], $_POST['PASSWORD'] ) )
+		     && match_password( $student_RET[1]['PASSWORD'], $_POST['PASSWORD'] ) )
 		{
 			unset( $_REQUEST['PASSWORD'], $_POST['PASSWORD'] );
 		}
@@ -153,7 +157,7 @@ elseif ( isset( $_POST['USERNAME'] )
 			AND UPPER(s.USERNAME)=UPPER('" . $username . "')" );
 
 			if ( ! $student_RET
-				|| ! match_password( $student_RET[1]['PASSWORD'], $_POST['PASSWORD'] ) )
+			     || ! match_password( $student_RET[1]['PASSWORD'], $_POST['PASSWORD'] ) )
 			{
 				$student_RET = false;
 			}
@@ -165,8 +169,8 @@ elseif ( isset( $_POST['USERNAME'] )
 	$is_banned = false;
 
 	$ip = ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] )
-		// Filter IP, HTTP_* headers can be forged.
-		&& filter_var( $_SERVER['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP ) ?
+	        // Filter IP, HTTP_* headers can be forged.
+	        && filter_var( $_SERVER['HTTP_X_FORWARDED_FOR'], FILTER_VALIDATE_IP ) ?
 		$_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR'] );
 
 	if ( Config( 'FAILED_LOGIN_LIMIT' ) )
@@ -176,12 +180,12 @@ elseif ( isset( $_POST['USERNAME'] )
 			COUNT(CASE WHEN STATUS IS NULL OR STATUS='B' THEN 1 END) AS FAILED_COUNT,
 			COUNT(CASE WHEN STATUS='B' THEN 1 END) AS BANNED_COUNT
 			FROM access_log
-			WHERE LOGIN_TIME > (CURRENT_TIMESTAMP - INTERVAL " . ( $DatabaseType === 'mysql' ? '10 minute' : "'10 minute'" ) . ")
+			WHERE CREATED_AT > (CURRENT_TIMESTAMP - INTERVAL " . ( $DatabaseType === 'mysql' ? '10 minute' : "'10 minute'" ) . ")
 			AND USER_AGENT='" . DBEscapeString( $_SERVER['HTTP_USER_AGENT'] ) . "'
 			AND IP_ADDRESS='" . $ip . "'" );
 
 		if ( $failed_login_RET[1]['BANNED_COUNT']
-			|| $failed_login_RET[1]['FAILED_COUNT'] >= Config( 'FAILED_LOGIN_LIMIT' ) )
+		     || $failed_login_RET[1]['FAILED_COUNT'] >= Config( 'FAILED_LOGIN_LIMIT' ) )
 		{
 			// Ban in every case.
 			$is_banned = true;
@@ -195,9 +199,9 @@ elseif ( isset( $_POST['USERNAME'] )
 
 	// Admin, teacher or parent: initiate session.
 	if ( $login_RET
-		&& ( $login_RET[1]['PROFILE'] === 'admin'
-			|| $login_RET[1]['PROFILE'] === 'teacher'
-			|| $login_RET[1]['PROFILE'] === 'parent' ) )
+	     && ( $login_RET[1]['PROFILE'] === 'admin'
+	          || $login_RET[1]['PROFILE'] === 'teacher'
+	          || $login_RET[1]['PROFILE'] === 'parent' ) )
 	{
 		$_SESSION['STAFF_ID'] = $login_RET[1]['STAFF_ID'];
 
@@ -215,26 +219,26 @@ elseif ( isset( $_POST['USERNAME'] )
 
 	// User with No access profile.
 	elseif ( $login_RET
-			&& $login_RET[1]['PROFILE'] == 'none' )
+	         && $login_RET[1]['PROFILE'] == 'none' )
 	{
 		$error[] = _( 'Your account has not yet been activated.' ) . ' '
-			. _( 'You will be notified when it has been verified by a school administrator.' );
+		           . _( 'You will be notified when it has been verified by a school administrator.' );
 	}
 
 	// Student account inactive (today < Attendance start date).
 	elseif ( $student_RET
-			&& DBDate() < $student_RET[1]['START_DATE'] )
+	         && DBDate() < $student_RET[1]['START_DATE'] )
 	{
 		$error[] = _( 'Your account has not yet been activated.' );
 	}
 
 	// Student account not verified (enrollment school + start date + last login are NULL).
 	elseif ( $student_RET
-			&& ! $student_RET[1]['START_DATE']
-			&& ! $student_RET[1]['LAST_LOGIN'] )
+	         && ! $student_RET[1]['START_DATE']
+	         && ! $student_RET[1]['LAST_LOGIN'] )
 	{
 		$error[] = _( 'Your account has not yet been activated.' ) . ' '
-			. _( 'You will be notified when it has been verified by a school administrator.' );
+		           . _( 'You will be notified when it has been verified by a school administrator.' );
 	}
 
 	// Student: initiate session.
@@ -269,32 +273,34 @@ elseif ( isset( $_POST['USERNAME'] )
 		{
 			// Failed login ban if >= X failed attempts within 10 minutes.
 			$error[] = _( 'Too many Failed Login Attempts.' ) . '&nbsp;'
-				. _( 'Please try logging in later.' );
+			           . _( 'Please try logging in later.' );
 		}
 		else
 		{
 			$error[] = _( 'Incorrect username or password.' ) . '&nbsp;'
-				. _( 'Please try logging in again.' );
+			           . _( 'Please try logging in again.' );
 		}
 	}
 
 	// Access Log.
 	if ( ! function_exists( 'AccessLogRecord' ) )
 	{
-		DBQuery( "INSERT INTO access_log
-			(SYEAR,USERNAME,PROFILE,LOGIN_TIME,IP_ADDRESS,USER_AGENT,STATUS)
-			values('" . Config( 'SYEAR' ) . "',
-			'" . $username . "',
-			'" . User( 'PROFILE' ) . "',
-			CURRENT_TIMESTAMP,
-			'" . $ip . "',
-			'" . DBEscapeString( $_SERVER['HTTP_USER_AGENT'] ) .
-			"','" . $login_status . "' )" );
+		DBInsert(
+			'access_log',
+			[
+				'SYEAR' => Config( 'SYEAR' ),
+				'USERNAME' => $username,
+				'PROFILE' => User( 'PROFILE' ),
+				'IP_ADDRESS' => $ip,
+				'USER_AGENT' => DBEscapeString( $_SERVER['HTTP_USER_AGENT'] ),
+				'STATUS' => $login_status,
+			]
+		);
 	}
 
 	// Set current SchoolYear on login.
 	if ( $login_status === 'Y'
-		&& ! UserSyear() )
+	     && ! UserSyear() )
 	{
 		$_SESSION['UserSyear'] = Config( 'SYEAR' );
 	}
@@ -312,7 +318,7 @@ elseif ( isset( $_POST['USERNAME'] )
 
 	// Set LAST_LOGIN, reset FAILED_LOGIN.
 	if ( $login_status === 'Y'
-		&& User( 'STAFF_ID' ) )
+	     && User( 'STAFF_ID' ) )
 	{
 		DBQuery( "UPDATE staff
 			SET LAST_LOGIN=CURRENT_TIMESTAMP,FAILED_LOGIN=NULL
@@ -334,7 +340,7 @@ elseif ( isset( $_REQUEST['create_account'] ) )
 	unset( $_SESSION['STAFF_ID'], $_SESSION['STUDENT_ID'] );
 
 	if ( $_REQUEST['create_account'] === 'user'
-		&& Config( 'CREATE_USER_ACCOUNT' ) )
+	     && Config( 'CREATE_USER_ACCOUNT' ) )
 	{
 		$include = 'Users/User.php';
 
@@ -345,7 +351,7 @@ elseif ( isset( $_REQUEST['create_account'] ) )
 	}
 
 	elseif ( $_REQUEST['create_account'] === 'student'
-		&& Config( 'CREATE_STUDENT_ACCOUNT' ) )
+	         && Config( 'CREATE_STUDENT_ACCOUNT' ) )
 	{
 		$include = 'Students/Student.php';
 
@@ -397,7 +403,16 @@ elseif ( isset( $_REQUEST['create_account'] ) )
 
 		$_ROSARIO['allow_edit'] = true;
 
-		require_once 'modules/' . $include;
+		// FJ security fix, cf http://www.securiteam.com/securitynews/6S02U1P6BI.html.
+		if ( mb_substr( $include, -4, 4 ) !== '.php'
+		     || mb_strpos( $include, '..' ) !== false
+		     || ! is_file( 'modules/' . $include ) )
+		{
+			require_once 'ProgramFunctions/HackingLog.fnc.php';
+			HackingLog();
+		}
+		else
+			require_once 'modules/' . $include;
 
 		Warehouse( 'footer' );
 
@@ -412,8 +427,8 @@ elseif ( isset( $_REQUEST['create_account'] ) )
 
 // Login screen.
 if ( empty( $_SESSION['STAFF_ID'] )
-	&& empty( $_SESSION['STUDENT_ID'] )
-	&& ! isset( $_REQUEST['create_account'] ) )
+     && empty( $_SESSION['STUDENT_ID'] )
+     && ! isset( $_REQUEST['create_account'] ) )
 {
 	$_ROSARIO['page'] = 'login';
 
@@ -447,8 +462,8 @@ if ( empty( $_SESSION['STAFF_ID'] )
 		elseif ( $_REQUEST['reason'] == 'account_created' )
 		{
 			$note[] = _( 'Your account has been created.' ) . ' '
-				. _( 'You will be notified when it has been verified by a school administrator.' ) . ' '
-				. _( 'You will then be able to log in.' );
+			          . _( 'You will be notified when it has been verified by a school administrator.' ) . ' '
+			          . _( 'You will then be able to log in.' );
 		}
 
 		// @since 5.9 Automatic Student Account Activation.
@@ -468,119 +483,115 @@ if ( empty( $_SESSION['STAFF_ID'] )
 
 	echo ErrorMessage( $note, 'note' );
 
-?>
+	?>
 
 	<img src="assets/themes/<?php echo URLEscape( Config( 'THEME' ) ); ?>/logo.png" class="logo center" alt="Logo" />
 	<h4 class="center"><?php echo ParseMLField( Config( 'TITLE' ) ); ?></h4>
 	<form name="loginform" id="loginform" method="post">
-	<table class="cellspacing-0 width-100p">
+		<table class="cellspacing-0 width-100p">
 
-	<?php // Choose language.
-	if ( count( $RosarioLocales ) > 1 ) : ?>
+			<?php // Choose language.
+			if ( count( $RosarioLocales ) > 1 ) : ?>
 
-		<tr>
-			<td>
-			<?php foreach ( $RosarioLocales as $loc ) :
-				$language = function_exists( 'locale_get_display_language' ) ?
-					ucfirst( locale_get_display_language( $loc, $locale ) ) :
-					str_replace( '.utf8', '', $loc ); ?>
+				<tr>
+					<td>
+						<?php foreach ( $RosarioLocales as $loc ) :
+							$language = function_exists( 'locale_get_display_language' ) ?
+								ucfirst( locale_get_display_language( $loc, $locale ) ) :
+								str_replace( '.utf8', '', $loc ); ?>
 
-				<a href="index.php?locale=<?php echo $loc; ?>" title="<?php echo AttrEscape( $language ); ?>">
-					<img src="locale/<?php echo $loc; ?>/flag.png" width="32" alt="<?php echo AttrEscape( $language ); ?>" />
-				</a>&nbsp;
+							<a href="index.php?locale=<?php echo $loc; ?>" title="<?php echo AttrEscape( $language ); ?>">
+								<img src="locale/<?php echo $loc; ?>/flag.png" width="32" alt="<?php echo AttrEscape( $language ); ?>" />
+							</a>&nbsp;
 
-			<?php endforeach; ?>
-			<br />
-			<?php echo _( 'Language' ); ?>
-			</td>
-		</tr>
+						<?php endforeach; ?>
+						<br />
+						<?php echo _( 'Language' ); ?>
+					</td>
+				</tr>
 
-	<?php endif; ?>
+			<?php endif; ?>
 
-		<tr>
-			<td>
-				<label>
-					<input type="text" name="USERNAME" id="USERNAME" size="20" maxlength="100" required autofocus />
-					<?php echo _( 'Username' ); ?>
-				</label>
-			</td>
-		</tr>
-		<tr>
-			<td>
-				<label>
-					<input type="password" name="PASSWORD" id="PASSWORD" size="20" maxlength="42" required />
-					<?php echo _( 'Password' ); ?>
-				</label>
-				<div class="align-right">
-					<a href="PasswordReset.php" rel="nofollow">
-						<?php echo _( 'Password help' ); ?>
-					</a>
-				</div>
-			</td>
-		</tr>
-	</table>
-	<p class="center">
-		<input type="submit" value="<?php echo AttrEscape( _( 'Login' ) ); ?>" class="button-primary" />
-	</p>
-
-	<?php // @since 7.6 Login form link action hook.
-	do_action( 'index.php|login_form_link' ); ?>
-
-	<?php if ( Config( 'CREATE_USER_ACCOUNT' ) ) : ?>
-
-		<p class="align-right">
-			<a href="index.php?create_account=user&amp;staff_id=new" rel="nofollow">
-				<?php echo _( 'Create User Account' ); ?>
-			</a>
+			<tr>
+				<td>
+					<label>
+						<input type="text" name="USERNAME" id="USERNAME" size="20" maxlength="100" required autofocus />
+						<?php echo _( 'Username' ); ?>
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<label>
+						<input type="password" name="PASSWORD" id="PASSWORD" size="20" maxlength="42" required />
+						<?php echo _( 'Password' ); ?>
+					</label>
+					<div class="align-right">
+						<a href="PasswordReset.php" rel="nofollow">
+							<?php echo _( 'Password help' ); ?>
+						</a>
+					</div>
+				</td>
+			</tr>
+		</table>
+		<p class="center">
+			<input type="submit" value="<?php echo AttrEscape( _( 'Login' ) ); ?>" class="button-primary" />
 		</p>
 
-	<?php endif;
+		<?php // @since 7.6 Login form link action hook.
+		do_action( 'index.php|login_form_link' ); ?>
 
-	if ( Config( 'CREATE_STUDENT_ACCOUNT' ) ) : ?>
+		<?php if ( Config( 'CREATE_USER_ACCOUNT' ) ) : ?>
 
-		<p class="align-right">
-			<a href="index.php?create_account=student&amp;student_id=new" rel="nofollow">
-				<?php echo _( 'Create Student Account' ); ?>
-			</a>
-		</p>
+			<p class="align-right">
+				<a href="index.php?create_account=user&amp;staff_id=new" rel="nofollow">
+					<?php echo _( 'Create User Account' ); ?>
+				</a>
+			</p>
 
-	<?php endif;
+		<?php endif;
 
-	if ( ! empty( $_REQUEST['redirect_to'] ) ) :
-		/**
-		 * Redirect to Modules.php URL after login.
-		 *
-		 * @since 3.8
-		 */
-		?>
-		<input type="hidden" name="redirect_to" value="<?php echo URLEscape( $_REQUEST['redirect_to'] ); ?>" />
-	<?php endif; ?>
+		if ( Config( 'CREATE_STUDENT_ACCOUNT' ) ) : ?>
+
+			<p class="align-right">
+				<a href="index.php?create_account=student&amp;student_id=new" rel="nofollow">
+					<?php echo _( 'Create Student Account' ); ?>
+				</a>
+			</p>
+
+		<?php endif;
+
+		if ( ! empty( $_REQUEST['redirect_to'] ) ) :
+			/**
+			 * Redirect to Modules.php URL after login.
+			 *
+			 * @since 3.8
+			 */
+			?>
+			<input type="hidden" name="redirect_to" value="<?php echo URLEscape( $_REQUEST['redirect_to'] ); ?>" />
+		<?php endif; ?>
 	</form>
-	<input class="toggle" type="checkbox" id="toggle1" />
-	<label class="toggle" for="toggle1"><?php
-	// @todo Use <detail><summary> & remove CSS hack.
-	// @link https://caniuse.com/#search=details
-	echo _( 'About' ); ?></label>
-	<div class="about-rosariosis toggle-me">
+	<details class="about-rosariosis">
+		<summary><?php echo _( 'About' ); ?></summary>
 		<?php // System disclaimer. ?>
 		<p class="size-3">
 			<?php
-				echo sprintf(
-					_( 'This is a restricted network. Use of this network, its equipment, and resources is monitored at all times and requires explicit permission from the network administrator and %s. If you do not have this permission in writing, you are violating the regulations of this network and can and will be prosecuted to the full extent of the law. By continuing into this system, you are acknowledging that you are aware of and agree to these terms.'),
-					ParseMLField( Config( 'TITLE' ) )
-				);
+			echo sprintf(
+				_( 'This is a restricted network. Use of this network, its equipment, and resources is monitored at all times and requires explicit permission from the network administrator and %s. If you do not have this permission in writing, you are violating the regulations of this network and can and will be prosecuted to the full extent of the law. By continuing into this system, you are acknowledging that you are aware of and agree to these terms.'),
+				ParseMLField( Config( 'TITLE' ) )
+			);
 			?>
 		</p>
 		<p class="center">
 			<?php echo sprintf( _( '%s version %s' ), 'RosarioSIS', ROSARIO_VERSION ); ?>
 		</p>
 		<p class="center size-1">
-			&copy; 2004-2009 <a href="http://www.centresis.org" noreferrer>The Miller Group &amp; Learners Circle</a>
-			<br />&copy; 2012-2022 <a href="https://www.rosariosis.org" noreferrer>RosarioSIS</a>
+			&copy; 2004-2009 The Miller Group &amp; Learners Circle
+			<br />&copy; 2012-2023 <a href="https://www.rosariosis.org" noreferrer>RosarioSIS</a>
 		</p>
-	</div>
+	</details>
 
-<?php PopTable( 'footer' );
+	<?php PopTable( 'footer' );
 
 	Warehouse( 'footer' );
 }
@@ -605,7 +616,7 @@ elseif ( ! isset( $_REQUEST['create_account'] ) )
 			$_REQUEST['redirect_to']
 		);
 
-	header( 'Location: Modules.php?' . $redirect_to );
+	header( 'Location: ' . URLEscape( 'Modules.php?' . $redirect_to ) );
 
 	exit;
 }

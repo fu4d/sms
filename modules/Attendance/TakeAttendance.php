@@ -3,6 +3,12 @@
 require_once 'modules/Attendance/includes/UpdateAttendanceDaily.fnc.php';
 require_once 'ProgramFunctions/SchoolPeriodsSelectInput.fnc.php';
 
+if ( ! empty( $_REQUEST['period'] ) )
+{
+	// @since 10.9 Set current User Course Period before Secondary Teacher logic.
+	SetUserCoursePeriod( $_REQUEST['period'] );
+}
+
 if ( ! empty( $_SESSION['is_secondary_teacher'] ) )
 {
 	// @since 6.9 Add Secondary Teacher: set User to main teacher.
@@ -51,7 +57,7 @@ if ( empty( $categories_RET ) )
 }
 
 if ( ! isset( $_REQUEST['table'] )
-	|| $_REQUEST['table'] == '' )
+     || $_REQUEST['table'] == '' )
 {
 	$_REQUEST['table'] = $categories_RET[1]['ID'];
 }
@@ -103,7 +109,7 @@ if ( SchoolInfo( 'NUMBER_DAYS_ROTATION' ) !== null )
 			AND SYEAR=acc.SYEAR)
 		AND CALENDAR_ID=cp.CALENDAR_ID)
 	" . ( $DatabaseType === 'mysql' ? "AS UNSIGNED)" : "AS INT)" ) .
-	" FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
+	                     " FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
 	AND position('," . $_REQUEST['table'] . ",' IN cp.DOES_ATTENDANCE)>0" );
 }
 else
@@ -122,10 +128,10 @@ else
 	AND cp.MARKING_PERIOD_ID IN (SELECT MARKING_PERIOD_ID FROM school_marking_periods WHERE (MP='FY' OR MP='SEM' OR MP='QTR') AND SCHOOL_ID=acc.SCHOOL_ID AND acc.SCHOOL_DATE BETWEEN START_DATE AND END_DATE)
 	AND sp.PERIOD_ID=cpsp.PERIOD_ID
 	AND (sp.BLOCK IS NULL AND position(substring('UMTWHFS' FROM " .
-	( $DatabaseType === 'mysql' ?
-		"DAYOFWEEK(acc.SCHOOL_DATE)" :
-		"cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
-	" FOR 1) IN cpsp.DAYS)>0 OR sp.BLOCK IS NOT NULL AND acc.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK)
+	                     ( $DatabaseType === 'mysql' ?
+		                     "DAYOFWEEK(acc.SCHOOL_DATE)" :
+		                     "cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
+	                     " FOR 1) IN cpsp.DAYS)>0 OR sp.BLOCK IS NOT NULL AND acc.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK)
 	AND position('," . $_REQUEST['table'] . ",' IN cp.DOES_ATTENDANCE)>0" );
 }
 
@@ -153,7 +159,7 @@ if ( $fatal_warning )
 	}
 
 	echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-		'&table=' . $_REQUEST['table']  ) . '" method="POST">';
+	                                   '&table=' . $_REQUEST['table']  ) . '" method="POST">';
 
 	DrawHeader( $school_periods_select );
 
@@ -197,13 +203,13 @@ if ( ! isset( $_ROSARIO['allow_edit'] ) )
 	$time = strtotime( DBDate() );
 
 	if (  ( $current_qtr_id
-		&& $qtr_id == $current_qtr_id
-		|| GetMP( $qtr_id, 'POST_START_DATE' )
-		&& DBDate() <= GetMP( $qtr_id, 'POST_END_DATE' ) )
-		&& ( ! ProgramConfig( 'attendance', 'ATTENDANCE_EDIT_DAYS_BEFORE' )
-			|| strtotime( $date ) <= $time + ProgramConfig( 'attendance', 'ATTENDANCE_EDIT_DAYS_BEFORE' ) * 86400 )
-		&& ( ! ProgramConfig( 'attendance', 'ATTENDANCE_EDIT_DAYS_AFTER' )
-			|| strtotime( $date ) >= $time - ProgramConfig( 'attendance', 'ATTENDANCE_EDIT_DAYS_AFTER' ) * 86400 ) )
+	        && $qtr_id == $current_qtr_id
+	        || GetMP( $qtr_id, 'POST_START_DATE' )
+	           && DBDate() <= GetMP( $qtr_id, 'POST_END_DATE' ) )
+	      && ( ! ProgramConfig( 'attendance', 'ATTENDANCE_EDIT_DAYS_BEFORE' )
+	           || strtotime( $date ) <= $time + ProgramConfig( 'attendance', 'ATTENDANCE_EDIT_DAYS_BEFORE' ) * 86400 )
+	      && ( ! ProgramConfig( 'attendance', 'ATTENDANCE_EDIT_DAYS_AFTER' )
+	           || strtotime( $date ) >= $time - ProgramConfig( 'attendance', 'ATTENDANCE_EDIT_DAYS_AFTER' ) * 86400 ) )
 	{
 		$_ROSARIO['allow_edit'] = true;
 	}
@@ -217,48 +223,66 @@ $current_Q = "SELECT ATTENDANCE_TEACHER_CODE,ATTENDANCE_CODE,STUDENT_ID,ADMIN,CO
 	FROM " . DBEscapeIdentifier( $table ) . " t
 	WHERE SCHOOL_DATE='" . $date . "'
 	AND PERIOD_ID='" . (int) $_REQUEST['school_period'] . "'" .
-	( $table == 'lunch_period' ? " AND TABLE_NAME='" . (int) $_REQUEST['table'] . "'" : '' );
+             ( $table == 'lunch_period' ? " AND TABLE_NAME='" . (int) $_REQUEST['table'] . "'" : '' );
 
 $current_RET = DBGet( $current_Q, [], [ 'STUDENT_ID' ] );
 
 if ( ! empty( $_REQUEST['attendance'] )
-	&& ! empty( $_POST['attendance'] ) )
+     && ! empty( $_POST['attendance'] ) )
 {
 	foreach ( (array) $_REQUEST['attendance'] as $student_id => $value )
 	{
+		$student_attendance_code = (int) mb_substr( $value, 5 );
+
 		if ( ! empty( $current_RET[$student_id] ) )
 		{
-			$sql = "UPDATE " . DBEscapeIdentifier( $table ) .
-			" SET ATTENDANCE_TEACHER_CODE='" . mb_substr( $value, 5 ) . "',
-				COURSE_PERIOD_ID='" . UserCoursePeriod() . "'";
+			$columns = [
+				'ATTENDANCE_TEACHER_CODE' => $student_attendance_code,
+				'COURSE_PERIOD_ID' => UserCoursePeriod(),
+			];
 
 			if ( $current_RET[$student_id][1]['ADMIN'] != 'Y'
-				// SQL Update ATTENDANCE_CODE (admin) when is NULL.
-				|| empty( $current_RET[$student_id][1]['ATTENDANCE_CODE'] ) )
+			     // SQL Update ATTENDANCE_CODE (admin) when is NULL.
+			     || empty( $current_RET[$student_id][1]['ATTENDANCE_CODE'] ) )
 			{
-				$sql .= ",ATTENDANCE_CODE='" . mb_substr( $value, 5 ) . "'";
+				$columns += [ 'ATTENDANCE_CODE' => $student_attendance_code ];
 			}
 
-			if ( ! empty( $_REQUEST['comment'][$student_id] ) )
+			if ( isset( $_REQUEST['comment'][$student_id] ) )
 			{
-				$sql .= ",COMMENT='" . trim( $_REQUEST['comment'][$student_id] ) . "'";
+				$columns += [ 'COMMENT' => trim( $_REQUEST['comment'][$student_id] ) ];
 			}
 
-			$sql .= " WHERE SCHOOL_DATE='" . $date . "' AND PERIOD_ID='" . (int) $_REQUEST['school_period'] . "' AND STUDENT_ID='" . (int) $student_id . "'";
+			DBUpdate(
+				$table,
+				$columns,
+				[
+					'STUDENT_ID' => (int) $student_id,
+					'SCHOOL_DATE' => $date,
+					'PERIOD_ID' => (int) $_REQUEST['school_period'],
+				]
+			);
 		}
 		else
 		{
-			$sql = "INSERT INTO " . DBEscapeIdentifier( $table ) .
-			" (STUDENT_ID,SCHOOL_DATE,MARKING_PERIOD_ID,PERIOD_ID,COURSE_PERIOD_ID,
-					ATTENDANCE_CODE,ATTENDANCE_TEACHER_CODE,COMMENT" .
-			( $table == 'lunch_period' ? ',TABLE_NAME' : '' ) . ")
-				values('" . $student_id . "','" . $date . "','" . $qtr_id . "','" . $_REQUEST['school_period'] .
-			"','" . UserCoursePeriod() . "','" . mb_substr( $value, 5 ) . "','" .
-			mb_substr( $value, 5 ) . "','" . $_REQUEST['comment'][$student_id] . "'" .
-				( $table == 'lunch_period' ? ",'" . $_REQUEST['table'] . "'" : '' ) . ")";
-		}
+			$columns = [
+				'STUDENT_ID' => (int) $student_id,
+				'SCHOOL_DATE' => $date,
+				'PERIOD_ID' => (int) $_REQUEST['school_period'],
+				'MARKING_PERIOD_ID' => (int) $qtr_id,
+				'COURSE_PERIOD_ID' => UserCoursePeriod(),
+				'ATTENDANCE_CODE' => $student_attendance_code,
+				'ATTENDANCE_TEACHER_CODE' => $student_attendance_code,
+				'COMMENT' => trim( $_REQUEST['comment'][$student_id] ),
+			];
 
-		DBQuery( $sql );
+			if ( $table === 'lunch_period' )
+			{
+				$columns += [ 'TABLE_NAME' => (int) $_REQUEST['table'] ];
+			}
+
+			DBInsert( $table, $columns );
+		}
 
 		if ( $_REQUEST['table'] == '0' )
 		{
@@ -275,12 +299,15 @@ if ( ! empty( $_REQUEST['attendance'] )
 
 	if ( empty( $completed_RET ) )
 	{
-		DBQuery( "INSERT INTO attendance_completed (STAFF_ID,SCHOOL_DATE,PERIOD_ID,TABLE_NAME)
-			values(
-			'" . User( 'STAFF_ID' ) . "',
-			'" . $date . "',
-			'" . $_REQUEST['school_period'] . "',
-			'" . $_REQUEST['table'] . "')" );
+		DBInsert(
+			'attendance_completed',
+			[
+				'STAFF_ID' => User( 'STAFF_ID' ),
+				'SCHOOL_DATE' => $date,
+				'PERIOD_ID' => (int) $_REQUEST['school_period'],
+				'TABLE_NAME' => (int) $_REQUEST['table'],
+			]
+		);
 
 		// Hook.
 		do_action( 'Attendance/TakeAttendance.php|insert_attendance' );
@@ -332,7 +359,7 @@ $columns += [
 ];
 
 if ( ! isset( $extra['functions'] )
-	|| ! is_array( $extra['functions'] ) )
+     || ! is_array( $extra['functions'] ) )
 {
 	$extra['functions'] = [];
 }
@@ -367,17 +394,25 @@ if ( ! empty( $daily_comment ) )
 
 DrawHeader( $cp_title );
 
+/**
+ * Adding `'&period=' . UserCoursePeriod()` to the Teacher form URL will prevent the following issue:
+ * If form is displayed for CP A, then Teacher opens a new browser tab and switches to CP B
+ * Then teacher submits the form, data would be saved for CP B...
+ *
+ * Must be used in combination with
+ * `if ( ! empty( $_REQUEST['period'] ) ) SetUserCoursePeriod( $_REQUEST['period'] );`
+ */
 echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-	'&table=' . $_REQUEST['table']  ) . '" method="POST">';
+                                   '&table=' . $_REQUEST['table'] . '&period=' . UserCoursePeriod() ) . '" method="POST">';
 
 DrawHeader( $school_periods_select, SubmitButton() );
 
 $date_note = $date != DBDate() ? ' <span style="color:red" class="nobr">' .
-_( 'The selected date is not today' ) . '</span> |' : '';
+                                 _( 'The selected date is not today' ) . '</span> |' : '';
 
 $date_note .= AllowEdit() ? ' <span style="color:green" class="nobr">' .
-_( 'You can edit this attendance' ) . '</span>' :
-' <span style="color:red" class="nobr">' . _( 'You cannot edit this attendance' ) . '</span>';
+                            _( 'You can edit this attendance' ) . '</span>' :
+	' <span style="color:red" class="nobr">' . _( 'You cannot edit this attendance' ) . '</span>';
 
 $completed_RET = DBGet( "SELECT 'Y' AS COMPLETED
 	FROM attendance_completed
@@ -389,7 +424,7 @@ $completed_RET = DBGet( "SELECT 'Y' AS COMPLETED
 if ( $completed_RET )
 {
 	$note[] = button( 'check' ) . '&nbsp;' .
-	_( 'You already have taken attendance today for this period.' );
+	          _( 'You already have taken attendance today for this period.' );
 }
 
 DrawHeader( PrepareDate( $date, '_date', false, [ 'submit' => true ] ) . $date_note );
@@ -402,18 +437,18 @@ echo ErrorMessage( $error );
 echo ErrorMessage( $note, 'note' );
 
 $LO_columns = [
-	'FULL_NAME' => _( 'Student' ),
-	'STUDENT_ID' => sprintf( _( '%s ID' ), Config( 'NAME' ) ),
-	'GRADE_ID' => _( 'Grade Level' ),
-] + $columns;
+	              'FULL_NAME' => _( 'Student' ),
+	              'STUDENT_ID' => sprintf( _( '%s ID' ), Config( 'NAME' ) ),
+	              'GRADE_ID' => _( 'Grade Level' ),
+              ] + $columns;
 
 foreach ( (array) $categories_RET as $category )
 {
 	$tabs[] = [
 		'title' => ParseMLField( $category['TITLE'] ),
 		'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&table=' . $category['ID'] .
-		'&month_date=' . $_REQUEST['month_date'] . '&day_date=' . $_REQUEST['day_date'] .
-		'&year_date=' . $_REQUEST['year_date'],
+		          '&month_date=' . $_REQUEST['month_date'] . '&day_date=' . $_REQUEST['day_date'] .
+		          '&year_date=' . $_REQUEST['year_date'],
 	];
 }
 
@@ -457,7 +492,7 @@ echo '</form>';
 function _makeRadio( $value, $title )
 {
 	global $THIS_RET,
-		$current_RET;
+	       $current_RET;
 
 	$classes = [
 		'P' => 'present',
@@ -467,7 +502,7 @@ function _makeRadio( $value, $title )
 	];
 
 	if ( isset( $current_RET[$THIS_RET['STUDENT_ID']][1]['ATTENDANCE_TEACHER_CODE'] )
-		&& $current_RET[$THIS_RET['STUDENT_ID']][1]['ATTENDANCE_TEACHER_CODE'] == mb_substr( $title, 5 ) )
+	     && $current_RET[$THIS_RET['STUDENT_ID']][1]['ATTENDANCE_TEACHER_CODE'] == mb_substr( $title, 5 ) )
 	{
 		if ( isset( $_REQUEST['LO_save'] ) )
 		{
@@ -497,7 +532,7 @@ function _makeRadio( $value, $title )
 function _makeRadioSelected( $value, $title )
 {
 	global $THIS_RET,
-		$current_RET;
+	       $current_RET;
 
 	$classes = [
 		'P' => 'present',
@@ -574,7 +609,7 @@ function makeCommentInput( $student_id, $column )
 function makeAttendanceReason( $student_id, $column )
 {
 	global $current_RET,
-		$attendance_reason;
+	       $attendance_reason;
 
 	if ( ! empty( $current_RET[$student_id][1]['ATTENDANCE_REASON'] ) )
 	{
@@ -593,7 +628,7 @@ function makeAttendanceReason( $student_id, $column )
 function makeDailyComment( $student_id, $column )
 {
 	global $current_RET,
-		$daily_comment;
+	       $daily_comment;
 
 	if ( ! empty( $current_RET[$student_id][1]['DAILY_COMMENT'] ) )
 	{

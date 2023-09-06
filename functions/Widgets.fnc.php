@@ -12,6 +12,7 @@
  *
  * @since 5.1 Medical Immunization or Physical Widget.
  * @since 8.6 Use RosarioSIS\Widgets
+ * @since 10.4 Add Widgets init action hook
  *
  * @global array   $_ROSARIO       Sets $_ROSARIO['SearchTerms']
  * @global array   $extra
@@ -24,7 +25,7 @@
 function Widgets( $item, &$myextra = null )
 {
 	global $extra,
-		$_ROSARIO;
+	       $_ROSARIO;
 
 	static $widgets;
 
@@ -36,6 +37,16 @@ function Widgets( $item, &$myextra = null )
 
 		$widgets = new RosarioSIS\Widgets();
 	}
+
+	/**
+	 * Widgets init action hook
+	 * Add your add-on custom widgets to the $myextra['Widgets'] var:
+	 * $myextra['Widgets']['Addon_Name'] = [ 'widget_1', 'widget_2' ];
+	 * And load your custom \Addon_Name\Widget_[widget_name] class(es).
+	 *
+	 * @since 10.4
+	 */
+	do_action( 'functions/Widgets.fnc.php|widgets_init', [ $item, &$myextra ] );
 
 	// Do not use `! empty()` here.
 	if ( isset( $myextra ) )
@@ -50,7 +61,7 @@ function Widgets( $item, &$myextra = null )
 
 	// If insufficient rights, exit.
 	if ( User( 'PROFILE' ) !== 'admin'
-		&& User( 'PROFILE' ) !== 'teacher' )
+	     && User( 'PROFILE' ) !== 'teacher' )
 	{
 		return false;
 	}
@@ -70,7 +81,7 @@ function Widgets( $item, &$myextra = null )
 				}
 			}
 
-		break;
+			break;
 
 		// All Widgets (or almost).
 		case 'all':

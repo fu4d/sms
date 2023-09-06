@@ -12,6 +12,7 @@
  * @example User( 'PROFILE' )
  *
  * @since 7.6.1 Remove use of `$_SESSION['STAFF_ID'] === '-1'`.
+ * @since 11.1 Return EMAIL column for students too (empty if "Student email field" not set)
  *
  * @global array  $_ROSARIO Sets $_ROSARIO['User']
  *
@@ -35,15 +36,15 @@ function User( $item )
 	}
 
 	// Get User Info or Update it if Syear changed.
-	if ( ! isset( $_ROSARIO['User'] )
+	if ( ! isset( $_ROSARIO['User'][1]['SYEAR'] )
 		|| UserSyear() !== $_ROSARIO['User'][1]['SYEAR'] )
 	{
 		// Get User Info.
 		if ( ! empty( $_SESSION['STAFF_ID'] )
-			&& $_SESSION['STAFF_ID'] > 0 )
+		     && $_SESSION['STAFF_ID'] > 0 )
 		{
 			$sql = "SELECT STAFF_ID,USERNAME," . DisplayNameSQL() . " AS NAME,
-				PROFILE,PROFILE_ID,SCHOOLS,CURRENT_SCHOOL_ID,EMAIL,SYEAR,LAST_LOGIN
+				PROFILE,PROFILE_ID,SCHOOLS,CURRENT_SCHOOL_ID,EMAIL,SYEAR,LAST_LOGIN,ROLLOVER_ID
 				FROM staff
 				WHERE SYEAR='" . UserSyear() . "'
 				AND USERNAME=(SELECT USERNAME
@@ -55,21 +56,30 @@ function User( $item )
 		}
 		// Get Student Info.
 		elseif ( ! empty( $_SESSION['STUDENT_ID'] )
-			&& $_SESSION['STUDENT_ID'] > 0 )
+		         && $_SESSION['STUDENT_ID'] > 0 )
 		{
+			$email_column = "''";
+
+			if ( Config( 'STUDENTS_EMAIL_FIELD' ) )
+			{
+				$email_column = Config( 'STUDENTS_EMAIL_FIELD' ) === 'USERNAME' ?
+					's.USERNAME' : 's.CUSTOM_' . (int) Config( 'STUDENTS_EMAIL_FIELD' );
+			}
+
 			$sql = "SELECT '0' AS STAFF_ID,s.USERNAME," . DisplayNameSQL( 's' ) . " AS NAME,
 				'student' AS PROFILE,'0' AS PROFILE_ID,LAST_LOGIN,
+				" . $email_column . " AS EMAIL,
 				CONCAT(',', se.SCHOOL_ID, ',') AS SCHOOLS,se.SYEAR,se.SCHOOL_ID
 				FROM students s,student_enrollment se
 				WHERE s.STUDENT_ID='" . (int) $_SESSION['STUDENT_ID'] . "'
 				AND se.SYEAR='" . UserSyear() . "'
 				AND se.STUDENT_ID=s.STUDENT_ID
-				ORDER BY se.END_DATE DESC LIMIT 1";
+				ORDER BY se.END_DATE IS NULL DESC,se.END_DATE DESC LIMIT 1";
 
 			$_ROSARIO['User'] = DBGet( $sql );
 
 			if ( ! empty( $_ROSARIO['User'][1]['SCHOOL_ID'] )
-				&& $_ROSARIO['User'][1]['SCHOOL_ID'] !== UserSchool() )
+			     && $_ROSARIO['User'][1]['SCHOOL_ID'] !== UserSchool() )
 			{
 				$_SESSION['UserSchool'] = $_ROSARIO['User'][1]['SCHOOL_ID'];
 			}
@@ -101,17 +111,17 @@ function User( $item )
 function Preferences( $item, $program = 'Preferences' )
 {
 	global $_ROSARIO,
-		$locale;
+	       $locale;
 
 	if ( ! $item
-		|| ! $program )
+	     || ! $program )
 	{
 		return '';
 	}
 
 	// Get User Preferences.
 	if ( User( 'STAFF_ID' )
-		&& ! isset( $_ROSARIO['Preferences'][ $program ] ) )
+	     && ! isset( $_ROSARIO['Preferences'][ $program ] ) )
 	{
 		$_ROSARIO['Preferences'][ $program ] = DBGet( "SELECT TITLE,VALUE
 			FROM program_user_config
@@ -150,9 +160,9 @@ function Preferences( $item, $program = 'Preferences' )
 	 * for Parents & Students.
 	 */
 	if ( $item === 'SEARCH'
-		&& ! empty( $_SESSION['STAFF_ID'] )
-		&& User( 'PROFILE' ) === 'parent'
-		|| ! empty( $_SESSION['STUDENT_ID'] ) )
+	     && ! empty( $_SESSION['STAFF_ID'] )
+	     && User( 'PROFILE' ) === 'parent'
+	     || ! empty( $_SESSION['STUDENT_ID'] ) )
 	{
 		$_ROSARIO['Preferences'][ $program ]['SEARCH'][1]['VALUE'] = 'N';
 	}
@@ -160,7 +170,7 @@ function Preferences( $item, $program = 'Preferences' )
 	if ( $item === 'THEME' )
 	{
 		if ( Config( 'THEME_FORCE' )
-			&& ! empty( $_SESSION['STAFF_ID'] ) )
+		     && ! empty( $_SESSION['STAFF_ID'] ) )
 		{
 			/**
 			 * Force Default Theme.
@@ -194,7 +204,7 @@ function UserImpersonateTeacher( $teacher_id = 0 )
 	global $_ROSARIO;
 
 	if ( ! $teacher_id
-		&& ! UserCoursePeriod() )
+	     && ! UserCoursePeriod() )
 	{
 		return false;
 	}

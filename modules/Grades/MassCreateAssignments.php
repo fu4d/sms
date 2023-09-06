@@ -9,6 +9,9 @@ DrawHeader( ProgramTitle() . ' - ' . GetMP( UserMP() ) );
 // Add eventual Dates to $_REQUEST['tables'].
 AddRequestedDates( 'tables', 'post' );
 
+// Get admin's Gradebook Configuration. Empty if does not override individual teacher configuration.
+$gradebook_config = ProgramUserConfig( 'Gradebook' );
+
 // TODO: add Warning before create!!
 if ( isset( $_POST['tables'] )
 	&& ! empty( $_POST['tables'] ) )
@@ -20,7 +23,7 @@ if ( isset( $_POST['tables'] )
 		// FJ textarea fields HTML sanitize.
 		if ( isset( $columns['DESCRIPTION'] ) )
 		{
-			$columns['DESCRIPTION'] = SanitizeHTML( $_POST['tables'][ $id ]['DESCRIPTION'] );
+			$columns['DESCRIPTION'] = DBEscapeString( SanitizeHTML( $_POST['tables'][ $id ]['DESCRIPTION'] ) );
 		}
 
 		// FJ added SQL constraint TITLE & POINTS are not null.
@@ -161,7 +164,8 @@ if ( isset( $_POST['tables'] )
 
 		$sql = '';
 
-		if ( $table === 'gradebook_assignments' )
+		if ( $table === 'gradebook_assignments'
+			&& ! empty( $_REQUEST['cp_arr'] ) )
 		{
 			foreach ( (array) $_REQUEST['cp_arr'] as $cp_id )
 			{
@@ -198,17 +202,30 @@ if ( isset( $_POST['tables'] )
 					') values(' . mb_substr( $values_final, 0, -1 ) . ');';
 			}
 		}
-		elseif ( $table === 'gradebook_assignment_types' )
+		elseif ( $table === 'gradebook_assignment_types'
+			&& ! empty( $_REQUEST['c_arr'] ) )
 		{
 			foreach ( (array) $_REQUEST['c_arr'] as $c_id )
 			{
 				foreach ( (array) $assignment_courses_teachers_RET[ $c_id ] as $assignment_course_teacher )
 				{
+					$c_teacher = $assignment_course_teacher['TEACHER_ID'];
+
+					// @since 11.2 Do NOT create Assignment Type if already exists for Course & Teacher
+					$assignment_type_exists = DBGetOne( "SELECT 1
+						FROM " . DBEscapeIdentifier( $table ) . "
+						WHERE COURSE_ID='" . (int) $c_id . "'
+						AND STAFF_ID='" . (int) $c_teacher . "'
+						AND TRIM(TITLE)=TRIM('" . $columns['TITLE'] . "')" );
+
+					if ( $assignment_type_exists )
+					{
+						continue;
+					}
+
 					$sql .= "INSERT INTO " . DBEscapeIdentifier( $table ) . " ";
 
 					$fields_final = $fields . 'COURSE_ID,STAFF_ID,';
-
-					$c_teacher = $assignment_course_teacher['TEACHER_ID'];
 
 					$values_final = $values . "'" . $c_id . "','" . $c_teacher . "',";
 
@@ -273,7 +290,8 @@ if ( ! $_REQUEST['modfunc'] )
 	if ( $_REQUEST['assignment_type']
 		&& $_REQUEST['assignment_type'] !== 'new' )
 	{
-		echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&assignment_type=' . $_REQUEST['assignment_type'] . '&table=gradebook_assignments' ) . '" method="POST">';
+		// Fix URL encode assignment_type value to encode "/"
+		echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&assignment_type=' . urlencode( $_REQUEST['assignment_type'] ) . '&table=gradebook_assignments' ) . '" method="POST">';
 
 		$submit_button = SubmitButton( _( 'Create Assignment for Selected Course Periods' ) );
 
@@ -300,14 +318,25 @@ if ( ! $_REQUEST['modfunc'] )
 
 		$header .= '</tr><tr class="st">';
 
+		$points_min = 0;
+
+		$points_tooltip = '<div id="points_tooltip" class="tooltip"><i>' .
+			_( 'Enter 0 so you can give students extra credit' ) .
+			'</i></div>';
+
+		if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
+		{
+			// Disable Extra Credit assignments if "Weight Assignments".
+			$points_min = 1;
+
+			$points_tooltip = '';
+		}
+
 		$header .= '<td>' . TextInput(
 			'',
 			'tables[new][POINTS]',
-			_( 'Points' ) .
-				'<div class="tooltip"><i>' .
-					_( 'Enter 0 so you can give students extra credit' ) .
-				'</i></div>',
-			' type="number" min="0" max="9999" required'
+			_( 'Points' ) . $points_tooltip,
+			' type="number" min="' . (int) $points_min . '" max="9999" required'
 		) . '</td>';
 
 		$header .= '<td>' . TextInput(
@@ -319,6 +348,44 @@ if ( ! $_REQUEST['modfunc'] )
 				'</i></div>',
 			' size=4 maxlength=4'
 		) . '</td>';
+
+		if ( empty( $gradebook_config )
+			|| ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
+		{
+			// @since 11.0 Add Weight Assignments option
+			$header .= '</tr><tr class="st">';
+
+			$required = ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) ? ' required' : '';
+
+			$header .= '<td colspan="2">' . TextInput(
+				'',
+				'tables[new][WEIGHT]',
+				_( 'Weight' ),
+				' type="number" min="0" max="100"' . $required
+			) . '</td>';
+
+			if ( ! $required )
+			{
+				ob_start();
+
+				// JS handle case: Weight is set => Set min Points to 1 & hide tooltip.
+				?>
+				<script>
+					$('#tablesnewWEIGHT').change(function() {
+						if ($(this).val() != '') {
+							$('#tablesnewPOINTS').attr('min', 1);
+							$('#points_tooltip').hide();
+						} else {
+							$('#tablesnewPOINTS').attr('min', 0);
+							$('#points_tooltip').show().css('display', 'inline-block');
+						}
+					});
+				</script>
+				<?php
+
+				$header .= ob_get_clean();
+			}
+		}
 
 		$header .= '</tr><tr class="st">';
 
@@ -379,15 +446,19 @@ if ( ! $_REQUEST['modfunc'] )
 			'required maxlength=100 size=20'
 		) . '</td>';
 
-		$header .= '<td>' . TextInput(
-			'',
-			'tables[new][FINAL_GRADE_PERCENT]',
-			_( 'Percent of Final Grade' )/* .
-			'<div class="tooltip"><i>' .
-				_( 'Will be applied only if teacher configured his gradebook so grades are Weighted' ) .
-			'</i></div>'*/,
-			'maxlength="5" size="4"'
-		) . '</td>';
+		if ( empty( $gradebook_config )
+			|| $gradebook_config['WEIGHT'] == 'Y' )
+		{
+			$header .= '<td>' . TextInput(
+				'',
+				'tables[new][FINAL_GRADE_PERCENT]',
+				_( 'Percent of Final Grade' )/* .
+				'<div class="tooltip"><i>' .
+					_( 'Will be applied only if teacher configured his gradebook so grades are Weighted' ) .
+				'</i></div>'*/,
+				'maxlength="5" size="4"'
+			) . '</td>';
+		}
 
 		$header .= '<td>' . ColorInput(
 			'',
@@ -408,7 +479,7 @@ if ( ! $_REQUEST['modfunc'] )
 	// DISPLAY THE MENU
 	// ASSIGNMENT TYPES.
 	// @since 4.5 Hide previous quarters assignment types.
-	$assignment_types_sql = "SELECT DISTINCT TRIM(TITLE) AS TITLE
+	$assignment_types_sql = "SELECT DISTINCT TRIM(TITLE) AS TITLE,TRIM(TITLE) AS TITLE_FOR_LINK
 	FROM gradebook_assignment_types
 	WHERE COURSE_ID IN (SELECT COURSE_ID
 		FROM course_periods
@@ -422,7 +493,7 @@ if ( ! $_REQUEST['modfunc'] )
 			AND STAFF_ID=USER_ID))
 	ORDER BY TITLE";
 
-	$types_RET = DBGet( $assignment_types_sql );
+	$types_RET = DBGet( $assignment_types_sql, [ 'TITLE' => '_makeTitle' ] );
 
 	if ( $_REQUEST['assignment_type'] !== 'new' )
 	{
@@ -441,7 +512,7 @@ if ( ! $_REQUEST['modfunc'] )
 
 	$link['TITLE']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=' . $_REQUEST['modfunc'];
 
-	$link['TITLE']['variables'] = [ 'assignment_type' => 'TITLE' ];
+	$link['TITLE']['variables'] = [ 'assignment_type' => 'TITLE_FOR_LINK' ];
 
 	$link['add']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] . '&assignment_type=new';
 
@@ -466,14 +537,14 @@ if ( ! $_REQUEST['modfunc'] )
 		$LO_options
 	);
 
-	echo '</div>';
+	echo '</div><div class="st">';
 
 	if ( $header )
 	{
 		if ( $_REQUEST['assignment_type'] === 'new' )
 		{
 			$columns = [
-				'COURSE_ID' => MakeChooseCheckbox( 'Y', '', 'c_arr' ),
+				'COURSE_ID' => MakeChooseCheckbox( '', '', 'c_arr' ),
 				'TITLE' => _( 'Course' ),
 				'SUBJECT' => _( 'Subject' ),
 			];
@@ -519,7 +590,7 @@ if ( ! $_REQUEST['modfunc'] )
 				AND cp2.MARKING_PERIOD_ID IN (" . GetAllMP( 'QTR', UserMP() ) . "))";
 
 			$columns = [
-				'COURSE_PERIOD_ID' => MakeChooseCheckbox( 'Y', '', 'cp_arr' ),
+				'COURSE_PERIOD_ID' => MakeChooseCheckbox( '', '', 'cp_arr' ),
 				'COURSE' => _( 'Course' ),
 				'TITLE' => _( 'Period' ) . ' ' . _( 'Days' ) . ' - ' . _( 'Short Name' ) . ' - ' . _( 'Teacher' ),
 				'MARKING_PERIOD_ID' => _( 'Marking Period' ),
@@ -550,7 +621,45 @@ if ( ! $_REQUEST['modfunc'] )
 			);
 		}
 
-		echo '<div class="center">' . $submit_button . '</div>';
+		echo '</div><div class="center" style="clear: left">' . $submit_button . '</div>';
 		echo '</form>';
 	}
+}
+
+/**
+ * Make Assignment (Type) Title
+ * Truncate Assignment title to 36 chars only if has words > 36 chars
+ *
+ * Local function.
+ * GetStuList() DBGet() callback.
+ *
+ * @since 10.5.2
+ *
+ * @param  string $value  Title value.
+ * @param  string $column Column. Defaults to 'TITLE'.
+ *
+ * @return string         Assignment title truncated to 36 chars.
+ */
+function _makeTitle( $value, $column = 'TITLE' )
+{
+	// Split on spaces.
+	$title_words = explode( ' ', $value );
+
+	$truncate = false;
+
+	foreach ( $title_words as $title_word )
+	{
+		if ( mb_strlen( $title_word ) > 36 )
+		{
+			$truncate = true;
+
+			break;
+		}
+	}
+
+	$title = ! $truncate ?
+		$value :
+		'<span title="' . AttrEscape( $value ) . '">' . mb_substr( $value, 0, 33 ) . '...</span>';
+
+	return $title;
 }

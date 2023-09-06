@@ -64,16 +64,17 @@ if ( $_REQUEST['modfunc'] === 'upload'
 			// Remove path.
 			$addon_dir = str_replace( $FileUploadsPath . 'upload-module/', '', $addon_dir_path );
 
-			if ( mb_substr( $addon_dir, -1, 7 ) === '-master' )
+			if ( mb_substr( $addon_dir, -7, 7 ) === '-master' )
 			{
 				// Remove trailing '-master'.
-				$addon_dir = mb_substr( $addon_dir, -1, 7 );
+				$addon_dir = mb_substr( $addon_dir, 0, mb_strlen( $addon_dir ) -7 );
 			}
 
 			// Check add-on is not a core module...
 			if ( ! in_array( $addon_dir, $RosarioCoreModules ) )
 			{
-				if ( _delTree( 'modules/' . $addon_dir ) )
+				if ( ! file_exists( 'modules/' . $addon_dir )
+					|| _delTree( 'modules/' . $addon_dir ) )
 				{
 					// Remove warning if directory already exists: just overwrite.
 					rename( $addon_dir_path, 'modules/' . $addon_dir );
@@ -198,6 +199,9 @@ if ( $_REQUEST['modfunc'] === 'activate'
 			{
 				// @since 10.0 Install module: execute the install_mysql.sql script for MySQL
 				$install_sql_file = 'modules/' . $_REQUEST['module'] . '/install_mysql.sql';
+
+				// @since 10.4.3 MySQL always use InnoDB (default), avoid MyISAM
+				DBQuery( "SET default_storage_engine=InnoDB;" );
 			}
 
 			if ( file_exists( $install_sql_file ) )
@@ -213,13 +217,23 @@ if ( $_REQUEST['modfunc'] === 'activate'
 				DBQuery( $install_sql );
 			}
 
-			$locale_code = mb_substr( $locale, 0, 2 );
+			// @since 10.9.3 Add-on SQL translation file can be named "install_es.sql" or "install_pt_BR.sql"
+			$install_locale_paths = [
+				'modules/' . $_REQUEST['module'] . '/install_' . mb_substr( $locale, 0, 2 ) . '.sql',
+				'modules/' . $_REQUEST['module'] . '/install_' . mb_substr( $locale, 0, 5 ) . '.sql',
+			];
 
-			if ( file_exists( 'modules/' . $_REQUEST['module'] . '/install_' . $locale_code . '.sql' ) )
+			foreach ( $install_locale_paths as $install_locale_path )
 			{
-				// @since 7.3 Translate database on add-on install: run 'install_fr.sql' file.
-				$install_locale_sql = file_get_contents( 'modules/' . $_REQUEST['module'] . '/install_' . $locale_code . '.sql' );
-				DBQuery( $install_locale_sql );
+				if ( file_exists( $install_locale_path ) )
+				{
+					// @since 7.3 Translate database on add-on install: run 'install_fr.sql' file.
+					$install_locale_sql = file_get_contents( $install_locale_path );
+
+					DBQuery( $install_locale_sql );
+
+					break;
+				}
 			}
 
 			$update_RosarioModules = true;
@@ -283,6 +297,19 @@ if ( ! $_REQUEST['modfunc'] )
 
 	foreach ( $modules as $module )
 	{
+		if ( mb_substr( $module, -7, 7 ) === '-master'
+			&& is_writable( $module ) )
+		{
+			// @since 11.0.2 Remove "-master" suffix from manually uploaded add-ons
+			$module_without_master = mb_substr( $module, 0, mb_strlen( $module ) -7 );
+
+			if ( ! file_exists( $module_without_master )
+				&& @rename( $module, $module_without_master ) )
+			{
+				$module = $module_without_master;
+			}
+		}
+
 		$module_title = str_replace( 'modules/', '', $module );
 
 		$THIS_RET = [];
@@ -379,7 +406,7 @@ function _makeDelete( $module_title, $activated = null )
 			$return = button(
 				'remove',
 				_( 'Deactivate' ),
-				'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=modules&modfunc=deactivate&module=' . $module_title ) . '"'
+				URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=modules&modfunc=deactivate&module=' . $module_title )
 			);
 		}
 	}
@@ -390,7 +417,7 @@ function _makeDelete( $module_title, $activated = null )
 			$return = button(
 				'add',
 				_( 'Activate' ),
-				'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=modules&modfunc=activate&module=' . $module_title ) . '"'
+				URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=modules&modfunc=activate&module=' . $module_title )
 			);
 
 			// @since 8.0 Add-on disable delete.
@@ -408,7 +435,7 @@ function _makeDelete( $module_title, $activated = null )
 				button(
 					'remove',
 					_( 'Delete' ),
-					'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=modules&modfunc=delete&module=' . $module_title ) . '"'
+					URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=modules&modfunc=delete&module=' . $module_title )
 				);
 			}
 		}
@@ -440,6 +467,11 @@ function _makeReadMe( $module_title, $activated = null )
 	else
 	{
 		$module_title_echo = _( str_replace( '_', ' ', $module_title ) );
+
+		if ( $module_title === 'School_Setup' )
+		{
+			$module_title_echo = _( 'School' );
+		}
 	}
 
 	$readme_path = 'modules/' . $module_title . '/README';

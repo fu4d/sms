@@ -5,6 +5,15 @@ require_once 'modules/Accounting/functions.inc.php';
 
 $_REQUEST['print_statements'] = issetVal( $_REQUEST['print_statements'], '' );
 
+// Set start date.
+$start_date = RequestedDate( 'start', '' );
+
+// Fix PostgreSQL error if BETWEEN date is empty.
+$start_date_sql = $start_date ? $start_date : '1900-01-01';
+
+// Set end date.
+$end_date = RequestedDate( 'end', DBDate() );
+
 if ( empty( $_REQUEST['print_statements'] ) )
 {
 	DrawHeader( ProgramTitle() );
@@ -19,68 +28,52 @@ if ( ! empty( $_REQUEST['values'] )
 
 	foreach ( (array) $_REQUEST['values'] as $id => $columns )
 	{
+		if ( isset( $columns['CATEGORY_ID'] )
+			&& $columns['CATEGORY_ID'] === '0' )
+		{
+			// Category ID 0 is N/A, reset to NULL.
+			$columns['CATEGORY_ID'] = '';
+		}
+
 		if ( $id !== 'new' )
 		{
-			$sql = "UPDATE accounting_incomes SET ";
+			$columns['FILE_ATTACHED'] = _saveIncomesFile( $id );
 
-			foreach ( (array) $columns as $column => $value )
+			if ( ! $columns['FILE_ATTACHED'] )
 			{
-				$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
+				unset( $columns['FILE_ATTACHED'] );
 			}
 
-			$sql = mb_substr( $sql, 0, -1 ) . " WHERE ID='" . (int) $id . "'";
-			DBQuery( $sql );
+			DBUpdate(
+				'accounting_incomes',
+				$columns,
+				[ 'ID' => (int) $id ]
+			);
 		}
 		elseif ( $columns['AMOUNT'] !== ''
-			&& $columns['ASSIGNED_DATE'] )
+			&& $columns['ASSIGNED_DATE']
+			&& $columns['TITLE'] )
 		{
-			$sql = "INSERT INTO accounting_incomes ";
+			$insert_columns = [ 'SYEAR' => UserSyear(), 'SCHOOL_ID' => UserSchool() ];
 
-			$fields = 'SCHOOL_ID,SYEAR,';
-			$values = "'" . UserSchool() . "','" . UserSyear() . "',";
+			$columns['AMOUNT'] = preg_replace( '/[^0-9.-]/', '', $columns['AMOUNT'] );
 
-			if ( isset( $_FILES['FILE_ATTACHED'] ) )
+			if ( ! is_numeric( $columns['AMOUNT'] ) )
 			{
-				$columns['FILE_ATTACHED'] = FileUpload(
-					'FILE_ATTACHED',
-					$FileUploadsPath . UserSyear() . '/staff_' . User( 'STAFF_ID' ) . '/',
-					FileExtensionWhiteList(),
-					0,
-					$error
-				);
-
-				// Fix SQL error when quote in uploaded file name.
-				$columns['FILE_ATTACHED'] = DBEscapeString( $columns['FILE_ATTACHED'] );
+				$columns['AMOUNT'] = 0;
 			}
 
-			$go = 0;
+			$columns['FILE_ATTACHED'] = _saveIncomesFile( $id );
 
-			foreach ( (array) $columns as $column => $value )
-			{
-				if ( ! empty( $value ) || $value == '0' )
-				{
-					if ( $column == 'AMOUNT' )
-					{
-						$value = preg_replace( '/[^0-9.-]/', '', $value );
-					}
-
-					$fields .= DBEscapeIdentifier( $column ) . ',';
-					$values .= "'" . $value . "',";
-					$go = true;
-				}
-			}
-
-			$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-
-			if ( $go )
-			{
-				DBQuery( $sql );
-			}
+			DBInsert(
+				'accounting_incomes',
+				$insert_columns + $columns
+			);
 		}
 	}
 
-	// Unset values & redirect URL.
-	RedirectURL( 'values' );
+	// Unset values & dates & redirect URL.
+	RedirectURL( [ 'values', 'month_values', 'day_values', 'year_values' ] );
 }
 
 if ( $_REQUEST['modfunc'] === 'remove'
@@ -113,18 +106,21 @@ if ( ! $_REQUEST['modfunc'] )
 
 	$functions = [
 		'REMOVE' => '_makeIncomesRemove',
+		'CATEGORY_ID' => '_makeIncomesCategory',
 		'ASSIGNED_DATE' => 'ProperDate',
 		'COMMENTS' => '_makeIncomesTextInput',
 		'AMOUNT' => '_makeIncomesAmount',
 		'FILE_ATTACHED' => '_makeIncomesFileInput',
 	];
 
-	$incomes_RET = DBGet( "SELECT '' AS REMOVE,f.ID,f.TITLE,f.ASSIGNED_DATE,f.COMMENTS,
+	$incomes_RET = DBGet( "SELECT '' AS REMOVE,f.ID,f.TITLE,f.CATEGORY_ID,f.ASSIGNED_DATE,f.COMMENTS,
 		f.AMOUNT,f.FILE_ATTACHED
 		FROM accounting_incomes f
 		WHERE f.SYEAR='" . UserSyear() . "'
 		AND f.SCHOOL_ID='" . UserSchool() . "'
-		ORDER BY f.ASSIGNED_DATE", $functions );
+		AND f.ASSIGNED_DATE BETWEEN '" . $start_date_sql . "'
+		AND '" . $end_date . "'
+		ORDER BY f.ASSIGNED_DATE,f.ID", $functions );
 
 	$i = 1;
 	$RET = [];
@@ -147,8 +143,9 @@ if ( ! $_REQUEST['modfunc'] )
 
 	$columns += [
 		'TITLE' => _( 'Income' ),
+		'CATEGORY_ID' => _( 'Category' ),
 		'AMOUNT' => _( 'Amount' ),
-		'ASSIGNED_DATE' => _( 'Assigned' ),
+		'ASSIGNED_DATE' => _( 'Date' ),
 		'COMMENTS' => _( 'Comment' ),
 	];
 
@@ -162,6 +159,7 @@ if ( ! $_REQUEST['modfunc'] )
 		$link['add']['html'] = [
 			'REMOVE' => button( 'add' ),
 			'TITLE' => _makeIncomesTextInput( '', 'TITLE' ),
+			'CATEGORY_ID' => _makeIncomesCategory( '', 'CATEGORY_ID' ),
 			'AMOUNT' => _makeIncomesTextInput( '', 'AMOUNT' ),
 			'ASSIGNED_DATE' => _makeIncomesDateInput( DBDate(), 'ASSIGNED_DATE' ),
 			'COMMENTS' => _makeIncomesTextInput( '', 'COMMENTS' ),
@@ -169,20 +167,28 @@ if ( ! $_REQUEST['modfunc'] )
 		];
 	}
 
-	if ( empty( $_REQUEST['print_statements'] ) )
+	if ( ! $_REQUEST['print_statements'] )
 	{
-		echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname']  ) . '" method="POST">';
+		echo '<form action="' . PreparePHP_SELF() . '" method="GET">';
 
-		if ( AllowEdit() )
-		{
-			DrawHeader( '', SubmitButton() );
-		}
+		DrawHeader( _( 'Timeframe' ) . ': ' .
+			PrepareDate( $start_date, '_start', true ) . ' &nbsp; ' . _( 'to' ) . ' &nbsp; ' .
+			PrepareDate( $end_date, '_end', false ) . ' ' . Buttons( _( 'Go' ) ) );
+
+		echo '</form>';
+	}
+
+	if ( ! $_REQUEST['print_statements'] && AllowEdit() )
+	{
+		echo '<form action="' . PreparePHP_SELF() . '" method="POST">';
+
+		DrawHeader( '', SubmitButton() );
 
 		$options = [];
 	}
 	else
 	{
-		$options = [ 'center' => false ];
+		$options = [ 'center' => false, 'add' => false ];
 	}
 
 	ListOutput( $RET, $columns, 'Income', 'Incomes', $link, [], $options );
@@ -199,7 +205,9 @@ if ( ! $_REQUEST['modfunc'] )
 		FROM accounting_payments p
 		WHERE p.STAFF_ID IS NULL
 		AND p.SYEAR='" . UserSyear() . "'
-		AND p.SCHOOL_ID='" . UserSchool() . "'" );
+		AND p.SCHOOL_ID='" . UserSchool() . "'
+		AND p.PAYMENT_DATE BETWEEN '" . $start_date_sql . "'
+		AND '" . $end_date . "'" );
 
 	$table = '<table class="align-right accounting-totals"><tr><td>' . _( 'Total from Incomes' ) . ': ' . '</td><td>' . Currency( $incomes_total ) . '</td></tr>';
 
@@ -208,14 +216,16 @@ if ( ! $_REQUEST['modfunc'] )
 	$table .= '<tr><td>' . _( 'Balance' ) . ': <b>' . '</b></td><td><b id="update_balance">' . Currency(  ( $incomes_total - $payments_total ) ) . '</b></td></tr>';
 
 	//add General Balance
-	$table .= '<tr><td colspan="2"><hr /></td></tr><tr><td>' . _( 'Total from Incomes' ) . ': ' . '</td><td>' . Currency( $incomes_total ) . '</td></tr>';
+	$table .= '<tr><td colspan="2"><hr></td></tr><tr><td>' . _( 'Total from Incomes' ) . ': ' . '</td><td>' . Currency( $incomes_total ) . '</td></tr>';
 
 	if ( $RosarioModules['Student_Billing'] )
 	{
 		$student_payments_total = DBGetOne( "SELECT SUM(p.AMOUNT) AS TOTAL
 			FROM billing_payments p
 			WHERE p.SYEAR='" . UserSyear() . "'
-			AND p.SCHOOL_ID='" . UserSchool() . "'" );
+			AND p.SCHOOL_ID='" . UserSchool() . "'
+			AND p.PAYMENT_DATE BETWEEN '" . $start_date_sql . "'
+			AND '" . $end_date . "'" );
 
 		$table .= '<tr><td>& ' . _( 'Total from Student Payments' ) . ': ' . '</td><td>' . Currency( $student_payments_total ) . '</td></tr>';
 	}
@@ -230,7 +240,9 @@ if ( ! $_REQUEST['modfunc'] )
 		FROM accounting_payments p
 		WHERE p.STAFF_ID IS NOT NULL
 		AND p.SYEAR='" . UserSyear() . "'
-		AND p.SCHOOL_ID='" . UserSchool() . "'" );
+		AND p.SCHOOL_ID='" . UserSchool() . "'
+		AND p.PAYMENT_DATE BETWEEN '" . $start_date_sql . "'
+		AND '" . $end_date . "'" );
 
 	$table .= '<tr><td>& ' . _( 'Total from Staff Payments' ) . ': ' . '</td><td>' . Currency( $staff_payments_total ) . '</td></tr>';
 

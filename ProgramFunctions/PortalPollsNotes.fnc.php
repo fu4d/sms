@@ -88,7 +88,7 @@ function PortalPollsSaveVotes( $poll_questions_RET, $votes_array )
 					$voted_array[$question['ID']][$checked_box]++;
 				}
 			}
-			else // Multiple_radio.
+			elseif ( isset( $votes_array[$question['ID']] ) ) // Multiple_radio.
 			{
 				$voted_array[$question['ID']][$votes_array[$question['ID']]]++;
 			}
@@ -99,7 +99,8 @@ function PortalPollsSaveVotes( $poll_questions_RET, $votes_array )
 
 			$options_array = explode( "\r", str_replace( [ "\r\n", "\n" ], "\r", $question['OPTIONS'] ) );
 
-			if ( is_array( $votes_array[$question['ID']] ) ) // Multiple.
+			if ( isset( $votes_array[$question['ID']] )
+				&& is_array( $votes_array[$question['ID']] ) ) // Multiple.
 			{
 				foreach ( $options_array as $option_nb => $option_label )
 				{
@@ -115,7 +116,7 @@ function PortalPollsSaveVotes( $poll_questions_RET, $votes_array )
 			{
 				foreach ( $options_array as $option_nb => $option_label )
 				{
-					$voted_array[$question['ID']][$option_nb] = ( $votes_array[$question['ID']] == $option_nb ? 1 : 0 );
+					$voted_array[$question['ID']][$option_nb] = ( isset( $votes_array[$question['ID']] ) && $votes_array[$question['ID']] == $option_nb ? 1 : 0 );
 				}
 			}
 		}
@@ -201,14 +202,7 @@ function GetPortalPollUser()
 {
 	$profile_id = User( 'PROFILE_ID' );
 
-	if ( $profile_id !== '0' ) // FJ call right Student/Staff ID.
-	{
-		$user_id = $_SESSION['STAFF_ID'];
-	}
-	else
-	{
-		$user_id = $_SESSION['STUDENT_ID'];
-	}
+	$user_id = User( 'STAFF_ID' ) ? User( 'STAFF_ID' ) : UserStudentID();
 
 	if ( ! $user_id )
 	{
@@ -260,7 +254,7 @@ function PortalPollForm( $poll_id, $poll_questions_RET )
 				$poll_form .= '<tr><td>
 					<label>
 					<input type="radio" name="' . AttrEscape( $name ) . '" value="' .
-					AttrEscape( $option_nb ) . '" ' . ( $checked ? 'checked' : '' ) . ' />&nbsp;' .
+					AttrEscape( $option_nb ) . '" ' . ( $checked ? 'checked' : '' ) . '>&nbsp;' .
 					$option_label .
 					'</label>
 					</td></tr>' . "\n";
@@ -272,7 +266,7 @@ function PortalPollForm( $poll_id, $poll_questions_RET )
 				$poll_form .= '<tr><td>
 					<label>
 					<input type="checkbox" name="' . AttrEscape( $name ) . '" value="' .
-					AttrEscape( $option_nb ) . '" />&nbsp;' . $option_label .
+					AttrEscape( $option_nb ) . '">&nbsp;' . $option_label .
 					'</label>
 					</td></tr>' . "\n";
 			}
@@ -341,7 +335,12 @@ function PortalPollsVotesDisplay( $poll_id, $display_votes, $poll_questions_RET,
 
 		for ( $i = 0; $i < $options_array_count; $i++ )
 		{
-			$percent = round(  ( $votes_array[$i] / $total_votes ) * 100 );
+			$percent = 0;
+
+			if ( $total_votes )
+			{
+				$percent = round( ( $votes_array[$i] / $total_votes ) * 100 );
+			}
 
 			$votes_display .= '<tr>
 				<td>' . $options_array[$i] . '</td>
@@ -386,7 +385,7 @@ function makePublishing( $value, $name )
 	$return = '<div id="divPublishing' . $id . '" class="rt2colorBox">' . "\n";
 
 	//FJ remove LO_field
-	$return .= '<table class="widefat"><tr><td><b>' . _( 'Visible Between' ) . ':</b><br />';
+	$return .= '<table class="widefat"><tr><td><b>' . _( 'Visible Between' ) . ':</b><br>';
 	$return .= DateInput( $value, 'values[' . $id . '][' . $name . ']' ) . ' ' . _( 'to' ) . ' ';
 	$return .= DateInput( issetVal( $THIS_RET['END_DATE'] ), 'values[' . $id . '][END_DATE]' ) . '</td></tr>';
 
@@ -396,12 +395,33 @@ function makePublishing( $value, $name )
 	{
 		$profiles_RET = DBGet( "SELECT ID,TITLE FROM user_profiles ORDER BY ID" );
 
-		//add Profiles with Custom permissions to profiles list
-		$profiles = array_merge( [
-			[ 'ID' => 'admin', 'TITLE' => _( 'Administrator w/Custom' ) ],
-			[ 'ID' => 'teacher', 'TITLE' => _( 'Teacher w/Custom' ) ],
-			[ 'ID' => 'parent', 'TITLE' => _( 'Parent w/Custom' ) ],
-		], $profiles_RET );
+		$custom_permissions = [];
+
+		$there_is_user_with_custom = function( $profile )
+		{
+			return (bool) DBGetOne( "SELECT 1 FROM staff
+				WHERE PROFILE='" . DBEscapeString( $profile ) . "'
+				AND PROFILE_ID IS NULL
+				AND SYEAR='" . UserSyear() . "'" );
+		};
+
+		if ( $there_is_user_with_custom( 'admin' ) )
+		{
+			$custom_permissions[] = [ 'ID' => 'admin', 'TITLE' => _( 'Administrator w/Custom' ) ];
+		}
+
+		if ( $there_is_user_with_custom( 'teacher' ) )
+		{
+			$custom_permissions[] = [ 'ID' => 'teacher', 'TITLE' => _( 'Teacher w/Custom' ) ];
+		}
+
+		if ( $there_is_user_with_custom( 'parent' ) )
+		{
+			$custom_permissions[] = [ 'ID' => 'parent', 'TITLE' => _( 'Parent w/Custom' ) ];
+		}
+
+		// Add Profiles with Custom permissions to profiles list.
+		$profiles = array_merge( $custom_permissions, $profiles_RET );
 	}
 
 	$return .= makePublishingVisibleTo( $profiles, $THIS_RET, $id );
@@ -436,10 +456,10 @@ function makePublishingVisibleTo( $profiles, $THIS_RET, $id )
 	// @since 9.2.1 SQL replace use of STRPOS() with LIKE, compatible with MySQL.
 	$teachers_RET = DBGet( "SELECT STAFF_ID," . DisplayNameSQL() . " AS FULL_NAME
 	FROM staff
-	WHERE (SCHOOLS LIKE '%," . UserSchool() . ",%' OR SCHOOLS IS NULL)
+	WHERE (SCHOOLS IS NULL OR position('," . UserSchool() . ",' IN SCHOOLS)>0)
 	AND SYEAR='" . UserSyear() . "'
 	AND PROFILE='teacher'
-	ORDER BY LAST_NAME,FIRST_NAME" );
+	ORDER BY FULL_NAME" );
 
 	$teachers = [];
 
@@ -520,9 +540,9 @@ function makeFileAttached( $value, $name )
 		$filesAttachedCount++;
 
 		//FJ colorbox
-		$view_online = '<img src="assets/themes/' . Preferences( 'THEME' ) . '/btn/visualize.png" class="button bigger" /> ' . _( 'View Online' ) . '';
+		$view_online = '<img src="assets/themes/' . Preferences( 'THEME' ) . '/btn/visualize.png" class="button bigger"> ' . _( 'View Online' ) . '';
 
-		$download = '<img src="assets/themes/' . Preferences( 'THEME' ) . '/btn/download.png" class="button bigger" /> ' . _( 'Download' ) . '';
+		$download = '<img src="assets/themes/' . Preferences( 'THEME' ) . '/btn/download.png" class="button bigger"> ' . _( 'Download' ) . '';
 
 		if ( filter_var( $value, FILTER_VALIDATE_URL ) !== false ) //embed link
 		{
@@ -538,11 +558,11 @@ function makeFileAttached( $value, $name )
 
 	$return .= FileInput( $name . '_FILE', _( 'File Attached' ) );
 
-	$return .= '<br />' . TextInput(
+	$return .= '<br>' . TextInput(
 		'',
 		'values[' . $id . '][' . $name . '_EMBED]',
 		_( 'Embed Link' ),
-		'size="14" placeholder="http://"'
+		'size="22" placeholder="https://"'
 	) . '</div></div>';
 
 	return $return;

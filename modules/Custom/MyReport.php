@@ -1,6 +1,6 @@
 <?php
 
-DrawHeader(_(ProgramTitle()));
+DrawHeader( ProgramTitle() );
 
 if ( ! $_REQUEST['modfunc'] )
 {
@@ -82,7 +82,7 @@ if ( ! $_REQUEST['modfunc'] )
 			if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 			{
 				$header_left = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'address_group' => '' ] ) . '">' .
-					_( 'Ungroup by Family' ) . '</a>';
+				               _( 'Ungroup by Family' ) . '</a>';
 			}
 		}
 		else
@@ -94,7 +94,7 @@ if ( ! $_REQUEST['modfunc'] )
 			if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 			{
 				$header_left = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'address_group' => 'Y' ] ) . '">' .
-					_( 'Group by Family' ) . '</a>';
+				               _( 'Group by Family' ) . '</a>';
 			}
 		}
 
@@ -106,14 +106,14 @@ if ( ! $_REQUEST['modfunc'] )
 
 		foreach ( (array) $custom_fields_RET as $field )
 		{
-			$LO_columns += [ 'CUSTOM_' . $field['ID'] => ParseMLField( $field['TITLE'] ) ];
+			$LO_columns += [ 'CUSTOM_' . $field['ID'] => _makeFieldTitle( $field['TITLE'] ) ];
 		}
 
 		$LO_columns += [
 			'ADDRESS' => _( 'Street' ),
 			'CITY' => _( 'City' ),
 			'STATE' => _( 'State' ),
-			'ZIPCODE' => _( 'Zipcode' ),
+			'ZIPCODE' => _( 'Zip Code' ),
 			'PHONE' => _( 'Phone' ),
 		];
 
@@ -136,7 +136,7 @@ if ( ! $_REQUEST['modfunc'] )
 
 			$extra['functions'][ $field_key ] = makeFieldTypeFunction( $field['TYPE'] );
 
-			$LO_columns[ $field_key ] = ParseMLField( $field['TITLE'] );
+			$LO_columns[ $field_key ] = _makeFieldTitle( $field['TITLE'] );
 		}
 
 		$LO_columns += [ 'PERSON_NAME' => _( 'Person Name' ) ];
@@ -147,8 +147,10 @@ if ( ! $_REQUEST['modfunc'] )
 
 			$extra['functions'][ $field_key ] = makeFieldTypeFunction( $field['TYPE'] );
 
-			$LO_columns[ $field_key ] = ParseMLField( $field['TITLE'] );
+			$LO_columns[ $field_key ] = _makeFieldTitle( $field['TITLE'] );
 		}
+
+		$students_RET = GetStuList( $extra );
 
 		for ( $i = 1; $i <= $maxTV; $i++ )
 		{
@@ -158,11 +160,9 @@ if ( ! $_REQUEST['modfunc'] )
 			];
 		}
 
-		$students_RET = GetStuList( $extra );
-
 		DrawHeader( $header_left );
 
-		DrawHeader( str_replace( '<br />', '<br /> &nbsp;', mb_substr( $_ROSARIO['SearchTerms'], 0, -6 ) ) );
+		DrawHeader( mb_substr( $_ROSARIO['SearchTerms'], 0, -6 ) );
 
 		if ( empty( $_REQUEST['LO_save'] ) )
 		{
@@ -191,12 +191,12 @@ if ( ! $_REQUEST['modfunc'] )
 function _makeTV( $value, $column )
 {
 	global $maxTV,
-		$THIS_RET,
-		$person_id,
-		$person_RET;
+	       $THIS_RET,
+	       $person_id,
+	       $person_RET;
 
 	if ( isset( $THIS_RET['PERSON_ID'] )
-		&& $THIS_RET['PERSON_ID'] !== $person_id )
+	     && $THIS_RET['PERSON_ID'] !== $person_id )
 	{
 		$person_RET = DBGet( "SELECT TITLE,VALUE
 			FROM people_join_contacts
@@ -216,4 +216,30 @@ function _makeTV( $value, $column )
 	$i = mb_substr( $column, 6 );
 
 	return isset( $person_RET[ $i ][ $tv ] ) ? $person_RET[ $i ][ $tv ] : null;
+}
+
+/**
+ * Make (Student, Contact, Address) Field Title
+ * Parse Multi-lingual value
+ * Truncate column title to 36 chars if > 36 chars
+ *
+ * Local function.
+ *
+ * @since 11.0
+ *
+ * @param  string $value  Title value.
+ * @param  string $column Column. Defaults to ''.
+ *
+ * @return string         Title truncated to 36 chars.
+ */
+function _makeFieldTitle( $value, $column = '' )
+{
+	$field_title = ParseMLField( $value );
+
+	// Truncate file name if > 36 chars.
+	$field_title_display = mb_strlen( $field_title ) <= 36 ?
+		$field_title :
+		'<span title="' . AttrEscape( $field_title ) . '">' . mb_substr( $field_title, 0, 33 ) . '...</span>';
+
+	return $field_title_display;
 }

@@ -1,6 +1,12 @@
 <?php
 require_once 'ProgramFunctions/_makeLetterGrade.fnc.php';
 
+if ( ! empty( $_REQUEST['period'] ) )
+{
+	// @since 10.9 Set current User Course Period before Secondary Teacher logic.
+	SetUserCoursePeriod( $_REQUEST['period'] );
+}
+
 if ( ! empty( $_SESSION['is_secondary_teacher'] ) )
 {
 	// @since 6.9 Add Secondary Teacher: set User to main teacher.
@@ -64,7 +70,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 	//$LO_columns += array('POINTS' => _('Points'),'PERCENT_GRADE' => _('Percent'),'LETTER_GRADE' => _('Letter'),'COMMENT' => _('Comment'));
 	$LO_columns += [ 'COMMENT' => _( 'Comment' ) ];
 
-	$extra2['SELECT_ONLY'] = "ga.TITLE,ga.ASSIGNED_DATE,ga.DUE_DATE,gt.ASSIGNMENT_TYPE_ID,gg.POINTS,ga.POINTS AS TOTAL_POINTS,gt.FINAL_GRADE_PERCENT,gg.COMMENT,gg.POINTS AS PERCENT_GRADE,gg.POINTS AS LETTER_GRADE,CASE WHEN (ga.ASSIGNED_DATE IS NULL OR CURRENT_DATE>=ga.ASSIGNED_DATE) AND (ga.DUE_DATE IS NULL OR CURRENT_DATE>=ga.DUE_DATE OR CURRENT_DATE>(SELECT END_DATE FROM school_marking_periods WHERE MARKING_PERIOD_ID=ga.MARKING_PERIOD_ID)) THEN 'Y' ELSE NULL END AS DUE,gt.TITLE AS CATEGORY_TITLE";
+	$extra2['SELECT_ONLY'] = "ga.ASSIGNMENT_ID,ga.TITLE,ga.ASSIGNED_DATE,ga.DUE_DATE,gt.ASSIGNMENT_TYPE_ID,gg.POINTS,ga.POINTS AS TOTAL_POINTS,gt.FINAL_GRADE_PERCENT,gg.COMMENT,gg.POINTS AS PERCENT_GRADE,gg.POINTS AS LETTER_GRADE,ga.WEIGHT,CASE WHEN (ga.ASSIGNED_DATE IS NULL OR CURRENT_DATE>=ga.ASSIGNED_DATE) AND (ga.DUE_DATE IS NULL OR CURRENT_DATE>=ga.DUE_DATE OR CURRENT_DATE>(SELECT END_DATE FROM school_marking_periods WHERE MARKING_PERIOD_ID=ga.MARKING_PERIOD_ID)) THEN 'Y' ELSE NULL END AS DUE,gt.TITLE AS CATEGORY_TITLE";
 
 	$extra2['FROM'] = '';
 
@@ -85,7 +91,12 @@ if ( $_REQUEST['modfunc'] === 'save' )
 	// Parent: associated students.
 	$extra2['ASSOCIATED'] = User( 'STAFF_ID' );
 
-	$extra2['ORDER_BY'] = "ga.ASSIGNMENT_ID";
+	$extra2['ORDER_BY'] = "ga.DUE_DATE DESC,ga.ASSIGNMENT_ID";
+
+	if ( User( 'PROFILE' ) === 'teacher' )
+	{
+		$extra2['ORDER_BY'] = "ga." . DBEscapeIdentifier( Preferences( 'ASSIGNMENT_SORTING', 'Gradebook' ) ) . " DESC";
+	}
 
 	$LO_group = [];
 
@@ -96,6 +107,8 @@ if ( $_REQUEST['modfunc'] === 'save' )
 	}
 
 	$extra2['functions'] = [
+		'TITLE' => '_makeTitle',
+		'CATEGORY_TITLE' => '_makeTitle',
 		'ASSIGNED_DATE' => 'ProperDate',
 		'DUE_DATE' => 'ProperDate',
 		'POINTS' => '_makeExtraPoints',
@@ -127,8 +140,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 				$student['MAILING_LABEL'] . '</td></tr></table><br />';
 		}
 
-		if ( ! UserCoursePeriod()
-			&& UserStudentID() )
+		if ( User( 'PROFILE' ) !== 'teacher' )
 		{
 			// @since 5.4 Is Parent or Student: display all Course Period Assignments.
 			$cp_RET = DBGet( "SELECT ss.COURSE_PERIOD_ID
@@ -170,7 +182,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 
 			$extra['WHERE'] .= " AND ss.COURSE_PERIOD_ID='" . (int) $cp_id . "'";
 
-			$student_points = $total_points = $percent_weights = [];
+			$student_points = $weighted_grade = $total_points = $percent_weights = $total_weights = [];
 
 			$grades_RET = GetStuList( $extra );
 
@@ -183,7 +195,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 
 			$gradebook_config = ProgramUserConfig( 'Gradebook', $teacher_id );
 
-			$sum_student_points = $sum_total_points = $sum_points = $sum_percent = 0;
+			$sum_student_points = $sum_weighted_grade = $sum_total_points = $sum_points = $sum_percent = $sum_weights = 0;
 
 			foreach ( (array) $percent_weights as $assignment_type_id => $percent )
 			{
@@ -191,15 +203,53 @@ if ( $_REQUEST['modfunc'] === 'save' )
 				$sum_total_points += $total_points[$assignment_type_id];
 				$sum_points += $student_points[$assignment_type_id] * ( ! empty( $gradebook_config['WEIGHT'] ) && $percent ? $percent / $total_points[$assignment_type_id] : 1 );
 				$sum_percent += ( ! empty( $gradebook_config['WEIGHT'] ) && $percent ? $percent : $total_points[$assignment_type_id] );
+
+				// @since 11.0 Add Weight Assignments option
+				$sum_weighted_grade += ( ! empty( $gradebook_config['WEIGHT'] ) && $percent ?
+					$percent * $weighted_grade[$assignment_type_id] :
+					$weighted_grade[$assignment_type_id] );
+
+				$sum_weights += ( ! empty( $gradebook_config['WEIGHT'] ) && $percent ?
+					$percent * $total_weights[$assignment_type_id] :
+					$total_weights[$assignment_type_id] );
 			}
+
+			$sum_grade = 0;
 
 			if ( $sum_percent > 0 )
 			{
-				$sum_points /= $sum_percent;
+				$sum_grade = $sum_points / $sum_percent;
 			}
-			else
+
+			if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
 			{
-				$sum_points = 0;
+				// @since 11.0 Add Weight Assignments option
+				if ( $sum_weights > 0 )
+				{
+					$sum_grade = $sum_weighted_grade / $sum_weights;
+				}
+
+				foreach ( $grades_RET as $assignment_type_id => $grades )
+				{
+					if ( isset( $_REQUEST['by_category'] )
+						&& $_REQUEST['by_category'] == 'Y' )
+					{
+						foreach ( $grades as $grade_i => $grade )
+						{
+							$assignment_weight = ' <span class="size-1">(' .
+								_( 'Weight' ) . ' ' . (int) $grades['WEIGHT'] . ')</span>';
+
+							$grades_RET[$assignment_type_id][$grade_i]['TITLE'] .= $assignment_weight;
+						}
+					}
+					else
+					{
+						$assignment_weight = ' <span class="size-1">(' .
+							_( 'Weight' ) . ' ' . (int) $grades['WEIGHT'] . ')</span>';
+
+						$grades_RET[$assignment_type_id]['TITLE'] .= $assignment_weight;
+					}
+				}
 			}
 
 			if ( isset( $_REQUEST['by_category'] )
@@ -220,6 +270,14 @@ if ( $_REQUEST['modfunc'] === 'save' )
 					$type_percent = ! empty( $total_points[$assignment_type_id] ) ?
 						$student_points[$assignment_type_id] / $total_points[$assignment_type_id] :
 						'';
+
+					if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
+					{
+						// @since 11.0 Add Weight Assignments option
+						$type_percent = ! empty( $total_weights[$assignment_type_id] ) ?
+							$weighted_grade[$assignment_type_id] / $total_weights[$assignment_type_id] :
+							'';
+					}
 
 					$percent_grade = $letter_grade = '&nbsp;';
 
@@ -246,7 +304,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 				}
 			}
 
-			$percent = _makeLetterGrade( $sum_points, $cp_id, $teacher_id, '%' );
+			$percent = _makeLetterGrade( $sum_grade, $cp_id, $teacher_id, '%' );
 
 			// Do not add Total to $link['add']['html']: PDF and no AllowEdit().
 			$total_last_row = [
@@ -255,7 +313,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 				'DUE_DATE' => '&nbsp;',
 				'POINTS' => '<b>' . $sum_student_points . '&nbsp;/&nbsp;' . $sum_total_points . '</b>',
 				'PERCENT_GRADE' => '<b>' . _Percent( $percent ) . '</b>',
-				'LETTER_GRADE' => '<b>' . _makeLetterGrade( $sum_points, $cp_id, $teacher_id ) . '</b>',
+				'LETTER_GRADE' => '<b>' . _makeLetterGrade( $sum_grade, $cp_id, $teacher_id ) . '</b>',
 				'COMMENT' => '&nbsp;',
 			];
 
@@ -302,9 +360,17 @@ if ( ! $_REQUEST['modfunc'] )
 
 	if ( $_REQUEST['search_modfunc'] === 'list_st' || UserStudentID() )
 	{
+		/**
+		 * Adding `'&period=' . UserCoursePeriod()` to the Teacher form URL will prevent the following issue:
+		 * If form is displayed for CP A, then Teacher opens a new browser tab and switches to CP B
+		 * Then teacher submits the form, data would be saved for CP B...
+		 *
+		 * Must be used in combination with
+		 * `if ( ! empty( $_REQUEST['period'] ) ) SetUserCoursePeriod( $_REQUEST['period'] );`
+		 */
 		echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
 			'&modfunc=save&include_inactive=' . $_REQUEST['include_inactive'] .
-			'&_ROSARIO_PDF=true' ) . '" method="POST">';
+			'&period=' . UserCoursePeriod() . '&_ROSARIO_PDF=true' ) . '" method="POST">';
 
 		$extra['header_right'] = Buttons( _( 'Create Progress Reports for Selected Students' ) );
 
@@ -380,7 +446,7 @@ if ( ! $_REQUEST['modfunc'] )
  */
 function _makeExtraPoints( $value, $column )
 {
-	global $THIS_RET, $student_points, $total_points, $percent_weights;
+	global $THIS_RET, $student_points, $total_points, $percent_weights, $total_weights;
 
 	if ( $THIS_RET['TOTAL_POINTS'] == '0' )
 	{
@@ -417,6 +483,14 @@ function _makeExtraPoints( $value, $column )
 		$total_points[$THIS_RET['ASSIGNMENT_TYPE_ID']] += $THIS_RET['TOTAL_POINTS'];
 
 		$percent_weights[$THIS_RET['ASSIGNMENT_TYPE_ID']] = $THIS_RET['FINAL_GRADE_PERCENT'];
+
+		if ( ! isset( $total_weights[$THIS_RET['ASSIGNMENT_TYPE_ID']] ) )
+		{
+			$total_weights[$THIS_RET['ASSIGNMENT_TYPE_ID']] = 0;
+		}
+
+		// @since 11.0 Add Weight Assignments option
+		$total_weights[$THIS_RET['ASSIGNMENT_TYPE_ID']] += $THIS_RET['WEIGHT'];
 	}
 
 	return (float) $value . '&nbsp;/&nbsp;' . $THIS_RET['TOTAL_POINTS'];
@@ -437,7 +511,7 @@ function _makeExtraPoints( $value, $column )
  */
 function _makeExtraGrade( $value, $column )
 {
-	global $THIS_RET, $cp_id, $teacher_id;
+	global $THIS_RET, $cp_id, $teacher_id, $weighted_grade;
 
 	if ( isset( $THIS_RET['TOTAL_POINTS'] )
 		&& $THIS_RET['TOTAL_POINTS'] == '0' )
@@ -464,6 +538,14 @@ function _makeExtraGrade( $value, $column )
 
 	$percent = _makeLetterGrade( $value / $THIS_RET['TOTAL_POINTS'], $cp_id, $teacher_id, '%' );
 
+	if ( ! isset( $weighted_grade[$THIS_RET['ASSIGNMENT_TYPE_ID']] ) )
+	{
+		$weighted_grade[$THIS_RET['ASSIGNMENT_TYPE_ID']] = 0;
+	}
+
+	// @since 11.0 Add Weight Assignments option
+	$weighted_grade[$THIS_RET['ASSIGNMENT_TYPE_ID']] += ( $value / $THIS_RET['TOTAL_POINTS'] ) * $THIS_RET['WEIGHT'];
+
 	return _Percent( $percent, 2 );
 }
 
@@ -475,4 +557,42 @@ function _Percent( $num, $decimals = 2 )
 {
 	// Fix trim 0 (float) when percent > 1,000: do not use comma for thousand separator.
 	return (float) number_format( $num, $decimals, '.', '' ) . '%';
+}
+
+/**
+ * Make Assignment Title
+ * Truncate Assignment title to 36 chars only if has words > 36 chars
+ *
+ * Local function.
+ * GetStuList() DBGet() callback.
+ *
+ * @since 10.5.2
+ *
+ * @param  string $value  Title value.
+ * @param  string $column Column. Defaults to 'TITLE'.
+ *
+ * @return string         Assignment title truncated to 36 chars.
+ */
+function _makeTitle( $value, $column = 'TITLE' )
+{
+	// Split on spaces.
+	$title_words = explode( ' ', $value );
+
+	$truncate = false;
+
+	foreach ( $title_words as $title_word )
+	{
+		if ( mb_strlen( $title_word ) > 36 )
+		{
+			$truncate = true;
+
+			break;
+		}
+	}
+
+	$title = ! $truncate ?
+		$value :
+		'<span title="' . AttrEscape( $value ) . '">' . mb_substr( $value, 0, 33 ) . '...</span>';
+
+	return $title;
 }

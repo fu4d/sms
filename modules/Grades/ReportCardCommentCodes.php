@@ -7,9 +7,9 @@ DrawHeader( ProgramTitle() );
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( ! empty( $_REQUEST['values'] )
-		&& ! empty( $_POST['values'] )
-		&& AllowEdit()
-		&& $_REQUEST['tab_id'] )
+	     && ! empty( $_POST['values'] )
+	     && AllowEdit()
+	     && $_REQUEST['tab_id'] )
 	{
 		foreach ( (array) $_REQUEST['values'] as $id => $columns )
 		{
@@ -93,7 +93,7 @@ if ( $_REQUEST['modfunc'] === 'update' )
 }
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( $_REQUEST['tab_id'] !== 'new' )
 	{
@@ -106,7 +106,7 @@ if ( $_REQUEST['modfunc'] === 'remove'
 			RedirectURL( [ 'modfunc', 'id' ] );
 		}
 	}
-	elseif ( DeletePrompt( _( 'Report Card Grading Scale' ) ) )
+	elseif ( DeletePrompt( _( 'Comment Code Scale' ) ) )
 	{
 		DBQuery( "UPDATE report_card_comments
 			SET SCALE_ID=NULL
@@ -136,9 +136,9 @@ if ( ! $_REQUEST['modfunc'] )
 		ORDER BY SORT_ORDER IS NULL,SORT_ORDER,ID", [], [ 'ID' ] );
 
 	if ( ! isset( $_REQUEST['tab_id'] )
-		|| $_REQUEST['tab_id'] == ''
-		|| $_REQUEST['tab_id'] !== 'new'
-		&& empty( $comment_scales_RET[$_REQUEST['tab_id']] ) )
+	     || $_REQUEST['tab_id'] == ''
+	     || $_REQUEST['tab_id'] !== 'new'
+	        && empty( $comment_scales_RET[$_REQUEST['tab_id']] ) )
 	{
 		if ( ! empty( $comment_scales_RET ) )
 		{
@@ -165,7 +165,7 @@ if ( ! $_REQUEST['modfunc'] )
 
 	if ( $_REQUEST['tab_id'] !== 'new' )
 	{
-		$sql = "SELECT *
+		$sql = "SELECT ID,SCALE_ID,TITLE,SHORT_NAME,COMMENT,SORT_ORDER
 		FROM report_card_comment_codes
 		WHERE SCALE_ID='" . (int) $_REQUEST['tab_id'] . "'
 		AND SCHOOL_ID='" . UserSchool() . "'
@@ -179,9 +179,9 @@ if ( ! $_REQUEST['modfunc'] )
 		];
 
 		$LO_columns = [ 'TITLE' => _( 'Title' ),
-			'SHORT_NAME' => _( 'Short Name' ),
-			'COMMENT' => _( 'Comment' ),
-			'SORT_ORDER' => _( 'Sort Order' ),
+		                'SHORT_NAME' => _( 'Short Name' ),
+		                'COMMENT' => _( 'Comment' ),
+		                'SORT_ORDER' => _( 'Sort Order' ),
 		];
 
 		if ( User( 'PROFILE' ) === 'admin' && AllowEdit() )
@@ -198,9 +198,9 @@ if ( ! $_REQUEST['modfunc'] )
 		];
 
 		$link['remove']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&modfunc=remove&tab_id=' . $_REQUEST['tab_id'];
+		                          '&modfunc=remove&tab_id=' . $_REQUEST['tab_id'];
 
-		$link['remove']['variables'] = [ 'id' => _( 'ID' ) ];
+		$link['remove']['variables'] = [ 'id' => 'ID' ];
 		$link['add']['html']['remove'] = button( 'add' );
 
 		if ( User( 'PROFILE' ) === 'admin' )
@@ -215,10 +215,10 @@ if ( ! $_REQUEST['modfunc'] )
 	}
 	else
 	{
-		$sql = 'SELECT *
+		$sql = "SELECT ID,TITLE,COMMENT,SORT_ORDER
 		FROM report_card_comment_code_scales
-		WHERE SCHOOL_ID=\'' . UserSchool() . '\'
-		ORDER BY SORT_ORDER IS NULL,SORT_ORDER,ID';
+		WHERE SCHOOL_ID='" . UserSchool() . "'
+		ORDER BY SORT_ORDER IS NULL,SORT_ORDER,ID";
 
 		$functions = [
 			'TITLE' => '_makeCommentsInput',
@@ -235,13 +235,11 @@ if ( ! $_REQUEST['modfunc'] )
 		$link['add']['html'] = [
 			'TITLE' => _makeCommentsInput( '', 'TITLE' ),
 			'COMMENT' => _makeCommentsInput( '', 'COMMENT' ),
-			/*'HHR_GPA_VALUE' => _makeCommentsInput( '', 'HHR_GPA_VALUE' ),
-			'HR_GPA_VALUE' => _makeCommentsInput( '', 'HR_GPA_VALUE' ),*/
 			'SORT_ORDER' => _makeCommentsInput( '', 'SORT_ORDER' ),
 		];
 
 		$link['remove']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=remove&tab_id=new';
-		$link['remove']['variables'] = [ 'id' => _( 'ID' ) ];
+		$link['remove']['variables'] = [ 'id' => 'ID' ];
 		$link['add']['html']['remove'] = button( 'add' );
 
 		$tabs[] = [
@@ -255,7 +253,7 @@ if ( ! $_REQUEST['modfunc'] )
 	$LO_ret = DBGet( $sql, $functions );
 
 	echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=update&tab_id=' .
-		$_REQUEST['tab_id']  ) . '" method="POST">';
+	                                   $_REQUEST['tab_id']  ) . '" method="POST">';
 
 	DrawHeader( '', SubmitButton() );
 	echo '<br />';
@@ -306,7 +304,7 @@ if ( ! $_REQUEST['modfunc'] )
 function _makeCommentsInput( $value, $name )
 {
 	global $THIS_RET,
-		$comment_scale_select;
+	       $comment_scale_select;
 
 	if ( ! empty( $THIS_RET['ID'] ) )
 	{
@@ -332,7 +330,7 @@ function _makeCommentsInput( $value, $name )
 		$extra = 'size=20 maxlength=100';
 
 		if ( $_REQUEST['tab_id'] !== 'new'
-			&& $id !== 'new' )
+		     && $id !== 'new' )
 		{
 			// Comment Code input field is required.
 			$extra .= ' required';
@@ -372,4 +370,3 @@ function _makeCommentsInput( $value, $name )
 		$extra
 	);
 }
-

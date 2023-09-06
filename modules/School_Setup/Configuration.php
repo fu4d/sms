@@ -243,7 +243,7 @@ else
 			&& ! $multiple_schools_admin_has_1_school )
 		{
 			echo '<table class="cellpadding-5"><tr><td>' .
-				TextInput( Config( 'NAME' ), 'values[config][NAME]', _( 'Program Name' ), 'required maxlength=25' ) .
+				TextInput( Config( 'NAME' ), 'values[config][NAME]', _( 'Program Name' ), 'required maxlength=20' ) .
 			'</td></tr>';
 
 			echo '<tr><td>' .
@@ -288,10 +288,9 @@ else
 				true
 			) . '</td></tr></table></td></tr>';
 
-			// FJ add Registration to Configuration.
-			echo '<tr><td><br /><fieldset><legend>' . _( 'Registration' ) . '</legend><table>';
+			echo '<tr><td><br /><fieldset><legend>' . _( 'Public Registration' ) . '</legend><table>';
 
-			echo '<tr><td>' . CheckboxInput(
+			echo '<tr><td colspan="2">' . CheckboxInput(
 				Config( 'CREATE_USER_ACCOUNT' ),
 				'values[config][CREATE_USER_ACCOUNT]',
 				_( 'Create User Account' ) .
@@ -312,7 +311,7 @@ else
 					_( 'New students will be added as Inactive students' ) . '</i></div>';
 			}
 
-			echo '<tr><td>' . CheckboxInput(
+			echo '<tr><td colspan="2">' . CheckboxInput(
 				Config( 'CREATE_STUDENT_ACCOUNT' ),
 				'values[config][CREATE_STUDENT_ACCOUNT]',
 				_( 'Create Student Account' ) . $create_student_account_tooltip,
@@ -323,7 +322,8 @@ else
 			) . '</td></tr>';
 
 			// @since 5.9 Automatic Student Account Activation.
-			echo '<tr><td>' . CheckboxInput(
+			// HTML add arrow to indicate sub-option.
+			echo '<tr><td class="valign-top">&#10551; </td><td>' . CheckboxInput(
 				Config( 'CREATE_STUDENT_ACCOUNT_AUTOMATIC_ACTIVATION' ),
 				'values[config][CREATE_STUDENT_ACCOUNT_AUTOMATIC_ACTIVATION]',
 				_( 'Automatic Student Account Activation' ),
@@ -346,7 +346,8 @@ else
 			}
 
 			// @since 6.3 Create Student Account Default School.
-			echo '<tr><td>' . SelectInput(
+			// HTML add arrow to indicate sub-option.
+			echo '<tr><td class="valign-top">&#10551; </td><td>' . SelectInput(
 				Config( 'CREATE_STUDENT_ACCOUNT_DEFAULT_SCHOOL' ),
 				'values[config][CREATE_STUDENT_ACCOUNT_DEFAULT_SCHOOL]',
 				_( 'Default School' ),
@@ -365,7 +366,7 @@ else
 				$students_email_field_options[ $field['ID'] ] = ParseMLField( $field['TITLE'] );
 			}
 
-			echo '<tr><td>' . SelectInput(
+			echo '<tr><td colspan="2">' . SelectInput(
 				Config( 'STUDENTS_EMAIL_FIELD' ),
 				'values[config][STUDENTS_EMAIL_FIELD]',
 				_( 'Student email field' ),
@@ -712,10 +713,15 @@ else
 
 		if ( $_REQUEST['tab'] === 'attendance' )
 		{
+			// @since 11.2 Dynamic Daily Attendance calculation based on total course period minutes
+			$tooltip = '<div class="tooltip"><i>' .
+				_( 'Set to 0 for dynamic Daily Attendance calculation based on total course period minutes.' ) .
+				'</i></div>';
+
 			echo '<table class="cellpadding-5"><tr><td>' . TextInput(
 				Config( 'ATTENDANCE_FULL_DAY_MINUTES' ),
 				'values[config][ATTENDANCE_FULL_DAY_MINUTES]',
-				_( 'Minutes in a Full School Day' ),
+				_( 'Minutes in a Full School Day' ) . $tooltip,
 				' type="number" min="0" max="999"'
 			) . '</td></tr>';
 

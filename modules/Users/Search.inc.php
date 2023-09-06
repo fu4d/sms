@@ -67,7 +67,7 @@ if ( empty( $_REQUEST['search_modfunc'] ) )
 				// Restrict Search All Schools to user schools.
 
 				if ( SchoolInfo( 'SCHOOLS_NB' ) > 1
-					&& ( ! trim( User( 'SCHOOLS' ), ',' )
+					&& ( ! trim( (string) User( 'SCHOOLS' ), ',' )
 						|| mb_substr_count( User( 'SCHOOLS' ), ',' ) > 2 ) )
 				{
 					echo '<label><input type="checkbox" name="_search_all_schools" value="Y"' .
@@ -169,6 +169,8 @@ else
 
 	if ( empty( $extra['NoSearchTerms'] ) )
 	{
+		$_ROSARIO['SearchTerms'] = issetVal( $_ROSARIO['SearchTerms'] );
+
 		if ( isset( $_REQUEST['_search_all_schools'] )
 			&& $_REQUEST['_search_all_schools'] === 'Y'
 			&& SchoolInfo( 'SCHOOLS_NB' ) > 1 )
@@ -293,7 +295,8 @@ else
 		{
 			$_SESSION['List_PHP_SELF'] = PreparePHP_SELF( $_SESSION['_REQUEST_vars'], [ 'bottom_back' ] );
 
-			if ( $_SESSION['Back_PHP_SELF'] != 'staff' )
+			if ( ! isset( $_SESSION['Back_PHP_SELF'] )
+				|| $_SESSION['Back_PHP_SELF'] !== 'staff' )
 			{
 				$_SESSION['Back_PHP_SELF'] = 'staff';
 				unset( $_SESSION['Search_PHP_SELF'] );

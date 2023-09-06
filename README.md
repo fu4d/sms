@@ -1,7 +1,13 @@
 RosarioSIS Student Information System
 =====================================
 
-[![RosarioSIS logo](http://www.rosariosis.org/wp-content/uploads/2013/02/rosariosis_logo2half.png)](https://www.rosariosis.org)
+[<img src="http://www.rosariosis.org/wp-content/uploads/2013/02/rosariosis_logo2half.png" width="144" />](https://www.rosariosis.org)
+
+Note
+----
+
+The master branch hosts the legacy (1.4.x) version of RosarioSIS. You should head up to the [mobile branch](https://github.com/francoisjacquet/rosariosis/tree/mobile) for the currently developed version.
+
 
 License
 -------
@@ -11,18 +17,30 @@ RosarioSIS is "free" software released under the [GNU General Public License ver
 Your [contributions](https://www.rosariosis.org/contribute/) are welcome.
 
 
+Installation
+------------
+
+Minimum requirements: PHP 5.5.9 & PostgreSQL 8.4 or MySQL 5.6/MariaDB.
+
+For installation directions, consult the [INSTALL.md](https://gitlab.com/francoisjacquet/rosariosis/-/blob/mobile/INSTALL.md) file.
+
+
 Documentation
 -------------
 
-For installation directions, please refer to the [INSTALL.md](INSTALL.md) file.
-
-[Quick Setup Guide](https://www.rosariosis.org/quick-setup-guide/)
+[Documentation](https://www.rosariosis.org/documentation/): Quick Setup Guide, User Manuals, Report samples, Tips, Wiki.
 
 
 Demo
 ----
 
-Try RosarioSIS. Access the [online demonstration](https://www.rosariosis.org/demo/).
+Try RosarioSIS: access the [online demonstration](https://www.rosariosis.org/demo/).
+
+
+Official site
+-------------
+
+rosariosis.org: [English](https://www.rosariosis.org) • [Español](https://www.rosariosis.org/es/) • [Français](https://www.rosariosis.org/fr/)
 
 
 Screenshots

@@ -70,9 +70,9 @@ if ( $_REQUEST['modfunc'] === 'save' )
 	if ( ! empty( $_REQUEST['mp_id'] ) )
 	{
 		$extra['WHERE'] .= ' AND sr.MARKING_PERIOD_ID IN (' . GetAllMP(
-			GetMP( $_REQUEST['mp_id'], 'MP' ),
-			$_REQUEST['mp_id']
-		) . ')';
+				GetMP( $_REQUEST['mp_id'], 'MP' ),
+				$_REQUEST['mp_id']
+			) . ')';
 	}
 
 	//	$extra['functions'] = array('MARKING_PERIOD_ID' => 'GetMP','DAYS' => '_makeDays');
@@ -82,7 +82,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 	$extra['ORDER'] = ',c.TITLE,p_cp.TITLE,sr.MARKING_PERIOD_ID';
 
 	if ( isset( $_REQUEST['mailing_labels'] )
-		&& $_REQUEST['mailing_labels'] == 'Y' )
+	     && $_REQUEST['mailing_labels'] == 'Y' )
 	{
 		$extra['group'][] = 'ADDRESS_ID';
 	}
@@ -106,7 +106,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 		foreach ( (array) $RET as $student_id => $courses )
 		{
 			if ( isset( $_REQUEST['mailing_labels'] )
-				&& $_REQUEST['mailing_labels'] == 'Y' )
+			     && $_REQUEST['mailing_labels'] == 'Y' )
 			{
 				foreach ( (array) $courses as $address )
 				{
@@ -241,7 +241,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 			[ 'STUDENT_ID', 'SCHOOL_PERIOD' ]
 		);
 
-		$columns_table = [ 'SCHOOL_PERIOD' => _( 'Periods' ) ];
+		$columns_table = [ 'SCHOOL_PERIOD' => _( 'Period' ) ];
 
 		// Leave after $schedule_table_RET as _GetDays() callback modifies $schedule_table_days global.
 		foreach ( $schedule_table_days as $day => $true )
@@ -265,8 +265,8 @@ if ( $_REQUEST['modfunc'] === 'save' )
 		foreach ( (array) $schedule_table_RET as $student_id => $schedule_table )
 		{
 			if ( isset( $_REQUEST['mailing_labels'] )
-				&& $_REQUEST['mailing_labels'] == 'Y'
-				&& isset( $RET[$student_id] ) )
+			     && $_REQUEST['mailing_labels'] == 'Y'
+			     && isset( $RET[$student_id] ) )
 			{
 				foreach ( (array) $RET[$student_id] as $address )
 				{
@@ -332,13 +332,22 @@ if ( ! $_REQUEST['modfunc'] )
 
 	if ( $_REQUEST['search_modfunc'] === 'list' )
 	{
+		// @since 11.1 SQL Use GetFullYearMP() & GetChildrenMP() functions to limit Marking Periods
+		$fy_and_children_mp = "'" . GetFullYearMP() . "'";
+
+		if ( GetChildrenMP( 'FY' ) )
+		{
+			$fy_and_children_mp .= "," . GetChildrenMP( 'FY' );
+		}
+
 		$mp_RET = DBGet( "SELECT MARKING_PERIOD_ID,TITLE," .
-			db_case( [ 'MP', "'FY'", "'0'", "'SEM'", "'1'", "'QTR'", "'2'" ] ) . " AS TBL
+		                 db_case( [ 'MP', "'FY'", "'0'", "'SEM'", "'1'", "'QTR'", "'2'" ] ) . " AS TBL
 			FROM school_marking_periods
 			WHERE (MP='FY' OR MP='SEM' OR MP='QTR')
+			AND MARKING_PERIOD_ID IN(" . $fy_and_children_mp . ")
 			AND SCHOOL_ID='" . UserSchool() . "'
 			AND SYEAR='" . UserSyear() . "'
-			ORDER BY TBL,SORT_ORDER IS NULL,SORT_ORDER" );
+			ORDER BY TBL,SORT_ORDER IS NULL,SORT_ORDER,START_DATE" );
 
 		foreach ( (array) $mp_RET as $mp )
 		{
@@ -346,9 +355,9 @@ if ( ! $_REQUEST['modfunc'] )
 		}
 
 		echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&modfunc=save&include_inactive=' .
-			issetVal( $_REQUEST['include_inactive'], '' ) .
-			'&_ROSARIO_PDF=true' ) . '" method="POST" id="printSchedulesForm">';
+		                                   '&modfunc=save&include_inactive=' .
+		                                   issetVal( $_REQUEST['include_inactive'], '' ) .
+		                                   '&_ROSARIO_PDF=true' ) . '" method="POST" id="printSchedulesForm">';
 
 		$extra['header_right'] = Buttons( _( 'Create Schedules for Selected Students' ) );
 
@@ -359,55 +368,55 @@ if ( ! $_REQUEST['modfunc'] )
 		}
 
 		$extra['extra_header_left'] = '<table class="cellpadding-5"><tr><td>' . SelectInput(
-			'',
-			'mp_id',
-			_( 'Marking Period' ),
-			$mp_options
-		) . '</td></tr>';
+				'',
+				'mp_id',
+				_( 'Marking Period' ),
+				$mp_options
+			) . '</td></tr>';
 
 		$extra['extra_header_left'] .= '<tr><td>' . DateInput(
-			'',
-			'include_active_date',
-			_( 'Include only courses active as of' )
-		) . '</td></tr>';
+				'',
+				'include_active_date',
+				_( 'Include only courses active as of' )
+			) . '</td></tr>';
 
 		// Schedule table.
 		$extra['extra_header_left'] .= '<tr><td>' . RadioInput(
-			'Yes',
-			'schedule_table',
-			'',
-			[
-				'Yes' => _( 'Table' ),
-				'No' => _( 'List' ),
-			],
-			false,
-			'',
-			false
-		) . '</td></tr>';
+				'Yes',
+				'schedule_table',
+				'',
+				[
+					'Yes' => _( 'Table' ),
+					'No' => _( 'List' ),
+				],
+				false,
+				'',
+				false
+			) . '</td></tr>';
 
 		// Horizontal format option.
 		$extra['extra_header_left'] .= '<tr><td>' . CheckboxInput(
-			'',
-			'horizontalFormat',
-			_( 'Horizontal Format' ),
-			'',
-			true
-		) . '</td></tr>';
+				'',
+				'horizontalFormat',
+				_( 'Horizontal Format' ),
+				'',
+				true
+			) . '</td></tr>';
 
 		// @since 5.5 Display Title of: Subject, Course, Course Period.
 		$extra['extra_header_left'] .= '<tr><td>' . RadioInput(
-			'course',
-			'display_title',
-			_( 'Display Title of' ),
-			[
-				'subject' => _( 'Subject' ),
-				'course' => _( 'Course' ),
-				'course_period' => _( 'Course Period' ),
-			],
-			false,
-			'',
-			false
-		) . '</td></tr>';
+				'course',
+				'display_title',
+				_( 'Display Title of' ),
+				[
+					'subject' => _( 'Subject' ),
+					'course' => _( 'Course' ),
+					'course_period' => _( 'Course Period' ),
+				],
+				false,
+				'',
+				false
+			) . '</td></tr>';
 
 		$extra['extra_header_left'] .= '<tr><td><table>';
 
@@ -486,11 +495,11 @@ function _schedule_table_RET( $schedule_table_RET )
 				}
 
 				$schedule_table_body[$i][$course_period_day][] = '<td>' . $course_period['TITLE'] . '<br />' .
-					$course_period['FULL_NAME'] .
-					( empty( $course_period['ROOM'] ) ?
-						'' :
-						'<br /><span class="size-1">' . _( 'Room' ) . ': ' . $course_period['ROOM'] . '</span>' ) .
-					'</td>';
+				                                                 $course_period['FULL_NAME'] .
+				                                                 ( empty( $course_period['ROOM'] ) ?
+					                                                 '' :
+					                                                 '<br /><span class="size-1">' . _( 'Room' ) . ': ' . $course_period['ROOM'] . '</span>' ) .
+				                                                 '</td>';
 			}
 		}
 

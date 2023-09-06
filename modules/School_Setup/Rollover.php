@@ -5,7 +5,7 @@ DrawHeader( ProgramTitle() );
 if ( AllowEdit( 'School_Setup/DatabaseBackup.php' ) )
 {
 	DrawHeader( '<a href="Modules.php?modname=School_Setup/DatabaseBackup.php">' .
-		_( 'Database Backup' ) . '</a>' );
+	            _( 'Database Backup' ) . '</a>' );
 }
 
 $next_syear = UserSyear() + 1;
@@ -20,13 +20,13 @@ $tables = [
 	'courses' => _( 'Courses' ),
 	'student_enrollment_codes' => _( 'Student Enrollment Codes' ),
 	'student_enrollment' => _( 'Students' ),
-	'report_card_grades' => _( 'Report Card Grade Codes' ),
-	'report_card_comments' => _( 'Report Card Comment Codes' ),
+	'report_card_grades' => _( 'Grading Scales' ),
+	'report_card_comments' => _( 'Report Card Comments' ),
 	'program_config' => _( 'School Configuration' ),
 ];
 
 $tables_tooltip = [
-	'courses' => _( 'You <i>must</i> roll users, school periods, marking periods, calendars, attendance codes, and report card codes at the same time or before rolling courses.' ),
+	'courses' => _( 'You <i>must</i> roll users, school periods, marking periods, calendars, and report card codes at the same time or before rolling courses.' ),
 	'student_enrollment' => _( 'You <i>must</i> roll enrollment codes at the same time or before rolling students.' ),
 	'report_card_comments' => _( 'You <i>must</i> roll courses at the same time or before rolling report card comments.' ),
 ];
@@ -57,14 +57,14 @@ foreach ( (array) $tables as $table => $name )
 		$exists_RET[$table] = DBGet( "SELECT count(*) AS COUNT
 			FROM " . DBEscapeIdentifier( $table ) . "
 			WHERE SYEAR='" . $next_syear . "'" .
-			( empty( $no_school_tables[$table] ) ? " AND SCHOOL_ID='" . UserSchool() . "'" : '' ) );
+		                             ( empty( $no_school_tables[$table] ) ? " AND SCHOOL_ID='" . UserSchool() . "'" : '' ) );
 	}
 	else
 	{
 		$exists_RET['food_service_staff_accounts'] = DBGet( "SELECT count(*) AS COUNT
 			FROM staff
 			WHERE SYEAR='" . $next_syear . "'
-			AND exists(SELECT * FROM food_service_staff_accounts WHERE STAFF_ID=staff.STAFF_ID)" );
+			AND exists(SELECT 1 FROM food_service_staff_accounts WHERE STAFF_ID=staff.STAFF_ID)" );
 	}
 
 	$input_title = $name;
@@ -82,8 +82,40 @@ foreach ( (array) $tables as $table => $name )
 	$checked = ( $exists_RET[$table][1]['COUNT'] > 0 ) ? '' : ' checked';
 
 	$table_list .= '<tr><td><label><input type="checkbox" value="Y" name="tables[' . $table . ']"' .
-		$checked . '>&nbsp;' .
-		$input_title . '</label></td></tr>';
+	               $checked . '>&nbsp;' . $input_title . '</label>';
+
+	if ( $table === 'courses' )
+	{
+		// @since 10.3 Add "Course Periods" checkbox
+		$disabled = ( $exists_RET[$table][1]['COUNT'] > 0 ) ? ' disabled' : '';
+
+		$table_list .= '<br />&#10551;&nbsp;<label><input type="checkbox" value="Y" id="course_periods" name="course_periods"' .
+		               $checked . $disabled . '>&nbsp;';
+
+		$cp_title = _( 'Course Periods' );
+
+		if ( $exists_RET[$table][1]['COUNT'] > 0 )
+		{
+			$cp_title = '<span style="color:grey">' . $cp_title . '</span>';
+		}
+
+		$table_list .= $cp_title . '</label>';
+
+		// JS Enable / disable checkbox on Courses checkbox change.
+		ob_start();
+
+		?>
+        <script>
+            $('input[name="tables[courses]"]').change(function() {
+                $('#course_periods').prop( 'disabled', ! this.checked );
+            });
+        </script>
+		<?php
+
+		$table_list .= ob_get_clean();
+	}
+
+	$table_list .= '</td></tr>';
 }
 
 $table_list .= '</table>';
@@ -109,24 +141,24 @@ if ( Prompt(
 ) )
 {
 	if ( isset( $_REQUEST['tables']['courses'] )
-		&& $exists_RET['report_card_comments'][1]['COUNT']
-		&& ! $_REQUEST['tables']['report_card_comments'] )
+	     && $exists_RET['report_card_comments'][1]['COUNT']
+	     && ! $_REQUEST['tables']['report_card_comments'] )
 	{
 		// Fix SQL error foreign keys: Roll again Report Card Comment Codes when rolling Courses.
 		$_REQUEST['tables']['report_card_comments'] = 'Y';
 	}
 
 	if ( isset( $_REQUEST['tables']['school_marking_periods'] )
-		&& $exists_RET['courses'][1]['COUNT']
-		&& ! isset( $_REQUEST['tables']['courses'] ) )
+	     && $exists_RET['courses'][1]['COUNT']
+	     && ! isset( $_REQUEST['tables']['courses'] ) )
 	{
 		// Fix SQL error foreign keys: Roll again Courses when rolling Marking Periods.
 		$_REQUEST['tables']['courses'] = 'Y';
 	}
 
 	if ( isset( $_REQUEST['tables']['student_enrollment'] )
-		&& ! $exists_RET['schools'][1]['COUNT']
-		&& ! isset( $_REQUEST['tables']['schools'] ) )
+	     && ! $exists_RET['schools'][1]['COUNT']
+	     && ! isset( $_REQUEST['tables']['schools'] ) )
 	{
 		// Fix SQL error foreign keys: Roll Schools before rolling Student Enrollment.
 		// Insert schools first.
@@ -134,15 +166,15 @@ if ( Prompt(
 	}
 
 	if ( ! ( isset( $_REQUEST['tables']['courses'] )
-		&& ( ( ! isset( $_REQUEST['tables']['staff'] ) && $exists_RET['staff'][1]['COUNT'] < 1 )
-			|| ( ! isset( $_REQUEST['tables']['school_periods'] ) && $exists_RET['school_periods'][1]['COUNT'] < 1 )
-			|| ( ! isset( $_REQUEST['tables']['school_marking_periods'] ) && $exists_RET['school_marking_periods'][1]['COUNT'] < 1 )
-			|| ( ! isset( $_REQUEST['tables']['attendance_calendars'] ) && $exists_RET['attendance_calendars'][1]['COUNT'] < 1 )
-			|| ( ! isset( $_REQUEST['tables']['report_card_grades'] ) && $exists_RET['report_card_grades'][1]['COUNT'] < 1 ) ) ) )
+	         && ( ( ! isset( $_REQUEST['tables']['staff'] ) && $exists_RET['staff'][1]['COUNT'] < 1 )
+	              || ( ! isset( $_REQUEST['tables']['school_periods'] ) && $exists_RET['school_periods'][1]['COUNT'] < 1 )
+	              || ( ! isset( $_REQUEST['tables']['school_marking_periods'] ) && $exists_RET['school_marking_periods'][1]['COUNT'] < 1 )
+	              || ( ! isset( $_REQUEST['tables']['attendance_calendars'] ) && $exists_RET['attendance_calendars'][1]['COUNT'] < 1 )
+	              || ( ! isset( $_REQUEST['tables']['report_card_grades'] ) && $exists_RET['report_card_grades'][1]['COUNT'] < 1 ) ) ) )
 	{
 		if ( ! ( isset( $_REQUEST['tables']['report_card_comments'] )
-			&&  ( ! isset( $_REQUEST['tables']['courses'] )
-				&& $exists_RET['courses'][1]['COUNT'] < 1 ) ) )
+		         &&  ( ! isset( $_REQUEST['tables']['courses'] )
+		               && $exists_RET['courses'][1]['COUNT'] < 1 ) ) )
 		{
 			if ( ! empty( $_REQUEST['tables'] ) )
 			{
@@ -180,7 +212,7 @@ if ( Prompt(
 				 */
 				if ( ! empty( $_REQUEST['tables'] ) )
 				{
-					$request_uppercase_tables = array_change_key_case( $_REQUEST['tables'], CASE_LOWER );
+					$request_uppercase_tables = array_change_key_case( $_REQUEST['tables'], CASE_UPPER );
 
 					$_REQUEST['tables'] = array_merge( $_REQUEST['tables'], $request_uppercase_tables );
 				}
@@ -257,8 +289,8 @@ if ( Prompt(
 function Rollover( $table, $mode = 'delete' )
 {
 	global $next_syear,
-		$RosarioModules,
-		$DatabaseType;
+	       $RosarioModules,
+	       $DatabaseType;
 
 	switch ( $table )
 	{
@@ -302,9 +334,9 @@ function Rollover( $table, $mode = 'delete' )
 			if ( $mode === 'delete' )
 			{
 				$delete_sql = "DELETE FROM food_service_staff_accounts
-						WHERE exists(SELECT * FROM staff
-							WHERE STAFF_ID=food_service_staff_accounts.STAFF_ID
-							AND SYEAR='" . $next_syear . "');";
+					WHERE exists(SELECT 1 FROM staff
+						WHERE STAFF_ID=food_service_staff_accounts.STAFF_ID
+						AND SYEAR='" . $next_syear . "');";
 
 				$delete_sql .= "DELETE FROM students_join_users
 					WHERE STAFF_ID IN (SELECT STAFF_ID FROM staff WHERE SYEAR='" . $next_syear . "');";
@@ -350,7 +382,7 @@ function Rollover( $table, $mode = 'delete' )
 						FROM staff
 						WHERE STAFF_ID=food_service_staff_accounts.STAFF_ID
 						LIMIT 1)
-					WHERE exists(SELECT * FROM staff
+					WHERE exists(SELECT 1 FROM staff
 						WHERE STAFF_ID=food_service_staff_accounts.STAFF_ID
 						AND ROLLOVER_ID IS NOT NULL
 						AND SYEAR='" . $next_syear . "')" );
@@ -492,7 +524,7 @@ function Rollover( $table, $mode = 'delete' )
 				STATE_CODE,DEFAULT_CODE,TABLE_NAME,SORT_ORDER)
 				SELECT c.SYEAR+1,c.SCHOOL_ID,c.TITLE,
 				c.SHORT_NAME,c.TYPE,c.STATE_CODE,c.DEFAULT_CODE," .
-				db_case( [ 'c.TABLE_NAME', "'0'", "'0'", '(SELECT ID FROM attendance_code_categories WHERE SCHOOL_ID=c.SCHOOL_ID AND ROLLOVER_ID=c.TABLE_NAME)' ] ) . ",c.SORT_ORDER
+			         db_case( [ 'c.TABLE_NAME', "'0'", "'0'", '(SELECT ID FROM attendance_code_categories WHERE SCHOOL_ID=c.SCHOOL_ID AND ROLLOVER_ID=c.TABLE_NAME)' ] ) . ",c.SORT_ORDER
 				FROM attendance_codes c
 				WHERE c.SYEAR='" . UserSyear() . "'
 				AND c.SCHOOL_ID='" . UserSchool() . "'" );
@@ -551,7 +583,7 @@ function Rollover( $table, $mode = 'delete' )
 					AND SCHOOL_ID='" . UserSchool() . "'" );
 			}
 
-			//FJ ROLL Gradebook Config's Final Grading Percentages
+			// ROLL Gradebook Config's Final Grading Percentages
 			$db_case_array = [ 'puc.TITLE' ];
 
 			$mp_next = DBGet( "SELECT MARKING_PERIOD_ID,ROLLOVER_ID,MP
@@ -580,19 +612,30 @@ function Rollover( $table, $mode = 'delete' )
 				}
 			}
 
-			// Fix MySQL syntax error: no FROM allowed inside UPDATE, use subquery
-			DBQuery( "UPDATE program_user_config puc
-				SET TITLE=(SELECT (" . db_case( $db_case_array ) . ")
-					FROM staff s
+			if ( $mp_next )
+			{
+				// Fix MySQL syntax error: no FROM allowed inside UPDATE, use subquery
+				DBQuery( "UPDATE program_user_config puc
+					SET TITLE=(SELECT (" . db_case( $db_case_array ) . ")
+						FROM staff s
+						WHERE (puc.TITLE IN(" . implode( ',', $mp_titles ) . "))
+						AND puc.PROGRAM='Gradebook'
+						AND puc.USER_ID=s.STAFF_ID
+						AND s.SYEAR='" . $next_syear . "')
 					WHERE (puc.TITLE IN(" . implode( ',', $mp_titles ) . "))
 					AND puc.PROGRAM='Gradebook'
-					AND puc.USER_ID=s.STAFF_ID
-					AND s.SYEAR='" . $next_syear . "')
-				WHERE (puc.TITLE IN(" . implode( ',', $mp_titles ) . "))
-				AND puc.PROGRAM='Gradebook'
-				AND puc.USER_ID IN (SELECT s2.STAFF_ID
-					FROM staff s2
-					WHERE s2.SYEAR='" . $next_syear . "')" );
+					AND puc.USER_ID IN (SELECT s2.STAFF_ID
+						FROM staff s2
+						WHERE s2.SYEAR='" . $next_syear . "')" );
+
+				// @since 10.7 ROLL Gradebook Config's Final Grading Percentages for Admin (overridden)
+				DBQuery( "INSERT INTO program_user_config (USER_ID,PROGRAM,TITLE,VALUE)
+					SELECT puc.USER_ID,puc.PROGRAM,(" . db_case( $db_case_array ) . "),puc.VALUE
+					FROM program_user_config puc
+					WHERE puc.USER_ID='-1'
+					AND puc.PROGRAM='Gradebook'
+					AND puc.TITLE IN(" . implode( ',', $mp_titles ) . ")" );
+			}
 
 			break;
 
@@ -669,6 +712,14 @@ function Rollover( $table, $mode = 'delete' )
 				CREDIT_HOURS,DESCRIPTION,COURSE_ID FROM courses c
 				WHERE SYEAR='" . UserSyear() . "'
 				AND SCHOOL_ID='" . UserSchool() . "'" );
+
+			if ( ! isset( $_REQUEST['course_periods'] )
+			     || $_REQUEST['course_periods'] !== 'Y' )
+			{
+				// Do NOT roll Course Periods, break.
+				// @since 10.3 Add "Course Periods" checkbox
+				break;
+			}
 
 			// ROLL course_periods
 			DBQuery( "INSERT INTO course_periods (SYEAR,SCHOOL_ID,COURSE_ID,TITLE,
@@ -937,7 +988,7 @@ function Rollover( $table, $mode = 'delete' )
 				SORT_ORDER,COURSE_ID,ROLLOVER_ID)
 				SELECT SYEAR+1,
 				SCHOOL_ID,TITLE,SORT_ORDER," .
-				db_case( [ 'COURSE_ID', "''", 'NULL', "(SELECT COURSE_ID FROM courses WHERE ROLLOVER_ID=rc.COURSE_ID LIMIT 1)" ] ) . ",ID
+			         db_case( [ 'COURSE_ID', "''", 'NULL', "(SELECT COURSE_ID FROM courses WHERE ROLLOVER_ID=rc.COURSE_ID LIMIT 1)" ] ) . ",ID
 				FROM report_card_comment_categories rc
 				WHERE SYEAR='" . UserSyear() . "'
 				AND SCHOOL_ID='" . UserSchool() . "'" );
@@ -946,8 +997,8 @@ function Rollover( $table, $mode = 'delete' )
 				COURSE_ID,CATEGORY_ID,SCALE_ID)
 				SELECT SYEAR+1,SCHOOL_ID,TITLE,
 				SORT_ORDER," .
-				db_case( [ 'COURSE_ID', "''", 'NULL', "(SELECT COURSE_ID FROM courses WHERE ROLLOVER_ID=rc.COURSE_ID LIMIT 1)" ] ) . "," .
-				db_case( [ 'CATEGORY_ID', "''", 'NULL', "(SELECT ID FROM report_card_comment_categories WHERE ROLLOVER_ID=rc.CATEGORY_ID)" ] ) . ",SCALE_ID
+			         db_case( [ 'COURSE_ID', "''", 'NULL', "(SELECT COURSE_ID FROM courses WHERE ROLLOVER_ID=rc.COURSE_ID LIMIT 1)" ] ) . "," .
+			         db_case( [ 'CATEGORY_ID', "''", 'NULL', "(SELECT ID FROM report_card_comment_categories WHERE ROLLOVER_ID=rc.CATEGORY_ID)" ] ) . ",SCALE_ID
 				FROM report_card_comments rc
 				WHERE SYEAR='" . UserSyear() . "'
 				AND SCHOOL_ID='" . UserSchool() . "'" );

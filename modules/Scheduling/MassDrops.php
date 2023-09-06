@@ -3,7 +3,7 @@
 DrawHeader( ProgramTitle() );
 
 if ( ! $_REQUEST['modfunc']
-	&& $_REQUEST['search_modfunc'] !== 'list' )
+     && $_REQUEST['search_modfunc'] !== 'list' )
 {
 	unset( $_SESSION['MassDrops.php'] );
 }
@@ -13,7 +13,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 	if ( ! empty( $_SESSION['MassDrops.php'] ) )
 	{
 		if ( isset( $_REQUEST['student'] )
-			&& is_array( $_REQUEST['student'] ) )
+		     && is_array( $_REQUEST['student'] ) )
 		{
 			$drop_date = RequestedDate( 'drop', '' );
 
@@ -37,7 +37,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 					foreach ( (array) $_REQUEST['student'] as $student_id )
 					{
 						if ( ! empty( $current_RET[$student_id] )
-							&& empty( $schedule_deletion_pending ) )
+						     && empty( $schedule_deletion_pending ) )
 						{
 							DBQuery( "UPDATE schedule
 								SET END_DATE='" . $drop_date . "'
@@ -53,9 +53,13 @@ if ( $_REQUEST['modfunc'] === 'save' )
 
 							if ( ! empty( $start_end_RET ) )
 							{
+								$student_name = DBGetOne( "SELECT " . DisplayNameSQL() . "
+									FROM students
+									WHERE STUDENT_ID='" . $student_id . "'" );
+
 								// User is asked if he wants absences and grades to be deleted.
 								$delete_ok = DeletePrompt(
-									_( 'Student\'s Absences and Grades' ),
+									_( 'Student\'s Absences and Grades' ) . ' (' . $student_name . ')',
 									_( 'also delete' ),
 									false
 								);
@@ -182,22 +186,31 @@ if ( $_REQUEST['modfunc'] != 'choose_course' )
 			); return false;' ) . '">' . _( 'Choose a Course' ) . '</a></td></tr>';
 
 		echo '<tr><td><br />' . DateInput(
-			DBDate(),
-			'drop',
-			_( 'Drop Date' ),
-			false,
-			false
-		) . '</td></tr>';
+				DBDate(),
+				'drop',
+				_( 'Drop Date' ),
+				false,
+				false
+			) . '</td></tr>';
 
 		echo '<tr><td><select name="marking_period_id" id="marking_period_id">';
 
+		// @since 11.1 SQL Use GetFullYearMP() & GetChildrenMP() functions to limit Marking Periods
+		$fy_and_children_mp = "'" . GetFullYearMP() . "'";
+
+		if ( GetChildrenMP( 'FY' ) )
+		{
+			$fy_and_children_mp .= "," . GetChildrenMP( 'FY' );
+		}
+
 		$mp_RET = DBGet( "SELECT MARKING_PERIOD_ID,TITLE," .
-			db_case( [ 'MP', "'FY'", "'0'", "'SEM'", "'1'", "'QTR'", "'2'" ] ) . " AS TBL
+		                 db_case( [ 'MP', "'FY'", "'0'", "'SEM'", "'1'", "'QTR'", "'2'" ] ) . " AS TBL
 			FROM school_marking_periods
 			WHERE (MP='FY' OR MP='SEM' OR MP='QTR')
+			AND MARKING_PERIOD_ID IN(" . $fy_and_children_mp . ")
 			AND SCHOOL_ID='" . UserSchool() . "'
 			AND SYEAR='" . UserSyear() . "'
-			ORDER BY TBL,SORT_ORDER IS NULL,SORT_ORDER" );
+			ORDER BY TBL,SORT_ORDER IS NULL,SORT_ORDER,START_DATE" );
 
 		foreach ( (array) $mp_RET as $mp )
 		{
@@ -263,6 +276,6 @@ if ( $_REQUEST['modfunc'] === 'choose_course' )
 			WHERE COURSE_PERIOD_ID='" . (int) $_SESSION['MassDrops.php']['course_period_id'] . "'" );
 
 		echo '<script>opener.document.getElementById("course_div").innerHTML = ' .
-			json_encode( $course_title . '<br />' . $period_title ) . '; window.close();</script>';
+		     json_encode( $course_title . '<br />' . $period_title ) . '; window.close();</script>';
 	}
 }

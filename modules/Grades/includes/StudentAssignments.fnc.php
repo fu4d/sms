@@ -27,7 +27,6 @@ if ( ! isset( $AssignmentsFilesPath ) )
  * @uses FileUpload()
  * @uses SanitizeHTML()
  * @since 2.9
- * @since 8.9.5 Add microseconds to filename format to make it harder to predict.
  *
  * @param  string  $assignment_id Assignment ID.
  * @param  array   $error         Global errors array.
@@ -58,17 +57,18 @@ function StudentAssignmentSubmit( $assignment_id, &$error )
 
 	if ( $old_submission )
 	{
-		$old_data = unserialize( $old_submission['DATA'] );
+		// @since 11.0 Move from serialize() to json_encode()
+		$old_data = json_decode( $old_submission['DATA'], true );
+
+		if ( json_last_error() !== JSON_ERROR_NONE )
+		{
+			$old_data = unserialize( $old_submission['DATA'] );
+		}
 	}
 
 	// TODO: check if Student not dropped?
 
 	$files = issetVal( $old_data['files'] );
-
-	$timestamp = new \DateTime();
-
-	// @since 8.9.5 Add microseconds to filename format to make it harder to predict.
-	$timestamp = $timestamp->format( 'Y-m-d H:i:s.u' );
 
 	$assignments_path = GetAssignmentsFilesPath( $assignment['STAFF_ID'] );
 
@@ -80,8 +80,7 @@ function StudentAssignmentSubmit( $assignment_id, &$error )
 			WHERE STUDENT_ID='" . UserStudentID() . "'" );
 
 		// Filename = [course_title]_[assignment_ID]_[student_name]_[timestamp].ext.
-		$file_name_no_ext = no_accents( $assignment['COURSE_TITLE'] . '_' . $assignment_id . '_' .
-			$student_name . '_' . $timestamp );
+		$file_name_no_ext = FileNameTimestamp( $assignment['COURSE_TITLE'] . '_' . $assignment_id . '_' . $student_name );
 
 		// Upload file to AssignmentsFiles/[School_Year]/Teacher[teacher_ID]/Quarter[1,2,3,4...]/.
 		$file = FileUpload(
@@ -119,36 +118,29 @@ function StudentAssignmentSubmit( $assignment_id, &$error )
 	$message = isset( $_POST['message'] ) ? SanitizeHTML( $_POST['message'], $assignments_path ) : '';
 
 	// Serialize Assignment Data.
-	$data = [ 'files' => $files, 'message' => $message, 'date' => $timestamp ];
+	$data = [ 'files' => $files, 'message' => $message, 'date' => date( 'Y-m-d H:i:s' ) ];
 
-	$data = DBEscapeString( serialize( $data ) );
+	// @since 11.0 Move from serialize() to json_encode()
+	$data = DBEscapeString( json_encode( $data ) );
 
-	// Save assignment submission.
-	// Update or insert?
-	if ( $old_submission )
-	{
-		// Update.
-		$assignment_submission_sql = "UPDATE student_assignments
-			SET DATA='" . $data . "'
-			WHERE STUDENT_ID='" . UserStudentID() . "'
-			AND ASSIGNMENT_ID='" . (int) $assignment_id . "'";
-	}
-	else
+	if ( ! $old_submission )
 	{
 		// If no file & no message.
-		if ( $message = ''
+		if ( $message === ''
 			&& ! $files )
 		{
 			return false;
 		}
-
-		// Insert.
-		$assignment_submission_sql = "INSERT INTO student_assignments
-			(STUDENT_ID, ASSIGNMENT_ID, DATA)
-			VALUES ('" . UserStudentID() . "', '" . $assignment_id . "', '" . $data . "')";
 	}
 
-	DBQuery( $assignment_submission_sql );
+	// Save assignment submission.
+	// Update or insert? Upsert
+	DBUpsert(
+		'student_assignments',
+		[ 'DATA' => $data ],
+		[ 'STUDENT_ID' => UserStudentID(), 'ASSIGNMENT_ID' => (int) $assignment_id ],
+		$old_submission ? 'update' : 'insert'
+	);
 
 	return empty( $error );
 }
@@ -201,7 +193,13 @@ function StudentAssignmentSubmissionOutput( $assignment_id )
 
 	if ( isset( $submission['DATA'] ) )
 	{
-		$data = unserialize( $submission['DATA'] );
+		// @since 11.0 Move from serialize() to json_encode()
+		$data = json_decode( $submission['DATA'], true );
+
+		if ( json_last_error() !== JSON_ERROR_NONE )
+		{
+			$data = unserialize( $submission['DATA'] );
+		}
 
 		$old_file = issetVal( $data['files'][0], '' );
 
@@ -231,7 +229,7 @@ function StudentAssignmentSubmissionOutput( $assignment_id )
 		if ( $old_message )
 		{
 			// Display assignment message.
-			DrawHeader( $old_message . $message .
+			DrawHeader( $old_message .
 				FormatInputTitle( _( 'Message' ), '', false, '' ) );
 		}
 
@@ -279,6 +277,7 @@ function StudentAssignmentSubmissionOutput( $assignment_id )
  * Student Assignment Draw Headers with details
  *
  * @since 4.5
+ * @since 10.6 Truncate Assignment Title & Category to 36 chars only if has words > 36 chars
  *
  * @param array $assignment Assignment details array
  */
@@ -289,6 +288,8 @@ function StudentAssignmentDrawHeaders( $assignment )
 	{
 		return;
 	}
+
+	$gradebook_config = ProgramUserConfig( 'Gradebook', $assignment['STAFF_ID'] );
 
 	// Past due, in red.
 	$due_date = $assignment['DUE_DATE'] ? MakeAssignmentDueDate( $assignment['DUE_DATE'] ) : _( 'N/A' );
@@ -316,10 +317,50 @@ function StudentAssignmentDrawHeaders( $assignment )
 			AttrEscape( $assignment['ASSIGNMENT_TYPE_COLOR'] ) . ';">&nbsp;</span>&nbsp;';
 	}
 
+	// Truncate title to 36 chars only if has words > 36 chars.
+	// Split on spaces.
+	$title_words = explode( ' ', $assignment['TITLE'] );
+
+	$truncate = false;
+
+	foreach ( $title_words as $title_word )
+	{
+		if ( mb_strlen( $title_word ) > 36 )
+		{
+			$truncate = true;
+
+			break;
+		}
+	}
+
+	$title = ! $truncate ?
+		$assignment['TITLE'] :
+		'<span title="' . AttrEscape( $assignment['TITLE'] ) . '">' . mb_substr( $assignment['TITLE'], 0, 33 ) . '...</span>';
+
+	// Truncate category to 36 chars only if has words > 36 chars.
+	// Split on spaces.
+	$category_words = explode( ' ', $assignment['CATEGORY'] );
+
+	$truncate = false;
+
+	foreach ( $category_words as $category_word )
+	{
+		if ( mb_strlen( $category_word ) > 36 )
+		{
+			$truncate = true;
+
+			break;
+		}
+	}
+
+	$category = ! $truncate ?
+		$assignment['CATEGORY'] :
+		'<span title="' . AttrEscape( $assignment['CATEGORY'] ) . '">' . mb_substr( $assignment['CATEGORY'], 0, 33 ) . '...</span>';
+
 	// Title - Type.
 	DrawHeader(
-		_( 'Title' ) . ': <b>' . $assignment['TITLE'],
-		_( 'Category' ) . ': <b>' . $type_color . $assignment['CATEGORY'] . '</b>'
+		_( 'Title' ) . ': <b>' . $title,
+		_( 'Category' ) . ': <b>' . $type_color . $category . '</b>'
 	);
 
 	// @since 4.4 Assignment File.
@@ -327,16 +368,26 @@ function StudentAssignmentDrawHeaders( $assignment )
 		_( 'File' ) . ': ' . GetAssignmentFileLink( $assignment['FILE'] ) :
 		'';
 
+	// @since 11.0 Add Weight Assignments option
+	$weight_header = ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) ?
+		_( 'Weight' ) . ': <b>' . issetVal( $assignment['WEIGHT'], 0 ) . '</b>' :
+		'';
+
 	// Points.
 	DrawHeader(
 		_( 'Points' ) . ': <b>' . $assignment['POINTS'] . '</b>',
-		$file_header
+		$file_header ? $file_header : $weight_header
 	);
+
+	if ( $file_header && $weight_header )
+	{
+		DrawHeader( $weight_header );
+	}
 
 	if ( $assignment['DESCRIPTION'] )
 	{
 		// Description.
-		DrawHeader( _( 'Description' ) . ':<br />'. $assignment['DESCRIPTION'] );
+		echo $assignment['DESCRIPTION'];
 	}
 }
 
@@ -348,6 +399,7 @@ function StudentAssignmentDrawHeaders( $assignment )
  *
  * @since 2.9
  * @since 4.4 Adapt function for Teachers (no Student).
+ * @since 10.7 Check Assignment is in current MP
  *
  * @param  string        $assignment_id Assignment ID.
  * @return boolean|array Assignment details array or false.
@@ -396,13 +448,14 @@ function GetAssignment( $assignment_id )
 	}
 
 	$assignment_sql = "SELECT ga.ASSIGNMENT_ID, ga.STAFF_ID, ga.COURSE_PERIOD_ID, ga.COURSE_ID,
-		ga.TITLE, ga.ASSIGNED_DATE, ga.DUE_DATE, ga.POINTS,
+		ga.TITLE, ga.ASSIGNED_DATE, ga.DUE_DATE, ga.POINTS, ga.WEIGHT,
 		ga.DESCRIPTION, ga.FILE, ga.SUBMISSION, c.TITLE AS COURSE_TITLE,
 		gat.TITLE AS CATEGORY, gat.COLOR AS ASSIGNMENT_TYPE_COLOR
 		FROM gradebook_assignments ga,courses c,gradebook_assignment_types gat
 		" . $where_user .
 		" AND ga.ASSIGNMENT_ID='" . (int) $assignment_id . "'
-		AND gat.ASSIGNMENT_TYPE_ID=ga.ASSIGNMENT_TYPE_ID"; // Why not?
+		AND gat.ASSIGNMENT_TYPE_ID=ga.ASSIGNMENT_TYPE_ID
+		AND ga.MARKING_PERIOD_ID='" . UserMP() . "'"; // Why not?
 
 	$assignment_RET = DBGet( $assignment_sql, [], [ 'ASSIGNMENT_ID' ] );
 
@@ -487,10 +540,8 @@ function UploadAssignmentTeacherFile( $assignment_id, $teacher_id, $file_input_i
 		return '';
 	}
 
-	$microseconds = new \DateTime();
-
 	// @since 9.0 Add microseconds to filename format to make it harder to predict.
-	$microseconds = $microseconds->format( 'u' );
+	$microseconds = substr( (string) microtime(), 2, 6 );
 
 	// Filename = [course_title]_[assignment_ID].ext.
 	$file_name_no_ext = no_accents( $assignment['COURSE_TITLE'] . '_' . $assignment_id . '.' . $microseconds );
@@ -545,7 +596,7 @@ function StudentAssignmentsListOutput()
 			OR ( ga.DUE_DATE>=ss.START_DATE
 				AND ( ss.END_DATE IS NULL OR ga.DUE_DATE<=ss.END_DATE ) ) )
 		AND c.COURSE_ID=ss.COURSE_ID
-		ORDER BY ga.SUBMISSION, ga.DUE_DATE";
+		ORDER BY ga.SUBMISSION IS NULL,ga.SUBMISSION,ga.DUE_DATE IS NULL,ga.DUE_DATE,c.TITLE,ga.TITLE";
 
 	$assignments_RET = DBGet(
 		DBQuery( $assignments_sql ),
@@ -600,6 +651,12 @@ if ( ! function_exists( 'MakeAssignmentTitle' ) )
 	{
 		global $THIS_RET;
 
+		if ( ! empty( $_REQUEST['LO_save'] ) )
+		{
+			// Export list.
+			return $value;
+		}
+
 		// Truncate value to 36 chars.
 		$title = mb_strlen( $value ) <= 36 ?
 		$value :
@@ -623,6 +680,12 @@ if ( ! function_exists( 'MakeAssignmentTitle' ) )
 		{
 			// @since 3.9 Add MP to outside links (see Portal), so current MP is correct.
 			$view_assignment_link .= '&marking_period_id=' . $THIS_RET['MARKING_PERIOD_ID'];
+		}
+
+		if ( ! empty( $THIS_RET['COURSE_PERIOD_ID'] ) )
+		{
+			// @since 10.9 Add CP to outside links (see Portal), so current CP is correct.
+			$view_assignment_link .= '&period=' . $THIS_RET['COURSE_PERIOD_ID'];
 		}
 
 		return '<a href="' . URLEscape( $view_assignment_link ) . '">' . $title . '</a>';
@@ -696,7 +759,13 @@ function MakeStudentAssignmentSubmissionView( $value, $column )
 
 	if ( $submission )
 	{
-		$data = unserialize( $submission['DATA'] );
+		// @since 11.0 Move from serialize() to json_encode()
+		$data = json_decode( $submission['DATA'], true );
+
+		if ( json_last_error() !== JSON_ERROR_NONE )
+		{
+			$data = unserialize( $submission['DATA'] );
+		}
 
 		$file = issetVal( $data['files'][0], '' );
 
@@ -754,7 +823,7 @@ function GetAssignmentFileLink( $file_path )
 		return '';
 	}
 
-	$file_name = mb_substr( mb_strrchr( $file_path, '/' ), 1 );
+	$file_name = basename( $file_path );
 
 	$file_size = HumanFilesize( filesize( $file_path ) );
 

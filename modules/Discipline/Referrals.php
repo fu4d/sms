@@ -10,12 +10,8 @@ DrawHeader( ProgramTitle() );
 AddRequestedDates( 'values', 'post' );
 
 if ( ! empty( $_POST['values'] )
-	&& AllowEdit() )
+     && AllowEdit() )
 {
-	$sql = "UPDATE discipline_referrals SET ";
-
-	$go = 0;
-
 	$categories_RET = DBGet( "SELECT df.ID,df.DATA_TYPE,du.TITLE,du.SELECT_OPTIONS
 		FROM discipline_fields df,discipline_field_usage du
 		WHERE du.SYEAR='" . UserSyear() . "'
@@ -23,55 +19,51 @@ if ( ! empty( $_POST['values'] )
 		AND du.DISCIPLINE_FIELD_ID=df.ID
 		ORDER BY du.SORT_ORDER IS NULL,du.SORT_ORDER", [], [ 'ID' ] );
 
+	$update_columns = [];
+
 	foreach ( (array) $_REQUEST['values'] as $column_name => $value )
 	{
-		$column_data_type = $categories_RET[str_replace( 'CATEGORY_', '', $column_name )][1]['DATA_TYPE'];
-
-		//FJ check numeric fields
+		$column_data_type = issetVal( $categories_RET[str_replace( 'CATEGORY_', '', $column_name )][1]['DATA_TYPE'] );
 
 		if ( $column_data_type === 'numeric'
-			&& $value !== ''
-			&& ! is_numeric( $value ) )
+		     && $value !== ''
+		     && ! is_numeric( $value ) )
 		{
+			// Check numeric fields.
 			$error[] = _( 'Please enter valid Numeric data.' );
+
 			continue;
 		}
 
-		// FJ textarea fields MarkDown sanitize.
-
 		if ( $column_data_type === 'textarea' )
 		{
-			$value = SanitizeMarkDown( $_POST['values'][$column_name] );
+			// Textarea fields MarkDown sanitize.
+			$value = DBEscapeString( SanitizeMarkDown( $_POST['values'][$column_name] ) );
 		}
 
-		if ( ! is_array( $value ) )
+		if ( is_array( $value ) )
 		{
-			$sql .= DBEscapeIdentifier( $column_name ) . "='" . str_replace( "&rsquo;", "''", $value ) . "',";
-		}
-		else
-		{
-			$sql .= DBEscapeIdentifier( $column_name ) . "='||";
+			$value_f = '||';
 
 			foreach ( (array) $value as $val )
 			{
-				if ( $val )
+				if ( $val !== '' )
 				{
-					$sql .= str_replace( '&quot;', '"', $val ) . '||';
+					$value_f .= $val . '||';
 				}
 			}
 
-			$sql .= "',";
+			$value = trim( $value_f, '|' ) === '' ? '' : $value_f;
 		}
 
-		$go = true;
+		$update_columns[ $column_name ] = $value;
 	}
 
-	$sql = mb_substr( $sql, 0, -1 ) . " WHERE ID='" . (int) $_REQUEST['referral_id'] . "'";
-
-	if ( $go )
-	{
-		DBQuery( $sql );
-	}
+	DBUpdate(
+		'discipline_referrals',
+		$update_columns,
+		[ 'ID' => (int) $_REQUEST['referral_id'] ]
+	);
 
 	// Unset values & redirect URL.
 	RedirectURL( 'values' );
@@ -80,7 +72,7 @@ if ( ! empty( $_POST['values'] )
 echo ErrorMessage( $error );
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( DeletePrompt( _( 'Referral' ) ) )
 	{
@@ -136,7 +128,7 @@ $extra['link']['remove']['variables'] = [ 'id' => 'ID' ];
 $extra['ASSOCIATED'] = User( 'STAFF_ID' );
 
 if ( ! $_REQUEST['modfunc']
-	&& ! empty( $_REQUEST['referral_id'] ) )
+     && ! empty( $_REQUEST['referral_id'] ) )
 {
 	// FJ prevent referral ID hacking.
 
@@ -193,15 +185,15 @@ if ( ! $_REQUEST['modfunc']
 			WHERE STUDENT_ID='" . (int) $RET['STUDENT_ID'] . "'" );
 
 		echo '<tr><td>' . NoInput(
-			MakeStudentPhotoTipMessage( $RET['STUDENT_ID'], $student_full_name ),
-			_( 'Student' )
-		) . '</td></tr>';
+				MakeStudentPhotoTipMessage( $RET['STUDENT_ID'], $student_full_name ),
+				_( 'Student' )
+			) . '</td></tr>';
 
 		$users_RET = DBGet( "SELECT STAFF_ID," . DisplayNameSQL() . " AS FULL_NAME,
 			EMAIL,PROFILE
 			FROM staff
 			WHERE SYEAR='" . UserSyear() . "'
-			AND SCHOOLS LIKE '%," . UserSchool() . ",%'
+			AND (SCHOOLS IS NULL OR position('," . UserSchool() . ",' IN SCHOOLS)>0)
 			AND PROFILE IN ('admin','teacher')
 			ORDER BY FULL_NAME" );
 
@@ -213,26 +205,26 @@ if ( ! $_REQUEST['modfunc']
 		}
 
 		echo '<tr><td>' . SelectInput(
-			$RET['STAFF_ID'],
-			'values[STAFF_ID]',
-			_( 'Reporter' ),
-			$users_options,
-			false,
-			'required',
-			true
-		) . '</td></tr>';
+				$RET['STAFF_ID'],
+				'values[STAFF_ID]',
+				_( 'Reporter' ),
+				$users_options,
+				false,
+				'required',
+				true
+			) . '</td></tr>';
 
 		echo '<tr><td>' .
-		DateInput( $RET['ENTRY_DATE'], 'values[ENTRY_DATE]', _( 'Incident Date' ) ) .
-			'</td></tr>';
+		     DateInput( $RET['ENTRY_DATE'], 'values[ENTRY_DATE]', _( 'Incident Date' ) ) .
+		     '</td></tr>';
 
 		foreach ( (array) $categories_RET as $category )
 		{
 			echo '<tr><td>' . ReferralInput(
-				$category,
-				$RET['CATEGORY_' . $category['ID']],
-				false
-			) . '</td></tr>';
+					$category,
+					$RET['CATEGORY_' . $category['ID']],
+					false
+				) . '</td></tr>';
 		}
 
 		echo '</table>';
@@ -255,7 +247,7 @@ if ( ! $_REQUEST['modfunc']
 }
 
 if ( empty( $_REQUEST['referral_id'] )
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
 	echo ErrorMessage( $error );
 
@@ -274,7 +266,7 @@ function _make( $value, $column )
 	}
 
 	if ( mb_substr_count( $value, '-' ) === 2
-		&& VerifyDate( $value ) )
+	     && VerifyDate( $value ) )
 	{
 		$value = ProperDate( $value );
 	}

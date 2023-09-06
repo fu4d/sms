@@ -17,11 +17,19 @@ if ( $_REQUEST['modfunc'] === 'save' )
 
 				foreach ( (array) $_REQUEST['student'] as $student_id )
 				{
-					$sql .= "INSERT INTO billing_payments (SYEAR,SCHOOL_ID,STUDENT_ID,PAYMENT_DATE,AMOUNT,COMMENTS)
-						VALUES('" . UserSyear() . "',
-						'" . UserSchool() . "','" . $student_id . "','" . $date . "',
-						'" . preg_replace( '/[^0-9.-]/', '', $_REQUEST['amount'] ) . "',
-						'" . $_REQUEST['comments'] . "');";
+					$sql .= DBInsertSQL(
+						'billing_payments',
+						[
+							'SYEAR' => UserSyear(),
+							'SCHOOL_ID' => UserSchool(),
+							'STUDENT_ID' => (int) $student_id,
+							'PAYMENT_DATE' => $date,
+							'AMOUNT' => preg_replace( '/[^0-9.-]/', '', $_REQUEST['amount'] ),
+							'COMMENTS' => $_REQUEST['comments'],
+							// @since 11.2 Add CREATED_BY column to billing_fees & billing_payments tables
+							'CREATED_BY' => DBEscapeString( User( 'NAME' ) ),
+						]
+					);
 				}
 
 				if ( $sql )

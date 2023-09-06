@@ -11,12 +11,12 @@ require_once 'ProgramFunctions/Substitutions.fnc.php';
 if ( $_REQUEST['modfunc'] === 'save' )
 {
 	if ( ! empty( $_REQUEST['mp_type_arr'] )
-		&& ! empty( $_REQUEST['st_arr'] ) )
+	     && ! empty( $_REQUEST['st_arr'] ) )
 	{
 		if ( ! empty( $_REQUEST['showcertificate'] ) )
 		{
 			// FJ bypass strip_tags on the $_REQUEST vars.
-			$REQUEST_inputcertificatetext = SanitizeHTML( $_POST['inputcertificatetext'] );
+			$REQUEST_inputcertificatetext = DBEscapeString( SanitizeHTML( $_POST['inputcertificatetext'] ) );
 
 			SaveTemplate( $REQUEST_inputcertificatetext );
 		}
@@ -108,7 +108,7 @@ if ( ! $_REQUEST['modfunc'] )
 		echo '<br /><div class="center">' . Buttons( _( 'Create Transcripts for Selected Students' ) ) . '</div>';
 		echo '</form>';
 
-		// SYear & Semester MPs only, including History MPs.
+		// MPs, including History MPs, excluding Progress Periods.
 		$mps_RET = DBGet( "SELECT MARKING_PERIOD_ID
 			FROM marking_periods
 			WHERE SCHOOL_ID='" . UserSchool() . "'

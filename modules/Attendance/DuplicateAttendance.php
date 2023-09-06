@@ -15,11 +15,6 @@ if ( ! empty( $_REQUEST['mp_arr'] ) )
 	$last_mp = $mp;
 }
 
-//Widgets('course');
-//Widgets('gpa');
-//Widgets('class_rank');
-//Widgets('letter_grade');
-
 if ( $_REQUEST['delete'] === 'true' )
 {
 	//DeletePrompt(_('Duplicate Attendance Record'));
@@ -105,7 +100,7 @@ if ( $_REQUEST['delete'] === 'true' )
 	}
 
 	if ( $note
-		|| $error )
+	     || $error )
 	{
 		// Unset delete & redirect URL.
 		RedirectURL( 'delete' );
@@ -113,8 +108,8 @@ if ( $_REQUEST['delete'] === 'true' )
 }
 
 if ( isset( $_REQUEST['search_modfunc'] )
-	&& $_REQUEST['search_modfunc'] === 'list'
-	&& $_REQUEST['delete'] !== 'true' )
+     && $_REQUEST['search_modfunc'] === 'list'
+     && $_REQUEST['delete'] !== 'true' )
 {
 	$RET = GetStuList( $extra );
 
@@ -146,22 +141,24 @@ if ( isset( $_REQUEST['search_modfunc'] )
 		//$extra['WHERE'] .= " AND ssm.student_id=s.student_id AND ap.STUDENT_ID=s.STUDENT_ID AND ap.COURSE_PERIOD_ID = cp.COURSE_PERIOD_ID AND ('".DBDate()."' BETWEEN ssm.START_DATE AND ssm.END_DATE OR ssm.END_DATE IS NULL) ";
 		//$extra['WHERE'] .= " AND ssm.student_id=s.student_id AND ap.STUDENT_ID=s.STUDENT_ID AND ap.COURSE_PERIOD_ID = cp.COURSE_PERIOD_ID ";
 
+		// @since 10.2.1 SQL handle case when student dropped and then later re-enrolled in course.
 		$extra['WHERE'] = " AND ap.STUDENT_ID=s.STUDENT_ID
 			AND sc.STUDENT_ID=s.STUDENT_ID
 			AND ap.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID
 			AND ap.COURSE_PERIOD_ID=sc.COURSE_PERIOD_ID
-			AND sc.END_DATE>'1999-01-01' ";
+			AND sc.END_DATE>'1999-01-01'
+			AND NOT EXISTS(SELECT 1 FROM schedule
+			WHERE COURSE_PERIOD_ID=sc.COURSE_PERIOD_ID
+			AND STUDENT_ID=sc.STUDENT_ID
+			AND END_DATE IS NULL) ";
 
 		$extra['ORDER_BY'] = ' STUDENT_ID,COURSE_PERIOD_ID,SCHOOL_DATE';
-
-		Widgets( 'course' );
-		Widgets( 'gpa' );
-		Widgets( 'class_rank' );
-		Widgets( 'letter_grade' );
 
 		$pageresult1 = GetStuList( $extra );
 
 		$totalrows = 0;
+
+		$studentid2 = 0;
 
 		foreach ( (array) $pageresult1 as $rr )
 		{
@@ -181,11 +178,11 @@ if ( isset( $_REQUEST['search_modfunc'] )
 				$afterr = "Y";
 			}
 
-			if ( isset( $studentid2 )
-				&& $studentidr == $studentid2
-				&& $courseidr == $courseid2
-				&& $schooldater == $schooldate2
-				&& $startr == $start2 )
+			if ( $studentid2
+			     && $studentidr == $studentid2
+			     && $courseidr == $courseid2
+			     && $schooldater == $schooldate2
+			     && $startr == $start2 )
 			{
 				$totalrows++;
 			}
@@ -220,18 +217,18 @@ if ( isset( $_REQUEST['search_modfunc'] )
 		//$extra['WHERE'] .= " AND ssm.student_id=s.student_id AND ap.STUDENT_ID=s.STUDENT_ID AND ap.COURSE_PERIOD_ID = cp.COURSE_PERIOD_ID AND ('".DBDate()."' BETWEEN ssm.START_DATE AND ssm.END_DATE OR ssm.END_DATE IS NULL) ";
 		//$extra['WHERE'] .= " AND ssm.student_id=s.student_id AND ap.STUDENT_ID=s.STUDENT_ID AND ap.COURSE_PERIOD_ID = cp.COURSE_PERIOD_ID ";
 
+		// @since 10.2.1 SQL handle case when student dropped and then later re-enrolled in course.
 		$extra['WHERE'] = " AND ap.STUDENT_ID=s.STUDENT_ID
 			AND sc.STUDENT_ID=s.STUDENT_ID
 			AND ap.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID
 			AND ap.COURSE_PERIOD_ID=sc.COURSE_PERIOD_ID
-			AND sc.END_DATE>'1999-01-01' ";
+			AND sc.END_DATE>'1999-01-01'
+			AND NOT EXISTS(SELECT 1 FROM schedule
+			WHERE COURSE_PERIOD_ID=sc.COURSE_PERIOD_ID
+			AND STUDENT_ID=sc.STUDENT_ID
+			AND END_DATE IS NULL) ";
 
 		$extra['ORDER_BY'] = ' STUDENT_ID,COURSE_PERIOD_ID,SCHOOL_DATE';
-
-		Widgets( 'course' );
-		Widgets( 'gpa' );
-		Widgets( 'class_rank' );
-		Widgets( 'letter_grade' );
 
 		$result1 = GetStuList( $extra );
 
@@ -419,7 +416,7 @@ if ( isset( $_REQUEST['search_modfunc'] )
 }
 
 if ( ! $_REQUEST['search_modfunc']
-	&& $_REQUEST['delete'] !== 'true' )
+     && $_REQUEST['delete'] !== 'true' )
 {
 	echo ErrorMessage( $error );
 

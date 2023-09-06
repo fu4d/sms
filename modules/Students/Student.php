@@ -4,6 +4,7 @@ require_once 'ProgramFunctions/FileUpload.fnc.php';
 require_once 'ProgramFunctions/Fields.fnc.php';
 require_once 'modules/Students/includes/Student.fnc.php';
 require_once 'modules/Students/includes/SaveEnrollment.fnc.php';
+require_once 'modules/Students/includes/Enrollment.fnc.php';
 
 $_REQUEST['student_id'] = issetVal( $_REQUEST['student_id'] );
 
@@ -195,9 +196,9 @@ if ( $_REQUEST['modfunc'] === 'update'
 			$error[] = _( 'Please fill in the required fields' );
 		}
 
-		if ( isset( $_REQUEST['students']['USERNAME'] ) )
+		if ( ! empty( $_REQUEST['students']['USERNAME'] ) )
 		{
-			// Check username unicity.
+			// Check username uniqueness.
 			$existing_username = DBGet( "SELECT 'exists'
 				FROM staff
 				WHERE USERNAME='" . $_REQUEST['students']['USERNAME'] . "'
@@ -205,13 +206,16 @@ if ( $_REQUEST['modfunc'] === 'update'
 				UNION SELECT 'exists'
 				FROM students
 				WHERE USERNAME='" . $_REQUEST['students']['USERNAME'] . "'
-				AND STUDENT_ID!='" . UserStudentID() . "'" );
+				AND STUDENT_ID!='" . (int) UserStudentID() . "'" );
 
 			if ( ! empty( $existing_username ) )
 			{
 				$error[] = _( 'A user with that username already exists. Choose a different username and try again.' );
 			}
 		}
+
+		// Add Enrollment / Drop dates.
+		AddRequestedDates( 'values' );
 
 		if ( UserStudentID() && ! $error )
 		{
@@ -383,10 +387,19 @@ if ( $_REQUEST['modfunc'] === 'update'
 
 				// Create default food service account for this student.
 				// Associate with default food service account and assign other defaults.
-				DBQuery( "INSERT INTO food_service_accounts (ACCOUNT_ID,BALANCE,TRANSACTION_ID)
-					VALUES('" . $student_id . "','0.00','0');
-					INSERT INTO food_service_student_accounts (STUDENT_ID,DISCOUNT,BARCODE,ACCOUNT_ID)
+				DBQuery( "INSERT INTO food_service_student_accounts (STUDENT_ID,DISCOUNT,BARCODE,ACCOUNT_ID)
 					VALUES('" . $student_id . "','','','" . $student_id . "')" );
+
+				// Fix SQL error, Check if Account ID already exists
+				$fs_account_id_exists = DBGetOne( "SELECT 1
+					FROM food_service_accounts
+					WHERE ACCOUNT_ID='" . (int) $student_id . "'" );
+
+				if ( ! $fs_account_id_exists )
+				{
+					DBQuery( "INSERT INTO food_service_accounts (ACCOUNT_ID,BALANCE,TRANSACTION_ID)
+						VALUES('" . $student_id . "','0.00','0');" );
+				}
 
 				// Create enrollment.
 				SaveEnrollment();
@@ -436,7 +449,11 @@ if ( $_REQUEST['modfunc'] === 'update'
 				[],
 				'.jpg',
 				// @since 9.0 Fix Improper Access Control security issue: add random string to photo file name.
-				UserStudentID() . '.' . bin2hex( openssl_random_pseudo_bytes( 16 ) )
+				// @since 11.0 Fix PHP fatal error if openssl PHP extension is missing
+				UserStudentID() . '.' . bin2hex( function_exists( 'openssl_random_pseudo_bytes' ) ?
+					openssl_random_pseudo_bytes( 16 ) :
+					( function_exists( 'random_bytes' ) ? random_bytes( 16 ) :
+						mb_substr( sha1( rand( 999999999, 9999999999 ), true ), 0, 16 ) ) )
 			);
 
 			if ( $new_photo_file )
@@ -605,7 +622,7 @@ if ( $_REQUEST['modfunc'] === 'remove_file'
 
 		if ( ! empty( $_REQUEST['person_id'] ) )
 		{
-			$file = $FileUploadsPath . 'People/' . $_REQUEST['person_id'] . '/' . $filename;
+			$file = $FileUploadsPath . 'Contact/' . $_REQUEST['person_id'] . '/' . $filename;
 
 			DBQuery( "UPDATE people
 				SET " . $column . "=REPLACE(" . $column . ", '" . DBEscapeString( $file ) . "||', '')
@@ -752,6 +769,8 @@ if (  ( UserStudentID()
 		// Hook.
 		do_action( 'Students/Student.php|header' );
 
+		$tabs = [];
+
 		foreach ( (array) $categories_RET as $category )
 		{
 			if ( isset( $can_use_RET['Students/Student.php&category_id=' . $category['ID']] ) )
@@ -788,7 +807,7 @@ if (  ( UserStudentID()
 
 		$PopTable_opened = true;
 
-		if ( $can_use_RET['Students/Student.php&category_id=' . $category_id] )
+		if ( ! empty( $can_use_RET['Students/Student.php&category_id=' . $category_id] ) )
 		{
 			if ( ! mb_strpos( $include, '/' ) )
 			{
@@ -806,7 +825,7 @@ if (  ( UserStudentID()
 					require 'modules/' . $include . '.inc.php';
 				}
 
-				$separator = '<hr />';
+				$separator = '<hr>';
 
 				require_once 'modules/Students/includes/Other_Info.inc.php';
 			}
@@ -817,7 +836,7 @@ if (  ( UserStudentID()
 		echo '<br /><div class="center">' . SubmitButton() . '</div>';
 		echo '</form>';
 	}
-	elseif ( $can_use_RET['Students/Student.php&category_id=' . $category_id] )
+	elseif ( ! empty( $can_use_RET['Students/Student.php&category_id=' . $category_id] ) )
 	{
 		// Is Deleting from Other tab.
 		if ( ! mb_strpos( $include, '/' ) )

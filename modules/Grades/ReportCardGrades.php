@@ -6,23 +6,23 @@ DrawHeader( ProgramTitle() );
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( ! empty( $_REQUEST['values'] )
-		&& ! empty( $_POST['values'] )
-		&& AllowEdit()
-		&& $_REQUEST['tab_id'] )
+	     && ! empty( $_POST['values'] )
+	     && AllowEdit()
+	     && $_REQUEST['tab_id'] )
 	{
 		foreach ( (array) $_REQUEST['values'] as $id => $columns )
 		{
 			// FJ fix SQL bug invalid numeric data.
 
 			if (  ( empty( $columns['SORT_ORDER'] ) || is_numeric( $columns['SORT_ORDER'] ) )
-				&& ( empty( $columns['BREAK_OFF'] ) || is_numeric( $columns['BREAK_OFF'] ) )
-				&& ( empty( $columns['GPA_VALUE'] ) || is_numeric( $columns['GPA_VALUE'] ) )
-				&& ( empty( $columns['UNWEIGHTED_GP'] ) || is_numeric( $columns['UNWEIGHTED_GP'] ) )
-				&& ( empty( $columns['GP_SCALE'] ) || is_numeric( $columns['GP_SCALE'] ) )
-				&& ( empty( $columns['GP_PASSING_VALUE'] ) || is_numeric( $columns['GP_PASSING_VALUE'] ) )
-				&& ( empty( $columns['HR_GPA_VALUE'] ) || is_numeric( $columns['HR_GPA_VALUE'] ) )
-				&& ( empty( $columns['HHR_GPA_VALUE'] ) || is_numeric( $columns['HHR_GPA_VALUE'] ) )
-				&& ( empty( $columns['HRS_GPA_VALUE'] ) || is_numeric( $columns['HRS_GPA_VALUE'] ) ) )
+			      && ( empty( $columns['BREAK_OFF'] ) || is_numeric( $columns['BREAK_OFF'] ) )
+			      && ( empty( $columns['GPA_VALUE'] ) || is_numeric( $columns['GPA_VALUE'] ) )
+			      && ( empty( $columns['UNWEIGHTED_GP'] ) || is_numeric( $columns['UNWEIGHTED_GP'] ) )
+			      && ( empty( $columns['GP_SCALE'] ) || is_numeric( $columns['GP_SCALE'] ) )
+			      && ( empty( $columns['GP_PASSING_VALUE'] ) || is_numeric( $columns['GP_PASSING_VALUE'] ) )
+			      && ( empty( $columns['HR_GPA_VALUE'] ) || is_numeric( $columns['HR_GPA_VALUE'] ) )
+			      && ( empty( $columns['HHR_GPA_VALUE'] ) || is_numeric( $columns['HHR_GPA_VALUE'] ) )
+			      && ( empty( $columns['HRS_GPA_VALUE'] ) || is_numeric( $columns['HRS_GPA_VALUE'] ) ) )
 			{
 				if ( $id !== 'new' )
 				{
@@ -45,7 +45,7 @@ if ( $_REQUEST['modfunc'] === 'update' )
 
 				// New: check for Title & Scale Value.
 				elseif ( ( $columns['TITLE'] || $columns['TITLE'] == '0' )
-					&& ( $_REQUEST['tab_id'] !== 'new' || $columns['GP_SCALE'] ) )
+				         && ( $_REQUEST['tab_id'] !== 'new' || $columns['GP_SCALE'] ) )
 				{
 					if ( $_REQUEST['tab_id'] !== 'new' )
 					{
@@ -92,7 +92,7 @@ if ( $_REQUEST['modfunc'] === 'update' )
 }
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( $_REQUEST['tab_id'] !== 'new' )
 	{
@@ -134,9 +134,9 @@ if ( ! $_REQUEST['modfunc'] )
 			ORDER BY SORT_ORDER IS NULL,SORT_ORDER", [], [ 'ID' ] );
 
 		if ( ! isset( $_REQUEST['tab_id'] )
-			|| $_REQUEST['tab_id'] == ''
-			|| $_REQUEST['tab_id'] !== 'new'
-			&& empty( $grade_scales_RET[$_REQUEST['tab_id']] ) )
+		     || $_REQUEST['tab_id'] == ''
+		     || $_REQUEST['tab_id'] !== 'new'
+		        && empty( $grade_scales_RET[$_REQUEST['tab_id']] ) )
 		{
 			if ( ! empty( $grade_scales_RET ) )
 			{
@@ -184,11 +184,13 @@ if ( ! $_REQUEST['modfunc'] )
 
 	if ( $_REQUEST['tab_id'] !== 'new' )
 	{
-		$sql = "SELECT * FROM report_card_grades
+		$sql = "SELECT ID,TITLE,SORT_ORDER,GPA_VALUE,BREAK_OFF,COMMENT,GRADE_SCALE_ID,UNWEIGHTED_GP
+			FROM report_card_grades
 			WHERE GRADE_SCALE_ID='" . (int) $_REQUEST['tab_id'] . "'
 			AND SYEAR='" . UserSyear() . "'
 			AND SCHOOL_ID='" . UserSchool() . "'
-			ORDER BY BREAK_OFF IS NOT NULL DESC,BREAK_OFF DESC,SORT_ORDER IS NULL,SORT_ORDER";
+			ORDER BY BREAK_OFF IS NOT NULL DESC,BREAK_OFF DESC,SORT_ORDER IS NULL,SORT_ORDER
+			LIMIT 10101"; // 10100 is base 100 + 2 decimal places
 
 		$functions = [
 			'TITLE' => '_makeTextInput',
@@ -237,7 +239,9 @@ if ( ! $_REQUEST['modfunc'] )
 	}
 	else
 	{
-		$sql = "SELECT * FROM report_card_grade_scales
+		$sql = "SELECT ID,TITLE,GP_SCALE,GP_PASSING_VALUE,COMMENT,
+			HHR_GPA_VALUE,HR_GPA_VALUE,HRS_GPA_VALUE,SORT_ORDER
+			FROM report_card_grade_scales
 			WHERE SCHOOL_ID='" . UserSchool() . "'
 			AND SYEAR='" . UserSyear() . "'
 			ORDER BY SORT_ORDER IS NULL,SORT_ORDER,ID";
@@ -292,11 +296,20 @@ if ( ! $_REQUEST['modfunc'] )
 	echo '<br />';
 
 	$LO_options = [ 'search' => false,
-		'header' => WrapTabs( $tabs, 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab_id=' . $_REQUEST['tab_id'] ) ];
+	                'header' => WrapTabs( $tabs, 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab_id=' . $_REQUEST['tab_id'] ) ];
 
 	if ( $_REQUEST['tab_id'] !== 'new' )
 	{
-		ListOutput( $LO_ret, $LO_columns, 'Grade', 'Grades', $link, [], $LO_options );
+		ListOutput(
+			$LO_ret,
+			$LO_columns,
+			'Grade',
+			'Grades',
+			$link,
+			[],
+			// @since 10.9 Add pagination for list > 1000 results
+			$LO_options + [ 'pagination' => true ]
+		);
 	}
 	else
 	{
@@ -314,9 +327,9 @@ if ( ! $_REQUEST['modfunc'] )
 function _makeGradesInput( $value, $name )
 {
 	global $THIS_RET,
-	$grade_scale_select,
-	$teacher_id,
-		$gradebook_config;
+	       $grade_scale_select,
+	       $teacher_id,
+	       $gradebook_config;
 
 	if ( ! empty( $THIS_RET['ID'] ) )
 	{
@@ -343,13 +356,14 @@ function _makeGradesInput( $value, $name )
 		$extra = 'size=15 maxlength=100';
 	}
 	elseif ( $name === 'BREAK_OFF'
-		&& $teacher_id
-		&& isset( $gradebook_config[UserCoursePeriod() . '-' . $THIS_RET['ID']] )
-		&& $gradebook_config[UserCoursePeriod() . '-' . $THIS_RET['ID']] != '' )
+	         && $teacher_id
+	         && ! empty( $THIS_RET['ID'] )
+	         && isset( $gradebook_config[UserCoursePeriod() . '-' . $THIS_RET['ID']] )
+	         && $gradebook_config[UserCoursePeriod() . '-' . $THIS_RET['ID']] != '' )
 	{
 		// Breakoff configured by Teacher.
 		return '<span style="color:blue">' .
-			$gradebook_config[UserCoursePeriod() . '-' . $THIS_RET['ID']] . '%</span>';
+		       $gradebook_config[UserCoursePeriod() . '-' . $THIS_RET['ID']] . '%</span>';
 	}
 	else
 	{
@@ -361,15 +375,15 @@ function _makeGradesInput( $value, $name )
 		}
 
 		if ( $id !== 'new'
-			&& ( $name === 'GP_SCALE'
-				|| $name === 'GP_PASSING_VALUE' ) )
+		     && ( $name === 'GP_SCALE'
+		          || $name === 'GP_PASSING_VALUE' ) )
 		{
 			$extra .= ' required';
 		}
 	}
 
 	if ( $name === 'BREAK_OFF'
-		&& $value !== '' )
+	     && $value !== '' )
 	{
 		// Append "%" to displayed Breakoff value.
 		$value = [ $value, $value . '%' ];

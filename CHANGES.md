@@ -1,11 +1,540 @@
 # CHANGES
 ## RosarioSIS Student Information System
 
+Changes in 11.2
+---------------
+- Add $add_post argument, POST parameters to add to the URL (optional) in Prepare_PHP_SELF.fnc.php
+- Fix Apache 414 Request-URI Too Long, move st from `$_REQUEST` to `$_SESSION` in FinalGrades.php
+- Add `$_POST` elements, ytd_tardies_code, mp_tardies_code & mp_arr to URL in FinalGrades.php
+- CSS WPadmin theme remove bold from MD preview tabs in stylesheet.css
+- SQL Add CREATED_BY column to billing_fees & billing_payments tables in Update.fnc.php, rosariosis.sql & rosariosis_mysql.sql
+- Expanded View: Add Created by & Created at columns in MassAssignFees.php, MassAssignPayments.php, StudentFees.php, StudentPayments.php & DailyTransactions.php
+- Do NOT create Assignment Type if already exists for Course & Teacher in MassCreateAssignments.php
+- Add RosarioURL() function in Prepare_PHP_SELF.fnc.php
+- Use RosarioURL() instead of local function in PasswordReset.php, MarkDownHTML.fnc.php & SendNotification.fnc.php
+- Security remove $wkhtmltopdfAssetsPath & --enable-local-file-access, use base URL instead in INSTALL.md, INSTALL_es.md, INSTALL_fr.md & PDF.php
+- HTML increase Username input size (suitable for email address) in General_Info.inc.php
+- Fix Attendance State Code: rename "Half Day" to "Half" in AttendanceCodes.php, AttendanceCodes.fnc.php & AttendanceSummary.php
+- CSS themes adjust tooltip height to fit inside PopTable in stylesheet.css & zresponsive.css
+- Fix SQL error when school has no MPs in Rollover.php
+- HTML add arrow to indicate sub-option in Configuration.php
+- Rename "Registration" fieldset to "Public Registration" in Configuration.php
+- Add AttendanceDailyTotalMinutesSQL() & AttendanceDailyTotalMinutesPresent() functions in UpdateAttendanceDaily.fnc.php
+- Breaking Change: use AttendanceDailyTotalMinutesPresent() instead of AttendanceDailyTotalMinutes() in UpdateAttendanceDaily.fnc.php
+- Add Action hook, filter Total Minutes Present in UpdateAttendanceDaily.fnc.php & Actions.php
+- Dynamic Daily Attendance calculation based on total course period minutes in UpdateAttendanceDaily.fnc.php, AttendanceSummary.php & Configuration.php
+- Add help text for Dynamic Daily Attendance calculation in Help_en.php
+- SQL new default is 0 for ATTENDANCE_FULL_DAY_MINUTES Config option in rosariosis.sql & rosariosis_mysql.sql
+- MarkDown: remove two spaces before line break in Markdownify/Converter.php
+- Only allow column names of string type (not empty) in DBUpsert.php
+- Fix SQL error when $columns is false in DBUpsert.php
+- Update French & Spanish translations in rosariosis.po & help.po
+- CSS themes apply list margin/padding outside widefat tables + fix .size-1 in stylesheet.css
+- HTML Fix Menu description overflow hidden + allow MarkDown in DailyMenus.php
+- Add Action hook Filter each menu item in the loop in Kiosk.php & Actions.php
+- FS transaction item ID references food_service_menu_items(menu_item_id) in ServeMenus.php, rosariosis.sql & rosariosis_mysql.sql
+- CSS WPadmin theme style fieldset legend like FlatSIS theme in stylesheet.css
+- Fix Select Multiple from Options answer count when none selected in PortalPollsNotes.fnc.php
+- Fix regression since 11.0 Reporter not saved when logged in as a Teacher in MakeReferral.php
+- Fix SQL error when no MP array is empty in Grades.fnc.php
+- Add Student Account fields table after action hook in Actions.php & Food_Service/Students/Accounts.php
+- Add Food Service tab fields table after action hook in Actions.php & Food_Service/Student.inc.php
+
+Changes in 11.1.2
+-----------------
+- Maintain list preferences as GET params in form URL (save) in Schedule.php
+- Use basename() to extract file name from path in StudentsUsersInfo.fnc.php, Accounting/functions.inc.php, StudentAssignments.fnc.php & Student_Billing/functions.inc.php
+- Fix PHP warning undefined array index in RegistrationAdmin.fnc.php
+- CSS WPadmin theme style button text like FlatSIS theme in stylesheet.css
+
+Changes in 11.1.1
+-----------------
+- Fix PostgreSQL error column "ac" of relation "attendance_completed" does not exist in Courses.fnc.php
+
+Changes in 11.1
+---------------
+- Fix SQL error when no MPs in calcSeats0.fnc.php
+- Choose Checkbox uncheck by default to prevent accidental creations in MassCreateAssignments.php
+- HTML display Courses list next to Assignment Types list in MassCreateAssignments.php
+- Set email for default admin user so he can reset his password in InstallDatabase.php
+- Prevent using App name, username, or email in the password in PasswordReset.php, FirstLogin.fnc.php, Inputs.php & Preferences.php
+- JS Add userInputs param to prevent using App name, username, or email in the password in jquery-passwordstrength.js
+- Return EMAIL column for students too (empty if "Student email field" not set) in User.fnc.php
+- Fix SQL error if delete Student email field, reset in StudentFields.php
+- Add SideMarkingPeriodSelect() function in Side.php
+- SQL Use GetFullYearMP() & GetChildrenMP() functions to limit Marking Periods in Grades/Configuration.php, ReportCards.fnc.php, Courses.php, MassDrops.php, MassSchedule.php & PrintSchedules.php
+- Allow override GetFullYearMP(), GetAllMP(), GetParentMP(), GetChildrenMP() & GetCurrentMP() functions in GetMP.php
+- SQL set min Credits to 0 & fix division by zero error in Courses.fnc.php, rosariosis.sql & rosariosis_mysql.sql
+- SQL Update to version 11.1 in Update.fnc.php
+- Add timestamp (including microseconds) to filename to make it harder to predict in FileUpload.fnc.php, Accounting/functions.inc.php, StudentAssignments.fnc.php, PortalNotes.php, Student_Billing/functions.inc.php
+- Copy $DefaultSyear global var to session (once) to prevent errors when edited in Warehouse.php & Config.fnc.php
+- Add "Probably a module. Move it to the modules/ folder." error in Plugins.inc.php
+- Make Course Periods number link in Periods.php
+- Move `_updateSchedulesCPMP()` to includes/Courses.fnc.php & rename CoursePeriodUpdateMP() in Courses.php & Courses.fnc.php
+- Automatically update teacher: attendance_completed + grades_completed in Courses.php & Courses.fnc.php
+- Automatically update credits (attempted and earned); will also recalculate GPA in Courses.php & Courses.fnc.php
+- Update French & Spanish translations in rosariosis.po
+- Update Recommended PHP configuration in INSTALL.md, INSTALL_es.md & INSTALL_fr.md
+- CSS WPadmin: remove opensans EOT font files in font.css & `themes/WPadmin/fonts/opensans/*.eot`
+- CSS themes: reduce list margin & padding when inside .widefat table in stylesheet.css
+- CSS themes: force .tooltip styles when inside .widefat table head in stylesheet.css
+- Fix SQL error null value in column "student_id" in Eligibility/Student.php
+- Fix SQL error Unknown column 'a.ADDRESS' in 'where clause' in Percent.php
+- CSS Fix PDF Frame background when multiple pages in HonorRoll.fnc.php
+- Fix SQL error invalid input syntax for type integer: "" in Registration.fnc.php & RegistrationSave.fnc.php
+
+Changes in 11.0.2
+-----------------
+- Fix SQL error escape Menu title in MenuReports.php & TakeMenuCounts.php
+- MySQL fix specify COUNT column name in MenuReports.php
+- Remove "-master" suffix from manually uploaded add-ons in Modules.inc.php & Plugins.inc.php
+- Fix SQL error, Check if Account ID already exists in Student.php & Food_Service/Students/Accounts.php
+
+Changes in 11.0.1
+-----------------
+- Fix PHP deprecated passing null to parameter #1 ($datetime) of type string in Warehouse.php
+- MySQL fix infinite loop, emulate PostgreSQL's nextval() in database.inc.php
+- Fix Apache 414 Request-URI Too Long, use POST method instead of GET in Administration.php
+- Fix display result count when no singular/plural set in ListOutput.fnc.php
+- Fix SQL drop order by School Period, allow Course Periods with no Periods in ReportCards.fnc.php
+
+Changes in 11.0
+---------------
+- Add Weight Assignments option in Grades/Configuration.php, Assignments.php & MassCreateAssignments.php
+- Add Weight field in Assignments.php & MassCreateAssignments.php
+- Calculate Weighted Grade in Grades.php, InputFinalGrades.php & ProgressReports.php
+- Add Assignment Weight in StudentGrades.php & StudentAssignments.fnc.php
+- Translate "Zip" & "Zipcode" to "Zip Code" in GetStuList.fnc.php, MyReport.php, Registration.fnc.php, Schools.php & Address.inc.php
+- HTML Text input min size is 2 in Inputs.php
+- Skip School Period column if has no students scheduled for selected date in Administration.php
+- Add microseconds to filename format to make it harder to predict in FileUpload.fnc.php, Accounting/functions.php, PortalNotes.php & Student_Billing/functions.php
+- Remove UserCoursePeriodSchoolPeriod() & UserPeriod() functions in Current.php
+- SQL access_log: deprecate LOGIN_TIME column, use CREATED_AT instead in index.php, AccessLog.php, Dashboard.inc.php, rosariosis.sql & rosariosis_mysql.sql
+- SQL portal_notes & portal_polls: deprecate PUBLISHED_DATE column, use CREATED_AT instead in PortalNotes.php, PortalPolls.php, Portal.php, rosariosis.sql & rosariosis_mysql.sql
+- Truncate column title to 36 chars if > 36 chars in MyReport.php & Grades.php
+- Handle Points decimal with comma instead of point, ie "10,5" in Grades.php
+- Increase default Password Strength from 1 to 2 in rosariosis.sql & rosariosis_mysql.sql
+- PostgreSQL rename "rank" to "class_rank" in set_class_rank_mp() for consistency with MySQL in rosariosis.sql
+- HTML put "" around the link href if no spaces in $link & no other attributes in Buttons.php & program wide
+- HTML5 CSS use details + summary instead of .toggle hack in index.php, stylesheet.css & colors.css
+- SQL add TITLE column in GetTeacher.fnc.php
+- Cache Class average percent in Grades.fnc.php
+- Add GetClassRank() function (for Course Period) in Grades.fnc.php
+- Add Class Average & Class Rank (Course Period) in ReportCards.fnc.php
+- Move "Progress Reports" from Teacher Programs to Grades menu (admin) in Grades/Menu.php, ProgressReports.php, rosariosis.sql & rosariosis_mysql.sql
+- CSS FlatSIS enlarge left menu width by 6px for German in stylesheet.css
+- SQL add ORDER BY to GetChildrenMP() in GetMP.php
+- SQL select Grading Scales by Teacher, only the ones having student grades in GradeBreakdown.php
+- Add Insert into or Update DB functions in DBUpsert.php
+- Use DBUpsert() function in Template.fnc.php, Config.fnc.php & StudentAssignments.fnc.php
+- Use DBInsertSQL() function in AddActivity.php, Scheduler.php, Calendar.php, MarkingPeriods.php, MassAssignFees.php & MassAssignPayments.php
+- Use DBUpdateSQL() function in MarkingPeriods.php
+- Use DBUpdate() & DBInsert() functions, program wide
+- Create missing Food Service Student Account in Accounts.php
+- Fix SQL display Students with no Food Service account in the list in Accounts.php
+- Fix PHP warning if Food Service Student Account missing in Student.inc.php, Accounts.php, ServeMenus.php, Statements.php & Transactions.php
+- Let user edit inputs on Food Service User Account creation in Accounts.php
+- Fix Contact file path (delete) in Student.php
+- Upload Address & Contact files in RegistrationSave.fnc.php
+- Security: use URLEscape() for PHP redirection in index.php & Portal.php
+- Use `$_REQUEST['search_terms']` to allow GET param in URL in Courses.php
+- Move from serialize() to json_encode() in StudentAssignments.fnc.php & Comments.inc.php
+- SQL calculate Class Rank for Progress Periods in ReportCards.php
+- SQL Fix replacement in case the "username" contains the prefix in Removeaccess.php, thanks to @0xD0M1M0
+- SQL add accounting_categories table in rosariosis.sql & rosariosis_mysql.sql
+- Add Categories program to Accounting module in Categories.php, Menu.php, rosariosis.sql & rosariosis_mysql.sql
+- Add `_makePaymentsCategory()` & `_makeIncomesCategory()` functions in Accounting/functions.inc.php
+- Reuse `_makeIncomesTextInput()` function in `_makePaymentsTextInput()` in Accounting/functions.inc.php
+- Use button only for File Attached input & download in Accounting/functions.inc.php & Student_Billing/functions.inc.php
+- Add Timeframe start / end date filters in Expenses.php & Incomes.php
+- Add Category column in Expenses.php & Incomes.php
+- Add Title column in Expenses.php
+- Fix display Go button for all users (no AllowEdit() required) in DailyTotals.php & DailyTransactions.php
+- Add Category filter in DailyTransactions.php
+- SQL Update v11.0: Move "Progress Reports" from Teacher Programs to Grades menu (admin) in Update.fnc.php
+- SQL Update v11.0: Add accounting_categories table in Update.fnc.php
+- SQL Update v11.0: Add TITLE column to accounting_payments table in Update.fnc.php
+- SQL Update v11.0: Add CATEGORY_ID column to accounting_incomes & accounting_payments tables in Update.fnc.php
+- SQL Update v11.0: Give admin profile access to Accounting > Categories program in Update.fnc.php
+- Add & translate help texts for Weight Assignments option in Help_en.php, help.pot & help.po
+- Translate Weight Assignments option to French & Spanish in rosariosis.pot & rosariosis.po
+- CSS Add .rbr class, responsive `<br>` does not break line, use inside responsive table in zresponsive.css, DisciplineForm.php & Student_Billing/functions.inc.php
+- Enable Test Mode by default in case of accidental run in Scheduler.php
+- Fix PHP fatal error if openssl PHP extension is missing in Warehouse.php, index.php, Student.php & User.php
+- MySQL fix not single MP check in MarkingPeriods.php
+- Fix exception strtotime() returns false for year >= 2038 (PHP 32-bit) in Date.php
+
+Changes in 10.9.8
+-----------------
+- Fix remove "-master" suffix from add-on folder in Modules.inc.php & Plugins.inc.php
+- Update Default School Year to 2023 in config.inc.sample.php, rosariosis.sql & rosariosis_mysql.sql
+
+Changes in 10.9.7
+-----------------
+- Fix SQL for Class Average calculation, exclude NULL grades in Grades.fnc.php
+- Fix Total Credits reset for each student in ReportCards.fnc.php
+- Fix NULL grade display when Min. and Max. Grades in ReportCards.fnc.php
+
+Changes in 10.9.6
+-----------------
+- Do not use strtok(), can't handle nested calls for multiple files in InstallDatabase.php & database.inc.php
+- Add Vietnamese (Vietnam) translation in locale/vi_VN.utf8/ & locale/REFERENCE.md
+- Update German (Germany) translation in locale/de_DE.utf8/ & locale/REFERENCE.md
+- Fix Portuguese (Brazil) translation for "Gradebook": "livro de notas" in locale/pt_BR.utf8/
+
+Changes in 10.9.5
+-----------------
+- Fix SQL error table name "sam" specified more than once in ReportCards.fnc.php
+- Security: prevent CSV Injection via formulas in ListOutput.fnc.php, thanks to Ranjeet Jaiswal
+
+Changes in 10.9.4
+-----------------
+- Fix regression since 10.8.4 save multiple SelectInput() when none selected, add hidden empty input (only if $allow_na) in Inputs.php
+- Save when none selected, add hidden empty input (Grade Levels) in Resources.php & Resources.fnc.php
+
+Changes in 10.9.3
+-----------------
+- Security Fix browser loading cached page when page full reload (F5) + logout + Back button in warehouse.js, thanks to @b1tch3s
+- Fix Edge browser detection in UserAgent.fnc.php
+- Add-on SQL translation file can be named "install_es.sql" or "install_pt_BR.sql" in Modules.inc.php & Plugins.inc.php
+- Fix regression since 10.8.1 SQL error when saving Contact/Address/Student Fields in Registration.fnc.php, RegistrationAdmin.fnc.php & RegistrationSave.fnc.php
+
+Changes in 10.9.2
+-----------------
+- Fix Format Contact Field value based on its Type in ViewContact.php
+- Fix regression add Contact Info columns to list in MyReport.php
+- ETag + Cache-Control header: use no-cache directive in Warehouse.php
+- Set `$_SESSION['is_secondary_teacher']` in SetUserCoursePeriod() in Current.php
+- Fix Set current User Course Period before Secondary Teacher logic in TakeAttendance.php, AnomalousGrades.php, Assignments.php, Grades.php, InputFinalGrades.php & ProgressReports.php
+- SQL Show Gradebook Grades of Inactive Students (Only if has grades) in StudentGrades.php
+
+Changes in 10.9.1
+-----------------
+- Fix Anonymous Statistics bar overflow in StudentGrades.php
+- SQL Show Gradebook Grades of Inactive Students (Course status, maybe dropped as of today) in StudentGrades.php
+- Show Gradebook Grades of Inactive Students (School status) in StudentGrades.php
+- Fix PHP error if date.timezone ini setting is an invalid time zone identifier in Warehouse.php
+
+Changes in 10.9
+---------------
+- Fix do not add new Enrollment Record if existing has no Dropped date in Student.php, Enrollment.inc.php & SaveEnrollment.fnc.php
+- Enrollment Start: No N/A option for first entry in StudentsUsersInfo.fnc.php
+- Hide End Date input for Inactive Students (no Attendance Start Date) in StudentsUsersInfo.fnc.php
+- SQL ORDER BY DEFAULT_CALENDAR IS NULL,DEFAULT_CALENDAR ASC (nulls first) for consistency between PostgreSQL & MySQL in Courses.fnc.php, Calendar.php & Enrollment.inc.php
+- Simplify & harmonize code, use GetAllMP() in GPARankList.php, InputFinalGrades.php & TeacherCompletion.php
+- Exclude already associated parents/students from Search() in AddUsers.php & AddStudents.php
+- Replace "Course Title" in TipMessage with actual Course title in Attendance/, Eligibility/ & Grades/TeacherCompletion.php
+- Handle multiple Course Periods on the same Period for same Teacher in Attendance/ & Eligibility/TeacherCompletion.php
+- JS Remove "Go" button & submit form on select change in Eligibility/TeacherCompletion.php
+- Add SetUserCoursePeriod() function in Current.php
+- Set current User Course Period using SetUserCoursePeriod() in Side.php, TakeAttendance.php, EnterEligibility.php, AnomalousGrades.php, Assignments.php, Grades.php, InputFinalGrades.php, ProgressReports.php & TeacherPrograms.php
+- Add `'&period=' . UserCoursePeriod()` to Teacher form URL in TakeAttendance.php, EnterEligibility.php, Assignments.php, Grades.php, InputFinalGrades.php, ProgressReports.php, StudentAssignments.fnc.php & Portal.php
+- Remove period from URL when switching School / Year / MP / CP in Side.php
+- HTML Rename "period" select input ID to "school_period" to avoid conflicts in Attendance/, Eligibility/, Food_Service/ & Grades/TeacherCompletion.php
+- CSS Add modname class, ie .modname-grades-reportcards-php for modname=Grades/ReportCards.php in PDF.php
+- CSS Add .list-column-[column_name] class in ListOutput.fnc.php
+- CSS Set Report Cards Comments column (max) width to 33% in wkhtmltopdf.css
+- Temporary AllowEdit so SelectInput() is displayed to everyone in DailyTransactions.php
+- SQL ORDER BY Assignment Type first, then order Assignments in Grades.php
+- Remove $count & $has_count_text variables in ListOutput.fnc.php
+- Add pagination option (defaults to false) in ListOutput.fnc.php
+- Add pagination for list > 1000 results in AccessLog.php & ReportCardGrades.php
+- SQL gradebook_assignments table: Add WEIGHT column in Update.fnc.php, rosariosis.sql & rosariosis_mysql.sql
+- Fix security issue, unset any FILE_ATTACHED column first in PortalNotes.php
+- Use `_makeAutoSelectInputX()` for Contact Information Description in Address.inc.php
+- SQL courses ORDER BY TITLE in Requests.php
+- HTML remove "Add a Request" & hide "Subject" input label in Requests.php
+- Update command to install wkhtmltopdf & dependencies in INSTALL.md
+- Add link to Softaculous installation directions in INSTALL.md
+- Fix wkhtmltopdf not rendering URL in CSS in PDF.php
+- CSS Fix breaking words inside .header2 in stylesheet.css
+- SQL set N/A grade GPA to NULL in rosariosis.sql, rosariosis_es.sql, rosariosis_fr.sql & rosariosis_mysql.sql
+- Add Portuguese (Brazil) translation in InstallDatabase.php, REFERENCE.md, locale/pt_BR.utf8/ & rosariosis_pt_BR.sql, thanks to Emerson Barros
+
+Changes in 10.8.5
+-----------------
+- Fix "Folder not writable" error on add-on zip upload in Modules.inc.php & Plugins.inc.php
+
+Changes in 10.8.4
+-----------------
+- Fix SQL error escape menu title in DailyMenus.php, ServeMenus.php
+- Fix MySQL date interval in Food_Service/Students/ServeMenus.php
+- SQL order Transactions by ID in Transactions.php
+- Fix regression since 10.6.2 SQL error invalid reference to FROM-clause entry for table "ssm" in Widget.php
+- Fix do not set empty Grade Points to 0 in Grades.php
+- Fix save multiple SelectInput() when none selected, add hidden empty input in Inputs.php
+- Fix check if Available Seats < selected students calculation in MassSchedule.php
+- SQL order Requests by Course in Requests.php
+- CSS set minimum colorBox width to 50% view width in StudentGrades.php
+- Fix SQL error when Phone > 30 chars in Address.inc.php
+- If City length > 22 without space, force stackable table in Address.inc.php
+- CSS responsive stack Address & Contacts table below Laptop MDPI screen in zresponsive.css
+- Fix PHP fatal error Unsupported operand types: string - int when not a date in Date.php
+- Fix do not display Rollover default check warning if modfunc=remove in EnrollmentCodes.php
+- Fix check for Description & Value when saving new Contact Information in Address.inc.php
+
+Changes in 10.8.3
+-----------------
+- Add assets/FileUploads/ directory
+- Fix regression since 10.8.2 PHP fatal error $timestamp is not a valid date-time string in StudentAssignments.fnc.php
+- Catch strftime_compat() exception $timestamp is not a valid date-time string in Date.php
+
+Changes in 10.8.2
+-----------------
+- PHP<7 Fix add microseconds to filename to make it harder to predict in StudentAssignments.fnc.php, thanks to @jeffreygaor
+- Add datetime to filename to make it harder to predict in Accounting/functions.inc.php & Student_Billing/functions.inc.php
+- HTML add maxlength to Field Category & Name inputs in Fields.fnc.php
+- Do not check username uniqueness if empty in Student.php & User.php
+- CSS FLatSIS adjust fieldset border color & MD to HTML line-height in colors.css & stylesheet.css
+- Fix MySQL 8 syntax error, 'rank' is a reserved keyword in rosariosis_mysql.sql
+- Add MySQL global setting to allow function creation in INSTALL.md, INSTALL_es.md & INSTALL_fr.md
+
+Changes in 10.8.1
+-----------------
+- Use CheckBoxOnclick() in StudentBalances.php & Schedule.inc.php
+- Fix SQL error when Quarter with Assignments is deleted in Portal.php
+- SQL Check requested assignment belongs to current Marking Period in Assignments.php
+- MySQL + MariaDB < 10.5 fix FOREIGN KEY constraint syntax in rosariosis_mysql.sql
+- SQL use CONCAT() instead of pipes || for MySQL compatibility in CreateParents.php
+- Fix SQL error cast attendance code to integer in TakeAttendance.php
+- Fix hide Contact Fields according to Emergency/Custody settings in Address.inc.php
+- Fix MultipleCheckboxInput() save all unchecked, add hidden empty checkbox in Inputs.php
+
+Changes in 10.8
+---------------
+- Fix MySQL Periods list in MasterScheduleReport.php
+- SQL explicitly list all columns instead of `SELECT *` in MenuItems.php, Menus.php, EditHistoryMarkingPeriods.php, EditReportcardGrades.php, ReportCardCommentCodes.php, ReportCardComments.php & ReportCardGrades.php
+- Add & use DBSQLCommaSeparatedResult() function (SQL result as comma separated list) in database.inc.php, Dashboard.inc.php, MasterScheduleReport.php & Export.php
+- HTML email input remove pattern, add maxlength in PasswordReset.php, StudentsUsersInfo.fnc.php, NotifyParents.php, CreateParents.php & General_Info.inc.php, Other_Info.inc.php
+- JS Fix #319 Try a full match first to identify selected menu link in warehouse.js
+- Spanish translation add ¿ character before questions in rosariosis.po
+- HTML add "Check All" checkbox after Periods in AddAbsences.php
+- Truncate Assignment title to 36 chars in AnomalousGrades.php
+- SQL resources table: Add PUBLISHED_PROFILES & PUBLISHED_GRADE_LEVELS columns in Update.fnc.php, rosariosis.sql & rosariosis_mysql.sql
+- Add Resource Visibility options in Resources.php
+- Move Resources functions to separate file & rename them in Resources.php & Resources.fnc.php
+- Update French & Spanish translations in rosariosis.po
+- CSS Fix Select2 dropdown hidden when inside colorBox (has z-index 9999) in stylesheet.css
+
+Changes in 10.7.1
+-----------------
+- Fix SQL limit School Periods to Course Period in AddAbsences.php
+
+Changes in 10.7
+---------------
+- CSS add Select2 styles in stylesheet.css & colors.css
+- JS add Select2 jQuery plugin in assets/js/jquery-select2/
+- Add Select2Input() function in Inputs.php
+- Use Select2 instead of Chosen, fixes the overflow issue in Widget.php, MakeReferral.php, Transcripts.fnc.php & Address.inc.php
+- Fix PHP8.2 deprecated Creation of dynamic property in Markdownify/ConverterExtra.php
+- SQL always add space before AND to $extra['WHERE'], program wide
+- Escape SanitizeHTML() & SanitizeMarkDown() before saving to DB, program wide
+- Always use UserStudentID() instead of `$_SESSION['STUDENT_ID']` in PortalPollsNotes.php
+- SQL use EXISTS(SELECT 1) instead of `EXISTS(SELECT *)` in EditReportCardGrades.php, Rollover.php & Moodle/functions.php
+- Remove trailing seconds :00 & add sorting HTML comment to datetime in Date.php
+- HTML set max Event Repeat Days to 300 in Calendar.php
+- Only display Locked column if AllowEdit() in Schedule.php
+- Schedule table: rename Periods column to Period (singular) in PrintSchedules.php & Schedule.inc.php
+- HTML add padding to Assignment options + remove useless table in Grades/Configuration.php
+- Move "Remove required attribute, TinyMCE bug" fix to TextAreaInput() in Inputs.php
+- Only display profiles w/Custom if actually used to gain space in PortalPollsNotes.php
+- Add & remove module icons in themes/FlatSIS/modules/
+- Add .dotx,.ppsx,.mdb,.sldx,.odg,.odc,.odb,.odf,.numbers,.pages,.m4a,.tsv,.json,.ics file extensions to whitelist in FileUpload.fnc.php
+- ROLL Gradebook Config's Final Grading Percentages for Admin (overridden) in Rollover.php
+- HTML responsive limit display columns to 3 in Courses.php & Assignments.php
+- SQL remove Period Length<=(Minutes in a Full School Day / 2) for Teacher's Schedule table in Schedule.inc.php
+- SQL include Secondary Teacher Course Periods in Schedule.inc.php
+- HTML move Schedule list inside PopTable & rework table cell in Schedule.inc.php
+- Fix do not display "Enroll student for next school year" link if new enrollment record in Enrollment.inc.php
+- Add Class Average row in ReportCards.fnc.php & Grades.fnc.php
+- Fix HTML5 notice Trailing slash on void elements has no effect, but keep `<br />` for `$_ROSARIO['SearchTerms']`, program wide
+- Fix regression since 9.0 show Student Photo in Transcripts.fnc.php
+- Check Assignment is in current MP in StudentAssignments.php & StudentAssignments.fnc.php
+- Corrections for French translation in rosariosis.po
+- CSS FlatSIS .list & .postbox headers adjustments for Chrome in stylesheet.css
+- CSS reduce File input size when inside list in stylesheet.css
+- CSS responsive increase max input size when inside list in zresponsive.css
+- CSS fix Student Comments margin & padding in stylesheet.css
+- Fix regression display Mailing Labels in ReportCards.fnc.php
+- Add Student Photo in ReportCards.fnc.php
+- Fix SQL error ORDER BY for Expanded View + Contact Information in GetStuList.fnc.php
+
+Changes in 10.6.3
+-----------------
+- Fix regression Teacher can save config even if overridden by Admin in Grades/Configuration.php
+- Prevent double encoding single quote (`&#039;`), was encoded by SanitizeHTML() or SanitizeMarkDown() in Inputs.php
+
+Changes in 10.6.2
+-----------------
+- Do not truncate value on List export in Accounting/functions.inc.php, Grades.php, StudentGrades.php, StudentAsignments.fnc.php, Resources.php & Student_Billing/functions.inc.php
+- SQL performance use POSITION()>0 instead of LIKE, program wide
+- SQL remove useless ID='' check in StudentFees.php, StudentPayments.php & Student_Billing/functions.inc.php
+- Fix hide File input if cannot edit in Accounting/functions.inc.php & Student_Billing/functions.inc.php
+- SQL use CONCAT() instead of pipes || for MySQL compatibility in Accounting/functions.inc.php & Student_Billing/functions.inc.php
+- Fix SQL use JOIN instead of WHERE EXISTS for Discipline Widgets in Widget.php
+- MySQL fix PHP fatal error when updating Course's Marking Period in Courses.php
+- Fix #338 Only check against Course Periods having overlapping Marking Period in Courses.fnc.php
+
+Changes in 10.6.1
+-----------------
+- PostgreSQL Fix Class Rank float comparison issue: do NOT use double precision type (inexact), use numeric (exact) in rosariosis.sql, thanks to @fatahou
+- MySQL Fix Class Rank float comparison issue: do NOT use double precision type (inexact), use numeric(22,16) (exact) in rosariosis_mysql.sql, thanks to @fatahou
+- SQL Fix regression since 10.0, change sum/cum factors & credit_attempted/earned columns type from double precision to numeric in Update.fnc.php
+- Fix Grades input not displaying for Teachers in Widget.php
+- Raise minimum PHP version from 5.4.45 to 5.5.9 in INSTALL.md, README.md, composer.json, diagnostic.php & Portal.php
+- Fix close PopTable wrapper `<div>` in Enrollment.inc.php, General_Info.inc.php, Medical.inc.php & Schedule.inc.php
+
+Changes in 10.6
+---------------
+- Add Pashto to right-to-left languages in Warehouse.php, Inputs.php & PDF.php
+- CSS FixedMenu bug when menu hidden in stylesheet.css
+- Fix JPG image rotation in ImageResizeGD.php
+- Resize, compress & store image using ImageUpload() in FileUpload.fnc.php
+- Fix remove `<span>` HTML tag from Assignment Type in select in Grades.php
+- Truncate Assignment Type to 36 chars only if has words > 36 chars in ProgressReports.php & StudentAssignments.fnc.php
+- Truncate Assignment title to 36 chars in StudentGrades.php
+- CSS Do NOT use global word-break. Use it only on specific elements in stylesheet.css & zresponsive.css
+- CSS responsive Fix list overflow-x scroll inside div.st in stylesheet.css
+- CSS set max-width for City & State select in Address.inc.php
+- Security fix for dynamic include in index.php
+- Fix SQL limit 1 when adding existing Contact in Address.inc.php
+- CSS responsive add .postbox-wrapper class for overflow-x scroll in PopTable.fnc.php & stylesheet.css
+- Fix MySQL 5.6 error Can't specify target table for update in FROM clause in AssignOtherInfo.php
+
+Changes in 10.5.2
+-----------------
+- Fix PHP8.1 Fatal error when $options is null in StudentsUsersInfo.fnc.php
+- Remove .00 decimal from value of numeric type in Substitutions.fnc.php
+- Truncate Assignment title to 36 chars only if has words > 36 chars in ProgressReports.php, Assignments.php & MassCreateAssignments.php
+- Truncate Assignment title to 36 chars in GradebookBreakdown.php & Grades.php
+- CSS responsive fix List column title prevent word breaking in zresponsive.css
+- Fix photo use mime types, not file extensions so mobile browsers allow camera in General_Info.inc.php & MenuItems.php
+- Fix return processed image upload in case source type != target type in FileUpload.fnc.php
+
+Changes in 10.5.1
+-----------------
+- Fix MySQL error Unknown system variable 'storage_engine' in InstallDatabase.php, Modules.inc.php, Plugins.inc.php & rosariosis_mysql.sql
+
+Changes in 10.5
+---------------
+- JS responsive add minWidth & minHeight options to inline colorBox in jquery-colorbox.js & warehouse.js
+- Trim white spaces for Contact name & Address fields in RegistrationSave.fnc.php & Address.inc.php
+- Save Student Files fields, upload files in RegistrationSave.fnc.php
+- CSS Do not break text inside button in stylesheet.css
+- CSS responsive raise max-width for mobile & vertical tablet from 736 to 874px in zresponsive.css, rtl.css & colors.css
+- HTML fix responsive table & weekdays in Calendars.php
+- CSS responsive reduce select max-width from 440 to 340px in stylesheet.css & zresponsive.css
+- Fix PHP8.2 utf8_decode() function deprecated in PDF.php
+- MySQL change database charset to utf8mb4 and collation to utf8mb4_unicode_520_ci in InstallDatabase.php
+
+Changes in 10.4.4
+-----------------
+- Fix AllowUse() & AllowEdit() for User Info when on Student Info in AllowEdit.fnc.php
+- CSS fix Calendar header days word-break in zresponsive.css
+- CSS style time input in stylesheet.css & colors.css
+- CSS remove padding for LO_SORT arrow in zresponsive.css
+- HTML fix responsive / stackable table for Course Periods in Courses.php
+
+Changes in 10.4.3
+-----------------
+- MySQL always use InnoDB (default), avoid MyISAM in InstallDatabase.php, Modules.inc.php, Plugins.inc.php & rosariosis_mysql.sql
+
+Changes in 10.4.2
+-----------------
+- Fix SQL error null value in column "amount" in Salaries.php
+- Fix Total row calculation, reset for each student in ReportCards.fnc.php & Transcripts.fnc.php, thanks to @fatahou
+
+Changes in 10.4.1
+-----------------
+- JS fix regression since 9.0 & DOMPurify, open links in new window in warehouse.js
+- Add Database Type and Version, add PHP version to FirstLoginPoll() in FirstLogin.fnc.php
+- Fix typos in INSTALL.md & INSTALL_fr.md
+
+Changes in 10.4
+---------------
+- Modcat is addon module, set custom module icon in Profiles.php & Exceptions.php
+- SQL performance: use NOT EXISTS instead of NOT IN + LIMIT 1000 in Portal.php
+- Add student name to Student's Absences and Grades delete prompt in MassDrops.php
+- Fix display only first letter of attendance code in AttendanceSummary.php
+- Remove "Minimum assignment points for letter grade" config option in Grades/Configuration.php & StudentGrades.php
+- Truncate Assignment title to 36 chars in StudentGrades.php & Grades.php
+- CSS date capitalize first letter only in stylesheet.css
+- Add optional $id param to FilesUploadUpdate() in FileUpload.fnc.php
+- JS Only show laoding spinner if file input has selected files in warehouse.js
+- Add File Attached Input for existing Fees/Payments in StudentFees.php, StudentPayments.php & Student_Billing/functions.inc.php
+- Add File Attached Input for existing Salaries/Staff Payments/Incomes/Expenses in Expenses.php, Incomes.php, Salaries, StaffPayments.php & Accounting/functions.inc.php
+- Add-ons can add their custom Widgets in classes/core/Widgets.php & classes/core/StaffWidgets.php
+- Add Widgets init action hook in Actions.php & Widgets.fnc.php
+- Add Staff Widgets init action hook in Actions.php & StaffWidgets.fnc.php
+- Fix SQL check student is actually enrolled in Enrollment.fnc.php
+- Fix date is 1969-12-31 on Windows when PHP intl ext not activated in strftime_compat.php
+
+Changes in 10.3.3
+-----------------
+- SQL ORDER BY END_DATE IS NULL DESC,END_DATE DESC (nulls first) for consistency between PostgreSQL & MySQL in User.fnc.php
+- Fix PostgreSQL error column "students_join_people.address_id" must appear in the GROUP BY clause in Address.inc.php
+
+Changes in 10.3.2
+-----------------
+- Fix PostgreSQL error ORDER BY "full_name" is ambiguous in DailyTransactions.php
+
+Changes in 10.3.1
+-----------------
+- Fix MySQL error result as comma separated list in Export.php
+- Add recommended php.ini setting session.gc_maxlifetime = 3600 in INSTALL.md, INSTALL_es.md & INSTALL_fr.md
+
+Changes in 10.3
+---------------
+- Add "Cumulative Balance over school years" checkbox in StudentBalances.php
+- Fix program not found when query string is URL encoded in Modules.php
+- JS fix add new Period below existing Period row in Courses.php
+- Add "Course Periods" checkbox in Rollover.php
+- Fix MySQL error 1069 Too many keys specified; max 64 keys allowed in Fields.fnc.php & DisciplineForm.php
+
+Changes in 10.2.3
+-----------------
+- Remove dead link to centresis.org in index.php
+- Fix MySQL error TEXT column used in key specification without a key length in Fields.fnc.php & DisciplineForm.php
+- Add ROLLOVER_ID column to User() in User.fnc.php
+- Get template from last school year (rollover ID) in Template.fnc.php
+
+Changes in 10.2.2
+-----------------
+- Fix PHP fatal error undefined function StudentCanEnrollNextSchoolYear() in PrintStudentInfo.php
+- Set school logo with to 120px in PrintStudentInfo.php
+
+Changes in 10.2.1
+-----------------
+- SQL order by Marking Period Start Date in MarkingPeriods.php, ReportCards.fnc.php, Courses.php, Schedule.php, PrintSchedules.php, MassSchedule.php, MassDrops.php & Side.php
+- Maintain current month on calendar change in Calendar.php
+- Maintain Calendar when closing event popup in Calendar.php
+- CSS FlatSIS smaller font size for Calendar Event title in stylesheet.css
+- Fix SQL error mysqli_fetch_assoc(): Argument 1 must be of type mysqli_result, null given in database.inc.php & StudentsUsersInfo.fnc.php
+- When -Edit- option selected, change the auto pull-down to text field in StudentsUsersInfo.fnc.php
+- HTML remove bold for "Other students associated with this address/person" in Address.inc.php
+- SQL order by FULL_NAME (Display Name config option) in PortalPollNotes.fnc.php, Widget.php, GetStaffList.fnc.php, GetStuList.fnc.php, Transcripts.fnc.php, Courses.php, MassRequests.php, ScheduleReport.php & Address.inc.php
+- CSS fix Report Cards PDF columns size when long comments text in ReportCards.fnc.php & stylesheet_wkhtmltopdf.css
+- CSS Add .grade-minmax-wrap,.grade-minmax-min,.grade-minmax-grade & .grade-minmax-max classes & avoid breaking grades in stylesheet.css & ReportCards.fnc.php
+- Fix get Min. Max. grades for students in distinct grade levels in FinalGrades.php
+- Fix SQL syntax error since 10.0 in Administration.php
+- CSS Do not break words inside lists in stylesheet.css
+- SQL handle case when student dropped and then later re-enrolled in course in DuplicateAttendance.php
+- Use DBEscapeIdentifier() for Gradebook ASSIGNMENT_SORTING in Assignments.php, GradebookBreakdown.php & Grades.php
+
+Changes in 10.2
+---------------
+- Add StudentCanEnrollNextSchoolYear() & StudentEnrollNextSchoolYear() functions in Enrollment.fnc.php
+- Add "Enroll student for next school year" in Enrollment.inc.php
+- Translate "Enroll student for next school year" to French & Spanish in rosariosis.po
+- MySQL fix character encoding when translating database in InstallDatabase.php
+
 Changes in 10.1
 ---------------
 - Fix MySQL 5.6 syntax error when WHERE without FROM clause, use dual table in TakeAttendance.php, Reminders.php,  InputFinalGrades.php, Requests.php & Calendar.php
 - Add dual VIEW for compatibility with MySQL 5.6 to avoid syntax error when WHERE without FROM clause in rosariosis.sql & Update.fnc.php
 - Fix MySQL 5.6 syntax error in ORDER BY use report_card_comments table instead of dual in InputFinalGrades.php
+- Fix SQL use cast(extract(DOW) AS int) for PostrgeSQL in Calendar.php
+- Add instructions for MySQL in INSTALL.md, INSTALL_es.md & INSTALL_fr.md
 
 Changes in 10.0
 ---------------
@@ -305,490 +834,9 @@ Changes in 9.0
 - Remove unused index ON attendance_period (attendance_code) & ON student_report_card_grades (school_id) in rosariosis.sql & rosariosis_mysql.sql
 - SQL VACUUM & ANALIZE are for PostgreSQL only in Scheduler.php
 
-Changes in 8.9.6
-----------------
-- Fix Stored XSS security issue: escape textarea HTML in Inputs.php, thanks to @jo125ker
-
-Changes in 8.9.5
-----------------
-- Fix stored XSS security issue: do not allow unsanitized XML & HTML in FileUpload.fnc.php, thanks to @nhienit2010
-- Fix stored XSS security issue: escape HTML attribute in StudentAssignments.fnc.php, thanks to @dungtuanha
-- Use big random number for parent password generation in NotifyParents.php & createParents.php, thanks to @intrapus
-- Add microseconds to filename format to make it harder to predict in StudentAssignments.fnc.php, thanks to @dungtuanha
-
-Changes in 8.9.4
-----------------
-- Fix SQL injection sanitize all `$_REQUEST` keys in Warehouse.php, thanks to @nhienit2010
-- Fix reflected XSS via mime-type in FileUpload.fnc.php, thanks to @nhienit2010
-
-Changes in 8.9.3
-----------------
-- Fix stored XSS security issue: do not allow unsanitized SVG in FileUpload.fnc.php, thanks to @scgajge12 & @crowdoverflow
-
-Changes in 8.9.2
-----------------
-- Fix invalidate User School in session on login in index.php
-
-Changes in 8.9.1
-----------------
-- Fix regression since 8.6 Mailing Labels widget HTML in Widgets.php
-
-Changes in 8.9
---------------
-- Fix GetTeacher() when newly inserted teacher in GetTeacher.fnc.php
-- Remove Half Day option in AddAbsences.php, Administration.php, TakeAttendance.php, Courses.php, Courses.fnc.php & Rollover.php
-- JS Hide "+ New Period" link onclick in Courses.php
-- CSS FlatSIS fix bottom button line height in stylesheet.css
-- Add help texts & translations for the Scheduling > Courses program in Help_en.php & help.po
-- Correct typos in Spanish help texts in help.po
-- Fix Locked column value on list export in Schedule.php
-- Student / User Photo input: only accept .jpg,.jpeg,.png,.gif in General_Info.inc.php
-- Increase Food Service icon width to 48px in FS_Icons.inc.php & MenuItems.php
-- HTML add Add-on upload input title in Modules.inc.php & Plugins.inc.php
-- Fix do not resubmit form on List Export in Incomes.php & Expenses.php
-- Fix List Export columns: hide Delete & show File Attached in Expenses.php, Incomes.php, Salaries.php, StaffPayments.php, StudentFees.php & StudentPayments.php
-- Check AllowEdit() on Event deletion in Calendar.php
-- Food Service icon upload in MenuItems.php
-- Add French & Spanish translation for "Icon successfully uploaded." in rosariosis.po
-
-Changes in 8.8
---------------
-- Fix proc_open() PHP function not allowed in PDF.php
-- Fix PHP Warning A non-numeric value encountered in ReportCards.fnc.php
-- Fix PHP Fatal error Unsupported operand types in Teacher Programs: do not search Students List, unset in CustomFields.fnc.php
-- Add 'staff_' prefix to first & last inputs on Find a User form in GetStaffList.fnc.php & Search.fnc.php
-- Remove icons from Ungraded column, use only number in StudentGrades.php
-- Exclude 0 points assignments from Ungraded count in StudentGrades.php
-- Date select increase years options from +5 to +20 in Date.php
-- JS Raise height by 1 submenu item so we stay above browser URL in warehouse.js
-- Add Min. and Max. GPA to Last row in Grades.fnc.php & ReportCards.fnc.php
-- Add Class Rank to Last row in Grades.fnc.php & ReportCards.fnc.php
-
-Changes in 8.7
---------------
-- Rector fix bad code in functions/, classes/core/, ProgramFunctions/
-- Update tested on: not compatible with Internet Explorer in INSTALL.md, INSTALL_es.md & INSTALL_fr.md
-- Add ProgramFunctions/SendEmail.fnc.php|send_error action hook in SendEmail.fnc.php
-- EasyCodingStandard use short array notation in functions/, classes/core/, ProgramFunctions/, modules/ & plugins/
-- Fix month + year format, remove day (regression since 7.1) in Dashboard.inc.php
-- ProgramUserConfig() always return array, not null in Config.fnc.php & \_makeLetterGrade.fnc.php
-- Allow redirect to Take Attendance, no fatal error if no current MP in Portal.php
-- CSS fix checkbox & radio input vertical align on Firefox in stylesheet.css
-- CSS fix menu hover right arrow position when module name on 2 lines in stylesheet.css
-- CSS fix font-size auto-adjust on iPhone in stylesheet.css
-- Fix typo in English string, update translations in Rollover.php & rosariosis.mo
-- JS fix menu & scroll issue on smartphone landscape > 735px in warehouse.js & jquery-fixed.menu.js
-- FlatSIS theme: use Grunt to minify in Gruntfile.js
-- FlatSIS theme: do not import WPadmin theme stylesheet anymore in stylesheet.css, stylesheet_wkhtmltopdf.css
-- Fix SQL transcript_grades view, grades were duplicated for each school year in rosariosis.sql & Update.fnc.php
-
-Changes in 8.6.1
-----------------
-- Add .webp image to FileExtensionWhiteList() in FileUpload.fnc.php
-- Fix SQL error table name "sam" specified more than once in Widget.php
-
-Changes in 8.6
---------------
-- Add (Student) Widgets class in classes/core/Widgets.php
-- Add (Student) Widget interface and individual Widget classes in classes/core/Widget.php
-- Use RosarioSIS\Widgets in Widgets.fnc.php
-- Add StaffWidgets class in classes/core/StaffWidgets.php
-- Add StaffWidget interface and individual StaffWidget classes in classes/core/StaffWidget.php
-- Use RosarioSIS\StaffWidgets in StaffWidgets.fnc.php
-- Admin Student Payments Delete restriction: also exclude Refund in StudentPayments.php & Student_Billing/functions.inc.php
-- Fix PHP Fatal error unsupported operand types when (Staff)Widgets() & $extra used for Parent / Student in Widgets.fnc.php & StaffWidgets.fnc.php
-- Fix PHP Fatal error canBuild() must be compatible with Widget::canBuild(array $modules) in Widget.php & StaffWidget.php
-- Fix SQL error more than one row returned by a subquery in Search.fnc.php
-
-Changes in 8.5.2
-----------------
-- Fix PHP Fatal error cannot redeclare `_rosarioLoginURL()` (regression since 8.3) in MarkDownHTML.fnc.php
-
-Changes in 8.5.1
-----------------
-- Fix SQL syntax error in ORDER BY (regression since 8.3.1) in Substitutions.php
-
-Changes in 8.5
---------------
-- Fix SQL error duplicate key value violates unique constraint "food_service_menus_title" in Menus.php
-- SQL add PRIMARY KEY to staff_exceptions table in rosariosis.sql
-- SQL profile_exceptions & staff_exceptions tables: Add Admin Student Payments Delete restriction in Update.fnc.php & rosariosis.sql
-- Add Admin Student Payments Delete restriction in Profiles.php & Exceptions.php
-- Add Admin Student Payments Delete restriction in StudentPayments.php & Student_Billing/functions.inc.php
-- Fix SQL error numeric field overflow when entering percent > 100 in MassCreateAssignments.php
-- HTML Sort Order input type number in MarkingPeriods.php
-
-Changes in 8.4
---------------
-- SQL gradebook_grades table: Change comment column type to text in Update.fnc.php & rosariosis.sql
-- Increase Grades Comment input maxlength to 500 chars in Grades.php
-- Fix use more coherent number_format() precision & no thousand separator in Percent.php, Assignments.php, StudentGrades.php, Grades.fnc.php & EditReportCardGrades.php
-- SQL order fields list by Category & SORT_ORDER in AssignOtherInfo.php
-- Fix SQL error numeric field overflow when entering percent > 100 in Assignments.php
-- Comments length > 60 chars, responsive table ColorBox in EditReportCardGrades.php, FinalGrades.php, Grades.php, InputFinalGrades.php & StudentGrades.php
-- Add File Attached to Incomes in Incomes.php & Accounting/functions.inc.php
-- Add File Attached to Expenses in Expenses.php
-- SQL accounting_incomes table: Add FILE_ATTACHED column in Update.fnc.php & rosariosis.sql
-- Fix SQL error when no user in session in Template.fnc.php
-- Correct help text note for User deletion in Help_en.php & help.po
-
-Changes in 8.3.1
-----------------
-- Fix SQL exclude fields of 'files' type in Substitutions.php
-- SQL order fields list by Category & SORT_ORDER in Substitutions.php
-- Fix force numeric separator "." when no en_US locale, use C locale in Warehouse.php
-- Fix Advanced Search > General Info text fields when adding Username in Search.fnc.php
-
-Changes in 8.3
---------------
-- Fix PHP Warning non-numeric value encountered, use rounded percent grade in StudentGrades.php
-- Security Fix reflected XSS: encode HTML special chars for search_term in Courses.php
-- Add File Attached to Staff Payments in StaffPayments.php & Accounting/functions.inc.php
-- Add File Attached to Payments in StudentPayments.php & Student_Billing/functions.inc.php
-- SQL accounting_payments table: Add FILE_ATTACHED column in Update.fnc.php & rosariosis.sql
-- SQL billing_payments table: Add FILE_ATTACHED column in Update.fnc.php & rosariosis.sql
-- Add help note for student deletion & translate in Help_en.php & help.po
-- Add RosarioSIS URL to image path in MarkDownHTML.fnc.php
-- Fix SQL error invalid byte sequence for encoding "UTF8": 0xde 0x20 in Security.php
-
-Changes in 8.2.1
-----------------
-- Fix SQL for Warning when only 0 points assignments in Assigments.php
-
-Changes in 8.2
---------------
-- Fix replace regex: remove slash & allow space in FileUpload.fnc.php
-- Always Use Last Year's Picture if Missing in PrintClassLists.php
-- Fix #329 SQL error division by zero in t_update_mp_stats(): set min Credits to 1 in Courses.fnc.php
-- Fix SQL error when Teacher name has single quote in Courses.php
-- CSS FlatSIS remove useless line-height for tabs in stylesheet.css
-
-Changes in 8.1.1
-----------------
-- Fix security issue #328 unauthenticated access to Side.php in Warehouse.php, thanks to @ijdpuzon
-- Fix security issue #328 sanitize `$_POST` school, syear, mp & period parameters in Side.php
-
-Changes in 8.1
---------------
-- Remove @ error control operator on pg_exec: allow PHP Warning in database.inc.php
-- Fix Address Field sequence name in AddressFields.php
-- Remove deprecated DBSeqConvertSerialName() function in database.inc.php
-- Fix Conflict Warning displayed twice in Courses.php
-- Fix PHP Notice Undefined index in miscExport.fnc.php
-- Fix SQL error when Student / Staff ID is hacked / not an integer in URL in Current.php
-- SQL accounting_salaries table: Add FILE_ATTACHED column in Update.fnc.php & rosariosis.sql
-- Add File Attached to Salaries in Salaries.php & Accounting/functions.inc.php
-- SQL billing_fees table: Add FILE_ATTACHED column in Update.fnc.php & rosariosis.sql
-- Add File Attached to Fees in StudentFees.php & Student_Billing/functions.inc.php
-- Fix Student Widgets for Advanced Search exports in GetStaffList.fnc.php, GetStuList.fnc.php & Search.inc.php
-- Add Export fields list (form) & Export fields list + extra SQL (student list) action hooks in Export.php & Actions.php
-- Do not remove Full Day and Half Day school periods from the Schedule table in PrintSchedules.php
-- Fix 403 Forbidden error due to pipe "|" in URL when using Apache 5G rules in Widgets.fnc.php
-
-Changes in 8.0.4
-----------------
-- Fix default Student/Parent program in Attendance/Menu.php
-
-Changes in 8.0.3
-----------------
-- Fix #324 Show Student Photo in Transcripts.fnc.php
-
-Changes in 8.0.2
-----------------
-- Fix User Widgets Search Terms in Users/Search.inc.php
-
-Changes in 8.0.1
-----------------
-- Fix #322 PHP syntax error, unexpected ')' in DailySummary.php
-
-Changes in 8.0
---------------
-- Add Total from Payments & Total from Fees fields to Advanced Report in Export.php
-- Upgrade grunt, grunt-contrib-cssmin, grunt-contrib-uglify & grunt-contrib-watch & remove grunt-phpdoc in package.json & Gruntfile.js
-- CSS minification optimizations in stylesheet.css & stylesheet_wkhtmltopdf.css
-- JS uglify optimizations in plugins.min.js & plugins.min.js.map
-- Upgrade Chart.js from 2.9.3 to 3.4.1 & save 40KB in chart.min.js & Charts.fnc.php
-- Fix "The gradebook configuration has been modified." note appearing twice in Grades/Configuration.php
-- Add warning in case all Assignments in Type have 0 Points (Extra Credit) in Assignments.php
-- Update French & Spanish translations in rosariosis.po
-- CSS FlatSIS shorten menu width & submenu links height + better contrast in stylesheet.css
-- CSS FlatSIS list square bullets in stylesheet.css
-- Default theme is now FlatSIS in rosariosis.sql
-- CSS remove .radio-attendance-code class in stylesheet.css, rtl.css & TakeAttendance.php
-- CSS remove Open Sans SVG fonts, format is deprecated in font.css & WPadmin/fonts/open
-- Upgrade marked.js 0.8.2 to version 1.2.9 in assets/js/marked/
-- Fix SQL error when $staff_id is 0 (no user in session) in Config.fnc.php
-- Remove Waived Fees from list in Student_Billing/functions.inc.php
-- New ROSARIO_DISABLE_ADDON_DELETE optional config constant in INSTALL.md, INSTALL_es.md & INSTALL_fr.md
-- Add-on disable delete in Modules.inc.php & Plugins.inc.php
-- Merge Daily Transactions & Daily Totals programs in DailyTransactions.php & DailyTotals.php
-- Remove Daily Totals program from Student Billing & Accounting menus in Menu.php & rosariosis.sql
-- Fix Totals calculation in Accounting/includes/DailyTotals.php
-- Multibyte strings: check if not UTF-8 first to avoid cost of setting in Warehouse.php
-- Fix false positive Hacking Attempt on Print button click when no user in session in Warehouse.php
-- Merge Attendance Chart & Absence Summary programs in DailySummary.php & StudentSummary.php & Help_en.php
-- Remove Absence Summary program from Attendance menu in Menu.php, Help_en.php & rosariosis.sql
-
-Changes in 7.9.3
-----------------
-- Fix #318 PHP warning non-numeric value encountered for $LO_dir in ListOutput.fnc.php, thanks to @AhmadKakarr
-
-Changes in 7.9.2
-----------------
-- Fix SQL error when single quote in Course Title in InputFinalGrades.php
-- Fix include Semester course periods in the Schedule table in Schedule.inc.php
-- Fix #316 CSRF security issue set cookie samesite to strict, thanks to @huntrdev
-
-Changes in 7.9.1
-----------------
-- Fix remove file when has single quote in its name and actually delete file in Student.php, User.php & Schools.php
-- Fix download backup filename when contains spaces: use double quotes in DatabaseBackup.php
-
-Changes in 7.9
---------------
-- Update default School Year to 2021 in rosariosis.sql & config.inc.sample.php
-
-Changes in 7.8.4
-----------------
-- Fix User Marking Period title in GradeBreakdown.php
-- SQL ORDER BY Teacher name in GradeBreakdown.php
-
-Changes in 7.8.3
-----------------
-- Fix trim 0 (float) when percent > 1,000: do not use comma for thousand separator in Grades.php & ProgressReports.php
-
-Changes in 7.8.2
-----------------
-- Fix try searching plural forms adding an 's' to singular form and with number set to 1 in Translator.php
-
-Changes in 7.8.1
-----------------
-- CSS Edge browser fix: Do not merge focus-within styles with hover styles in stylesheet.css, stylesheet_wkhtmltopdf.css & rtl.css
-
-Changes in 7.8
---------------
-- Handle `multiple` files attribute in warehouse.js & Inputs.php
-- Add FileUploadMultiple(). Handle `multiple` files attribute for FileUpload() in FileUpload.fnc.php
-- Remove Reset button from Find a Student / User forms in Students/Search.inc.php & Users/Search.inc.php
-- CSS & JS open submenu on focus & focus-within in warehouse.js, stylesheet.css & rtl.css
-- CSS menu link & button color on focus in stylesheet.css & colors.css
-- Fix check students Course Status in PrintClassLists.php, PrintClassPictures.php, ClassSearchWidget.fnc.php, Referrals.php, EmailReferral.fnc.php & Widgets.fnc.php
-- Add Include Inactive Students checkbox in MasterScheduleReport.php & RequestsReport.php
-- Fix unset current student (check Course Status) when MP updated in Side.php
-- SQL fix Discipline Referrals using WHERE EXISTS in Widgets.fnc.php
-- Numeric Discipline field: invert values so BETWEEN works in Widgets.fnc.php
-- Numeric Discipline field: input type number in Widgets.fnc.php
-- Fix SQL error missing FROM address table in GetStuList.fnc.php
-
-Changes in 7.7
---------------
-- Move Dashboard() call outside in Dashboard.fnc.php & Portal.php
-- Add .xlsm,.key,.midi,.aif,.mpeg,.h264,.mkv,.log,.email,.eml,.emlx,.msg,.vcf extensions to white list in FileUpload.fnc.php
-- Add "Last Name Middle Name First Name" option to Display Name in GetStuList.fnc.php & Configuration.php
-- Fix SQL error escape course title in StudentGrades.php
-- SQL Remove Salaries having a Payment (same Amount & Comments (Title), after or on Assigned Date) in Accounting/functions.inc.php
-- SQL match Payment Comments LIKE Fee Title in Student_Billing/functions.inc.php
-- CSS fix list line-height in FlatSIS/stylesheet_wkhtmltopdf.css
-
-Changes in 7.6.1
-----------------
-- Fix #307 XSS update CodeIgniter Security class in classes/Security.php, thanks to @DustinBorn
-- Move Portal Poll vote code to modfunc in PortalPollNotes.php & Portal.php
-- Fix #308 Unauthenticated SQL injection. Use sanitized `$_REQUEST` in Portal.php, thanks to @DustinBorn
-- Fix #308 sanitize key. Pass array keys through function in Warehouse.php, thanks to @DustinBorn
-- Fix #309 unset `$_SESSION` so user cannot maintain dummy session in PasswordReset.php, thanks to @DustinBorn
-- Remove use of `$_SESSION['STAFF_ID'] === '-1'` in User.fnc.php & PasswordReset.php
-
-Changes in 7.6
---------------
-- Fix login password with single quote, use POST in index.php & Preferences.php
-- HTML Use #! instead of JS return false to not go back to top in Buttons.php & Profiles.php
-- JS remove warehouse.min.js & include warehouse.js inside plugins.min.js in Gruntfile.js, assets/js/ & Warehouse.php
-- Fix PHP8 compatibility issues (warnings & fatal errors), system wide
-- Fix save new Grade with "0" as Title in ReportCardGrades.php
-- PHP8 no xmlrpc ext: load xmlrpc compat functions in plugins/Moodle/client.php, xmlrpc.php, XML_RPC.php, XmlrpcDecoder.php & XmlrpcEncoder.php
-- Fix xmlrpc nested arrays, use param & value elements instead in XmlrpcEncoder.php
-- Fix SQL Total points only select assignments for CP teacher (teacher may have changed) in Grades.php, InputFinalGrades.php, StudentGrades.php & GradebookBreakdown.php
-- Fix SQL Grades sort order in GradebookBreakdown.php
-- Add Login form link action hook in index.php & Actions.php
-- SQL fix Report Card Grades insert in rosariosis_fr.sql
-- SQL fix ORDER Report Cards by Student name & Course list by Title in ReportCards.fnc.php
-- SQL fix error invalid input syntax for integer in DailySummary.php
-- Replace tested on Ubuntu 16.04 with 18.04 (Buster) in INSTALL.md, INSTALL_es.md & INSTALL_fr.md
-
-Changes in 7.5
---------------
-- HTML fix Student Assignment Submission display in StudentAssignments.fnc.php
-- Percent rounding to 2 decimal places is new School default in \_makeLetterGrade.fnc.php
-- CSS Fix widefat table border color when rendered in PDF inside Chrome in colors.css
-- Add phpwkhtmltopdf class & remove Wkhtmltopdf class in classes/
-- Use phpwkhtmltopdf class instead of Wkhtmltopdf (more reliable & faster) in PDF.php
-- Add Report Cards PDF footer action hook in ReportCards.fnc.php & Actions.php
-- Transcripts PDF header action hook: echo your custom text before or append it to $header_html to display it after in Transcripts.fnc.php
-- Transcripts PDF footer action hook: echo your custom text before or append it to $footer_html to display it after in Transcripts.fnc.php
-- Add .transcript-certificate-block1 & .transcript-certificate-block2 CSS classes in Transcripts.fnc.php
-- Add .report-card-free-text CSS class in ReportCards.fnc.php
-- Delete any attendance for this day & student prior to update in FixDailyAttendance.php
-- Use \_makeLetterGrade() for Percent grade so it reflects Teacher's Score rounding configuration in Grades.php & ProgressReports.php
-- Fix Add Credits only for Report Cards in ReportCards.fnc.php
-- Fix SQL error invalid input syntax for integer (Class Rank input) in Widgets.fnc.php
-- HTML Grades GPA Widget: use number input & check Weighted by default in Widgets.fnc.php
-
-Changes in 7.4
---------------
-- List sort comment: trim & fix position in ListOutput.fnc.php
-- Fix #303 Raw value in comment so we can sort Percent column the right way in Grades.php, thanks to @dd02
-- Add Database Backup link to header in Rollover.php
-- Add Course Widget configuration option: Popup window or Pull-Down in Configuration.php & Help_en.php
-- Add Course Widget: select / Pull-Down in Widgets.fnc.php
-- Update French & Spanish translations in rosariosis.po, help.po
-- Add Total Credits in ReportCards.fnc.php
-- Do not display "General Comments" title if no comments in ReportCards.fnc.php
-- HTML display rows of 3 School Period checkboxes in AddAbsences.php
-- Comment input maxlength increased to 500 in InputFinalGrades.php
-- Comment Code input field is required in ReportCardCommentCodes.php
-- Add php-zip extension to list in INSTALL.md
-- Check for zip extension in diagnostic.php
-- Fix SQL error integer out of range in Food_Service/Students/Accounts.php
-- French translation: replace "Effacer" with "Supprimer" in rosariosis.po & help.po
-- Fix Teacher Programs Progress Report PDF, do not echo form in TeacherPrograms.php
-
-Changes in 7.3.1
-----------------
-- Fix admin override: no input div when values are not saved yet in Grades/Configuration.php
-- Fix #304 Do not include Excused (`*` or -1) grades in GradebookBreakdown.php, thanks to @dd02
-- Fix #304 regression since 5.0 Count students in GradebookBreakdown.php, thanks to @dd02
-- Fix #304 Totals count exclude Extra Credit assignments when Total Points is 0 for the Type, thanks to @dd02
-
-Changes in 7.3
---------------
-- SQL Replace AND p.ATTENDANCE='Y' with AND cp.DOES_ATTENDANCE IS NOT NULL in Letters.php, StudentLabels.fnc.php, HonorRoll.fnc.php & Reminders.php
-- SQL remove unused SELECT ROOM in HonorRoll.fnc.php
-- Translate database on add-on install: run 'install_fr.sql' file in Modules.inc.php, Plugins.inc.php, modules/README.md & plugins/README.md
-- CSS remove wildcard rules in stylesheet.css & wkhtmltopdf.css
-- CSS remove browser input outline on focus in colors.css
-- Fix Format Phone Number for US in GetStuList.fnc.php, thanks to @dzungdo
-- Attendance dashboard limit Absences to past days in Dashboard.inc.php
-- Fix #299 Remove trailing slash "/" or dash "-" or dot "." from date in DailySummary.php
-- Fix #300 Include Full Day and Half Day school periods in the schedule table in PrintSchedules.php, thanks to @dzungdo
-- Update translations complete % in locale/REFERENCE.md
-- Add tested on CentOS & Google Chrome in INSTALL.md & INSTALL.pdf, thanks to @dd02
-- Add Before First Login form action hook in index.php & Actions.php
-- Fix regression since 7.0 not rolled items are checked in Rollover.php
-
-Changes in 7.2.4
-----------------
-- Take in Account Calendar Day Minutes in UpdateAttendanceDaily.fnc.php
-- Fix regression since 5.3 Return false if School Periods Length sum is 0 in UpdateAttendanceDaily.fnc.php, thanks to @dzungdo
-
-Changes in 7.2.3
-----------------
-- Fix regression since 5.9 search text User Field in Search.fnc.php, thanks to @dzungdo
-
-Changes in 7.2.2
-----------------
-- Fix SQL error foreign keys: Roll Schools before rolling Student Enrollment in Rollover.php
-- Fix SQL error table address specified more than once in GetStuList.fnc.php
-
-Changes in 7.2.1
-----------------
-- Fix ParseMLField for Username field category in Preferences.php
-- Fix PHP Warning check requested locale exists in Warehouse.php
-- Add Attendance Codes help for (Lunch) Categories in Help_en.php & help.po
-- Fix SQL error multiple rows returned by a subquery in CreateParents.php
-
-Changes in 7.2
---------------
-- Add Grade Level breakdown in StudentFieldBreakdown.php
-- Add link to Student Info in AddDrop.php
-- Limit students to User schools in AddDrop.php
-- Order Day, Month & Year inputs depending on User date preference in Date.php
-- SQL fix only display enrolled students in AddStudents.php
-- Link to Student Info redirects to right school in AddStudents.php
-- Reset password variable for each Contact in CreateParents.php
-
-Changes in 7.1.4
-----------------
-- Fix infinite loop when username already exists in CreateParents.php
-
-Changes in 7.1.3
-----------------
-- Fix #297 regression since 6.9 & SQL error in StudentSummary.php
-
-Changes in 7.1.2
-----------------
-- Fix SQL error Include Inactive Students for admin in PrintClassLists.php
-
-Changes in 7.1.1
-----------------
-- Fix #296 Include Inactive Students for admin in PrintClassLists.php
-
-Changes in 7.1
---------------
-- Final Grading Percentages: add "No quarters found" error in Configuration.php
-- Add Start Date input in Scheduler.php
-- Export (Excel) date to YYYY-MM-DD format (ISO) in Date.php & Preferences.php
-- Select Date Format: Add Preferences( 'DATE' ) in User.fnc.php, Preferences.php, Date.php & Side.php
-- Fix SQL error TITLE column limit to 50 characters in GradeLevels.php
-- HTML remove radio buttons (File Attached or Embed Link) in PortalNotes.php & PortalPollsNotes.fnc.php
-- Add Grade Level breakdown in StudentBreakdown.php
-- Include Credits in ReportCards.fnc.php
-
-Changes in 7.0.4
-----------------
-- Fix #295 regression since 7.0 cannot save N/A date in Date.php
-
-Changes in 7.0.3
-----------------
-- Fix Multiple School Periods: Course Period School Period does not match, skip in Scheduler.php
-
-Changes in 7.0.2
-----------------
-- JS Fix search form onsubmit in Export.php
-
-Changes in 7.0.1
-----------------
-- Fix #292 System error "blocked access to local file" with wkhtmltopdf 0.12.6 in Wkhtmltopdf.php
-
-Changes in 7.0
---------------
-- Update Markdownify from v2.1.11 to v2.3.1 in classes/Markdownify/*
-- Update Parsedown from v1.6.0 to v1.7.4 in classes/Parsedown.php
-- Update MoTranslator from v3.4 to v4.0 in Warehouse.php, Help.fnc.php & classes/MoTranslator/*
-- Fix 'School' translation when using MoTranslator in Schedule.inc.php & rosariosis.po
-- Fix '%s Handbook' translation when using MoTranslator in Help.php
-- CSS fix align "+" New Event icon to bottom in Calendar.php, CalendarDay.inc.php, stylesheet.css & zreponsive.css
-- Fix Day Number when multiple calendars and school years in CalendarDay.inc.php, DayToNumber.inc.php
-- Fix Numbered days display in SchoolPeriodsSelectInput.fnc.php & Courses.fnc.php
-- SQL improve Numbered days in AddAbsences.php, Administration.php, DailySummary.php, TakeAttendance.php, TeacherCompletion.php, UpdateAttendanceDaily.fnc.php & Portal.php
-- Place Rollover under Utilities separator in Menu.php
-- Merge Schedule Report & Master Schedule Report in Menu.php, MasterScheduleReport.php, ScheduleReport.php & rosariosis.sql
-- Add Students column to report in RequestsReport.php
-- Merge Requests Report & Unfilled Requests in Menu.php, RequestsReport.php, UnfilledRequests.php, Scheduler.php, Help_en.php & rosariosis.sql
-- Merge Average Daily Attendance & Average Attendance by Day in Menu.php, Percent.php, Help_en.php, help.po & rosariosis.sql
-- Remove "Happy []..." text in Portal.php
-- HTML remove "Demographics" header to gain space on PDF in AttendanceSummary.php
-- SQL Update ATTENDANCE_CODE (admin) when is NULL in TakeAttendance.php
-- CSS Add .widefat.files class in StudentsUsersInfo.fnc.php & stylesheet.css
-- CSS WPadmin more padding for list rows, menu links & footer help in stylesheet.css
-- CSS FlatSIS less padding for list row, header & popTable in stylesheet.css
-- CSS FlatSIS reduce body line-height & fix Dashboard tipmsg border in stylesheet.css
-- Format "Show Available Seats" & "Print Schedule" headers in Schedule.php
-- Remove $fy_id global variable in Schedule.php
-- HTML Add tooltips & notes in Rollover.php
-- Fix current CP Marking Period check on update in Courses.php
-- Fix limit list results to 1000, do not remove 1st result in ListOutput.fnc.php
-- Add $RosarioErrorsAddress config variable in config.inc.sample.php
-- Fix $RosarioNotifyAddress config variable description in INSTALL.md, INSTALL_es.md & INSTALL_fr.md
-- SQL no access to Custom "My Report" program for admin by default in rosariosis.sql
-- JS MarkdownToHTML No MarkDown in text, return raw text in warehouse.js
-- Fix Delete from other Student/User Info tabs in Student.php & User.php
-- Remove deprecated since 4.5 rollover_* action hooks in Rollover.php & Actions.php
-- Fix Error: There is no column for The value for 0. This value was not saved in SaveData.fnc.php
-- Fix Do not Save / Export Medical tab lists in Medical.inc.php
-
 
 ### Old versions CHANGES
+- [CHANGES for versions 7 and 8](CHANGES_V7_8.md).
 - [CHANGES for versions 5 and 6](CHANGES_V5_6.md).
 - [CHANGES for versions 3 and 4](CHANGES_V3_4.md).
 - [CHANGES for versions 1 and 2](CHANGES_V1_2.md).

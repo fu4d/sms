@@ -26,7 +26,7 @@ $chart_types = [ 'bar', 'pie', 'list' ];
 
 // Set Chart Type.
 if ( ! isset( $_REQUEST['chart_type'] )
-	|| ! in_array( $_REQUEST['chart_type'], $chart_types ) )
+     || ! in_array( $_REQUEST['chart_type'], $chart_types ) )
 {
 	$_REQUEST['chart_type'] = 'bar';
 }
@@ -43,14 +43,14 @@ if ( $_REQUEST['modfunc'] === 'search' )
 	$extra['search_title'] = _( 'Advanced' );
 
 	$extra['action'] = '&category_id=' . $_REQUEST['category_id'] .
-		'&chart_type=' . $_REQUEST['chart_type'] .
-		'&day_start=' . $_REQUEST['day_start'] .
-		'&day_end=' . $_REQUEST['day_end'] .
-		'&month_start=' . $_REQUEST['month_start'] .
-		'&month_end=' . $_REQUEST['month_end'] .
-		'&year_start=' . $_REQUEST['year_start'] .
-		'&year_end=' . $_REQUEST['year_end'] .
-		'&modfunc=&search_modfunc=';
+	                   '&chart_type=' . $_REQUEST['chart_type'] .
+	                   '&day_start=' . $_REQUEST['day_start'] .
+	                   '&day_end=' . $_REQUEST['day_end'] .
+	                   '&month_start=' . $_REQUEST['month_start'] .
+	                   '&month_end=' . $_REQUEST['month_end'] .
+	                   '&year_start=' . $_REQUEST['year_start'] .
+	                   '&year_end=' . $_REQUEST['year_end'] .
+	                   '&modfunc=&search_modfunc=';
 
 	Search( 'student_id', $extra );
 }
@@ -70,13 +70,13 @@ if ( ! empty( $_REQUEST['category_id'] ) )
 
 	$extra['FROM'] = ',discipline_referrals dr ';
 
-	$extra['WHERE'] = "AND dr.STUDENT_ID=ssm.STUDENT_ID
+	$extra['WHERE'] = " AND dr.STUDENT_ID=ssm.STUDENT_ID
 		AND dr.SCHOOL_ID=ssm.SCHOOL_ID
 		AND dr.ENTRY_DATE BETWEEN '" . $start_date . "' AND '" . $end_date . "' ";
 
 	// Multiple Radio or Select
 	if ( $category_RET[1]['DATA_TYPE'] === 'multiple_radio'
-		|| $category_RET[1]['DATA_TYPE'] === 'select' )
+	     || $category_RET[1]['DATA_TYPE'] === 'select' )
 	{
 		$extra['SELECT_ONLY'] = "dr.CATEGORY_" . intval( $_REQUEST['category_id'] ) . " AS TITLE,COUNT(*) AS COUNT ";
 
@@ -148,15 +148,15 @@ if ( ! empty( $_REQUEST['category_id'] ) )
 
 		$extra['SELECT_ONLY'] = "COALESCE(max(CATEGORY_" . intval( $_REQUEST['category_id'] ) . "),0) as MAX,COALESCE(min(CATEGORY_" . intval( $_REQUEST['category_id'] ) . "),0) AS MIN ";
 
-		//FJ remove NULL entries
-		$extra['WHERE'] .= "AND CATEGORY_" . intval( $_REQUEST['category_id'] ) . " IS NOT NULL ";
+		// Remove NULL entries.
+		$extra['WHERE'] .= " AND CATEGORY_" . intval( $_REQUEST['category_id'] ) . " IS NOT NULL ";
 
 		$max_min_RET = GetStuList( $extra );
 
 		$diff = $max_min_RET[1]['MAX'] - $max_min_RET[1]['MIN'];
 
 		if ( $diff > 10
-			&& $_REQUEST['chart_type'] !== 'bar' )
+		     && $_REQUEST['chart_type'] !== 'bar' )
 		{
 			//FJ correct numeric chart
 			for ( $i = 1; $i <= 10; $i++ )
@@ -166,7 +166,7 @@ if ( ! empty( $_REQUEST['category_id'] ) )
 				$chart['chart_data'][1][ $i ] = 0;*/
 
 				$chart['chart_data'][0][ $i ] = ( $max_min_RET[1]['MIN'] + ( ceil( $diff / 10 ) * ( $i - 1 ) ) ) . ' - ' .
-					( $max_min_RET[1]['MIN'] + ( ( ceil( $diff / 10 ) * $i ) - 1 ) );
+				                                ( $max_min_RET[1]['MIN'] + ( ( ceil( $diff / 10 ) * $i ) - 1 ) );
 
 				$mins[ $i ] = ( $max_min_RET[1]['MIN'] + ( ceil( $diff / 10 ) * ( $i - 1 ) ) );
 
@@ -225,22 +225,22 @@ if ( ! $_REQUEST['modfunc'] )
 	);
 
 	$advanced_link = ' <a href="' . PreparePHP_SELF( $_REQUEST, [ 'search_modfunc' ], [
-		'modfunc' => 'search',
-		'include_top' => 'false',
-	] ) . '">' . _( 'Advanced' ) . '</a>';
+			'modfunc' => 'search',
+			'include_top' => 'false',
+		] ) . '">' . _( 'Advanced' ) . '</a>';
 
 	DrawHeader( $select );
 
 	DrawHeader(
 		_( 'Report Timeframe' ) . ': ' .
-			PrepareDate( $start_date, '_start', false ) . ' &nbsp; ' . _( 'to' ) . ' &nbsp; ' .
-			PrepareDate( $end_date, '_end', false ) . ' ' .
-			SubmitButton( _( 'Go' ) ),
+		PrepareDate( $start_date, '_start', false ) . ' &nbsp; ' . _( 'to' ) . ' &nbsp; ' .
+		PrepareDate( $end_date, '_end', false ) . ' ' .
+		SubmitButton( _( 'Go' ) ),
 		$advanced_link
 	);
 
 	if ( isset( $_ROSARIO['SearchTerms'] )
-		&& !empty( $_ROSARIO['SearchTerms'] ) )
+	     && !empty( $_ROSARIO['SearchTerms'] ) )
 	{
 		DrawHeader( $_ROSARIO['SearchTerms'] );
 	}

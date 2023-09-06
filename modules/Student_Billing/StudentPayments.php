@@ -10,91 +10,68 @@ if ( empty( $_REQUEST['print_statements'] ) )
 	Search( 'student_id', issetVal( $extra ) );
 }
 
-// Add eventual Dates to $_REQUEST['values'].
-AddRequestedDates( 'values', 'post' );
-
 if ( ! empty( $_REQUEST['values'] )
-	&& $_POST['values']
-	&& AllowEdit()
-	&& UserStudentID() )
+     && $_POST['values']
+     && AllowEdit()
+     && UserStudentID() )
 {
+	// Add eventual Dates to $_REQUEST['values'].
+	AddRequestedDates( 'values', 'post' );
+
 	foreach ( (array) $_REQUEST['values'] as $id => $columns )
 	{
 		if ( $id !== 'new' )
 		{
-			$sql = "UPDATE billing_payments SET ";
+			$columns['FILE_ATTACHED'] = _savePaymentsFile( $id );
 
-			foreach ( (array) $columns as $column => $value )
+			if ( ! $columns['FILE_ATTACHED'] )
 			{
-				$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-			}
+				unset( $columns['FILE_ATTACHED'] );
 
-			$sql = mb_substr( $sql, 0, -1 ) . " WHERE ID='" . (int) $id . "'";
-
-			DBQuery( $sql );
-		}
-		elseif ( $columns['AMOUNT'] != ''
-			&& $columns['PAYMENT_DATE'] )
-		{
-			$sql = "INSERT INTO billing_payments ";
-
-			$fields = 'STUDENT_ID,SYEAR,SCHOOL_ID,';
-			$values = "'" . UserStudentID() . "','" . UserSyear() . "','" . UserSchool() . "',";
-
-			if ( isset( $_FILES['FILE_ATTACHED'] ) )
-			{
-				$columns['FILE_ATTACHED'] = FileUpload(
-					'FILE_ATTACHED',
-					$FileUploadsPath . UserSyear() . '/student_' . UserStudentID() . '/',
-					FileExtensionWhiteList(),
-					0,
-					$error
-				);
-
-				// Fix SQL error when quote in uploaded file name.
-				$columns['FILE_ATTACHED'] = DBEscapeString( $columns['FILE_ATTACHED'] );
-			}
-
-			$go = 0;
-
-			foreach ( (array) $columns as $column => $value )
-			{
-				if ( ! empty( $value ) || $value == '0' )
+				if ( empty( $columns ) )
 				{
-					if ( $column == 'AMOUNT' )
-					{
-						$value = preg_replace( '/[^0-9.-]/', '', $value );
-
-						//FJ fix SQL bug invalid amount
-
-						if ( ! is_numeric( $value ) )
-						{
-							$value = 0;
-						}
-					}
-
-					$fields .= DBEscapeIdentifier( $column ) . ',';
-					$values .= "'" . $value . "',";
-					$go = true;
+					// No file, and FILE_ATTACHED was the only column, skip.
+					continue;
 				}
 			}
 
-			$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
+			DBUpdate(
+				'billing_payments',
+				$columns,
+				[ 'STUDENT_ID' => UserStudentID(), 'ID' => (int) $id ]
+			);
+		}
+		elseif ( isset( $columns['AMOUNT'] )
+		         && $columns['AMOUNT'] != ''
+		         && $columns['PAYMENT_DATE'] )
+		{
+			$insert_columns = [
+				'STUDENT_ID' => UserStudentID(),
+				'SCHOOL_ID' => UserSchool(),
+				'SYEAR' => UserSyear(),
+			];
 
-			if ( $go )
-			{
-				DBQuery( $sql );
-			}
+			$columns['FILE_ATTACHED'] = _savePaymentsFile( $id );
+
+			$columns['AMOUNT'] = preg_replace( '/[^0-9.-]/', '', $columns['AMOUNT'] );
+
+			// @since 11.2 Add CREATED_BY column to billing_fees & billing_payments tables
+			$columns['CREATED_BY'] = DBEscapeString( User( 'NAME' ) );
+
+			DBInsert(
+				'billing_payments',
+				$insert_columns + $columns
+			);
 		}
 	}
 
-	// Unset values & redirect URL.
-	RedirectURL( 'values' );
+	// Unset values, month_values, day_values, year_values, billing_fees & redirect URL.
+	RedirectURL( [ 'values', 'month_values', 'day_values', 'year_values', 'billing_fees' ] );
 }
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	// @since 8.5 Admin Student Payments Delete restriction.
-	&& AllowEdit( 'Student_Billing/StudentPayments.php&modfunc=remove' ) )
+     // @since 8.5 Admin Student Payments Delete restriction.
+     && AllowEdit( 'Student_Billing/StudentPayments.php&modfunc=remove' ) )
 {
 	if ( DeletePrompt( _( 'Payment' ) ) )
 	{
@@ -103,7 +80,7 @@ if ( $_REQUEST['modfunc'] === 'remove'
 			WHERE ID='" . (int) $_REQUEST['id'] . "'" );
 
 		if ( ! empty( $file_attached )
-			&& file_exists( $file_attached ) )
+		     && file_exists( $file_attached ) )
 		{
 			// Delete File Attached.
 			unlink( $file_attached );
@@ -119,8 +96,8 @@ if ( $_REQUEST['modfunc'] === 'remove'
 }
 
 if ( $_REQUEST['modfunc'] === 'refund'
-	// @since 8.5 Also exclude Refund.
-	&& AllowEdit( 'Student_Billing/StudentPayments.php&modfunc=remove' ) )
+     // @since 8.5 Also exclude Refund.
+     && AllowEdit( 'Student_Billing/StudentPayments.php&modfunc=remove' ) )
 {
 	if ( DeletePrompt( _( 'Payment' ), _( 'Refund' ) ) )
 	{
@@ -132,15 +109,20 @@ if ( $_REQUEST['modfunc'] === 'refund'
 			$payment_RET[1]['COMMENTS'] . ' &mdash; ' . _( 'Refund' ) :
 			_( 'Refund' );
 
-		DBQuery( "INSERT INTO billing_payments (SYEAR,SCHOOL_ID,STUDENT_ID,AMOUNT,
-			PAYMENT_DATE,COMMENTS,REFUNDED_PAYMENT_ID)
-			VALUES('" . UserSyear() . "','" .
-			UserSchool() . "','" .
-			UserStudentID() . "','" .
-			( $payment_RET[1]['AMOUNT'] * -1 ) . "','" .
-			DBDate() . "','" .
-			DBEscapeString( $comments ) . "','" .
-			(int) $_REQUEST['id'] . "')" );
+		DBInsert(
+			'billing_payments',
+			[
+				'SYEAR' => UserSyear(),
+				'SCHOOL_ID' => UserSchool(),
+				'STUDENT_ID' => UserStudentID(),
+				'AMOUNT' => ( $payment_RET[1]['AMOUNT'] * -1 ),
+				'PAYMENT_DATE' => DBDate(),
+				'COMMENTS' => DBEscapeString( $comments ),
+				'REFUNDED_PAYMENT_ID' => (int) $_REQUEST['id'],
+				// @since 11.2 Add CREATED_BY column to billing_fees & billing_payments tables
+				'CREATED_BY' => DBEscapeString( User( 'NAME' ) ),
+			]
+		);
 
 		// Unset modfunc & ID & redirect URL.
 		RedirectURL( [ 'modfunc', 'id' ] );
@@ -148,7 +130,7 @@ if ( $_REQUEST['modfunc'] === 'refund'
 }
 
 if ( UserStudentID()
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
 	echo ErrorMessage( $error );
 
@@ -161,21 +143,24 @@ if ( UserStudentID()
 		'COMMENTS' => '_makePaymentsCommentsInput',
 		'LUNCH_PAYMENT' => '_lunchInput',
 		'FILE_ATTACHED' => '_makePaymentsFileInput',
+		'CREATED_AT' => 'ProperDateTime',
 	];
 
 	$refunded_payments_RET = DBGet( "SELECT '' AS REMOVE,ID,REFUNDED_PAYMENT_ID,
-		AMOUNT,PAYMENT_DATE,COMMENTS
+		AMOUNT,PAYMENT_DATE,COMMENTS,LUNCH_PAYMENT,FILE_ATTACHED,
+		CREATED_BY,CREATED_AT
 		FROM billing_payments
 		WHERE STUDENT_ID='" . UserStudentID() . "'
 		AND SYEAR='" . UserSyear() . "'
 		AND (REFUNDED_PAYMENT_ID IS NOT NULL)", $functions, [ 'REFUNDED_PAYMENT_ID' ] );
 
 	$payments_RET = DBGet( "SELECT '' AS REMOVE,ID,REFUNDED_PAYMENT_ID,
-		AMOUNT,PAYMENT_DATE,COMMENTS,LUNCH_PAYMENT,FILE_ATTACHED
+		AMOUNT,PAYMENT_DATE,COMMENTS,LUNCH_PAYMENT,FILE_ATTACHED,
+		CREATED_BY,CREATED_AT
 		FROM billing_payments
 		WHERE STUDENT_ID='" . UserStudentID() . "'
 		AND SYEAR='" . UserSyear() . "'
-		AND (REFUNDED_PAYMENT_ID IS NULL OR REFUNDED_PAYMENT_ID='') ORDER BY ID", $functions );
+		AND REFUNDED_PAYMENT_ID IS NULL ORDER BY ID", $functions );
 
 	$i = 1;
 	$RET = [];
@@ -196,9 +181,9 @@ if ( UserStudentID()
 	$columns = [];
 
 	if ( ! empty( $RET )
-		&& empty( $_REQUEST['print_statements'] )
-		&& AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && empty( $_REQUEST['print_statements'] )
+	     && AllowEdit()
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		$columns = [ 'REMOVE' => '<span class="a11y-hidden">' . _( 'Delete' ) . '</span>' ];
 	}
@@ -215,10 +200,20 @@ if ( UserStudentID()
 		$columns += [ 'FILE_ATTACHED' => _( 'File Attached' ) ];
 	}
 
+	if ( isset( $_REQUEST['expanded_view'] )
+	     && $_REQUEST['expanded_view'] === 'true' )
+	{
+		// @since 11.2 Expanded View: Add Created by & Created at columns.
+		$columns += [
+			'CREATED_BY' => _( 'Created by' ),
+			'CREATED_AT' => _( 'Created at' ),
+		];
+	}
+
 	$link = [];
 
 	if ( empty( $_REQUEST['print_statements'] )
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		$link['add']['html'] = [
 			'REMOVE' => button( 'add' ),
@@ -240,7 +235,19 @@ if ( UserStudentID()
 
 		if ( AllowEdit() )
 		{
-			DrawHeader( '', SubmitButton() );
+			if ( ! isset( $_REQUEST['expanded_view'] )
+			     || $_REQUEST['expanded_view'] !== 'true' )
+			{
+				$expanded_view_header = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'expanded_view' => 'true' ] ) . '">' .
+				                        _( 'Expanded View' ) . '</a>';
+			}
+			else
+			{
+				$expanded_view_header = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'expanded_view' => 'false' ] ) . '">' .
+				                        _( 'Original View' ) . '</a>';
+			}
+
+			DrawHeader( $expanded_view_header, SubmitButton() );
 		}
 
 		$options = [];
@@ -261,7 +268,7 @@ if ( UserStudentID()
 	);
 
 	if ( empty( $_REQUEST['print_statements'] )
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		echo '<div class="center">' . SubmitButton() . '</div>';
 	}
@@ -287,7 +294,7 @@ if ( UserStudentID()
 	DrawHeader( $table );
 
 	if ( empty( $_REQUEST['print_statements'] )
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		echo '</form>';
 	}

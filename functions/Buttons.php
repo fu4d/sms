@@ -20,11 +20,11 @@
  */
 function Buttons( $submit_value, $reset_value = '' )
 {
-	$buttons = '<input type="submit" value="' . AttrEscape( $submit_value ) . '" class="button-primary" />';
+	$buttons = '<input type="submit" value="' . AttrEscape( $submit_value ) . '" class="button-primary">';
 
 	if ( $reset_value )
 	{
-		$buttons .= ' <input type="reset" value="' . AttrEscape( $reset_value ) . '" />';
+		$buttons .= ' <input type="reset" value="' . AttrEscape( $reset_value ) . '">';
 	}
 
 	return $buttons;
@@ -35,14 +35,15 @@ function Buttons( $submit_value, $reset_value = '' )
  * Image button with optional text & link
  *
  * @example echo button( 'x', '', '', 'bigger' );
- * @example echo button( 'remove', '', '"' . URLEscape( 'remove_url.php' ) . '"' );
+ * @example echo button( 'remove', '', URLEscape( 'remove_url.php' ) );
  * @example echo button( 'add', '', '"#!" onclick="javascript:popup.open();"' );
  *
  * @since 4.0 Allow for button files missing the "_button" suffix.
+ * @since 11.0 HTML put "" around the link href if no spaces in $link & no other attributes
  *
  * @param  string $type  [type]_button.png; ie. 'remove' will display the assets/themes/[user_theme]/btn/remove_button.png image.
  * @param  string $text  button text (optional).
- * @param  string $link  button link (optional). Use URLEscape() to encode URL! Add double quotes '"' around URL!
+ * @param  string $link  button link (optional). Use URLEscape() to encode URL!
  * @param  string $class CSS classes (optional).
  *
  * @return string        button HTML
@@ -61,6 +62,13 @@ function button( $type, $text = '', $link = '', $class = '' )
 			$title = ' title="' . AttrEscape( _( 'Delete' ) ) . '"';
 		}
 
+		if ( mb_strpos( $link, ' ' ) === false
+			&& mb_strpos( $link, '"' ) === false )
+		{
+			// HTML put "" around the link href if no spaces in $link & no other attributes.
+			$link = '"' . $link . '"';
+		}
+
 		// Dont put "" around the link href to allow Javascript code insert.
 		$button .= '<a href=' . $link . $title . '>';
 	}
@@ -73,7 +81,7 @@ function button( $type, $text = '', $link = '', $class = '' )
 		$button_file = str_replace( '_button', '', $button_file );
 	}
 
-	$button .= '<img src="' . URLEscape( $button_file ) . '" class="button ' . $class . '" alt="' . AttrEscape( ucfirst( str_replace( '_', ' ', $type ) ) ) . '" />';
+	$button .= '<img src="' . URLEscape( $button_file ) . '" class="button ' . $class . '" alt="' . AttrEscape( ucfirst( str_replace( '_', ' ', $type ) ) ) . '">';
 
 	if ( $text )
 	{
@@ -117,7 +125,7 @@ function SubmitButton( $value = '', $name = '', $options = 'class="button-primar
 		$name_attr = $name ? ' name="' . AttrEscape( $name ) . '" ' : '';
 
 		return '<input type="submit" value="' . AttrEscape( $value ) . '" ' .
-			$name_attr . $options . ' />';
+			$name_attr . $options . '>';
 	}
 
 	return '';
@@ -141,7 +149,7 @@ function ResetButton( $value, $options = '' )
 	if ( AllowEdit()
 		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
-		return '<input type="reset" value="' . AttrEscape( $value ) . '" ' . $options . ' />';
+		return '<input type="reset" value="' . AttrEscape( $value ) . '" ' . $options . '>';
 	}
 
 	return '';

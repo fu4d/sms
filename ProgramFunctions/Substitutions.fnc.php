@@ -47,11 +47,11 @@ function SubstitutionsInput( $substitutions )
 	$code_value = key( $substitutions );
 
 	$code = ' <input id="substitutions_code_' . $id . '" type="text" readonly size="' . AttrEscape( strlen( $code_value ) - 1 ) .
-		'" value="' . AttrEscape( $code_value ) . '" autocomplete="off" />';
+		'" value="' . AttrEscape( $code_value ) . '" autocomplete="off">';
 
 	$code .= '<label for="substitutions_code_' . $id . '" class="a11y-hidden">' . _( 'Code' ) . '</label>';
 
-	$copy_button = '<input id="substitutions_button_' . $id . '" type="button" value="' . AttrEscape( _( 'Copy' ) ) . '" />';
+	$copy_button = '<input id="substitutions_button_' . $id . '" type="button" value="' . AttrEscape( _( 'Copy' ) ) . '">';
 
 	$tooltip_html = '<div class="tooltip"><i>' .
 		_( 'Copy the substitution code and paste it into your text. The code will be dynamically replaced with the corresponding value.' ) .
@@ -211,6 +211,7 @@ function SubstitutionsCustomFields( $table )
  * Format field value for display, depending on field type.
  *
  * @since 5.5
+ * @since 10.5.2 Remove .00 decimal from value of numeric type
  *
  * @example $substitutions += SubstitutionsCustomFieldsValues( 'student', $student );
  *
@@ -247,7 +248,7 @@ function SubstitutionsCustomFieldsValues( $table, $values )
 
 		$custom_values[ $code ] = $value = $values[ $column ];
 
-		if ( in_array( $field['TYPE'], [ 'text', 'numeric' ] ) )
+		if ( $field['TYPE'] === 'text' )
 		{
 			// No formatting, use raw for text & numeric types.
 			continue;
@@ -258,6 +259,12 @@ function SubstitutionsCustomFieldsValues( $table, $values )
 		// Process value based on field type.
 		switch ( $field['TYPE'] )
 		{
+			case 'numeric':
+
+				$custom_values[ $code ] = $value ? (float) $value : $value;
+
+				break;
+
 			case 'date':
 
 				$custom_values[ $code ] = ProperDate( $value );

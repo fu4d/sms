@@ -120,14 +120,43 @@ function AddDBField( $table, $field_id, $type )
 	DBQuery( 'ALTER TABLE ' . DBEscapeIdentifier( $table ) . ' ADD ' .
 		DBEscapeIdentifier( 'CUSTOM_' . (int) $id ) . ' ' . $sql_type );
 
-	if ( $create_index )
+	$max_indices_reached = false;
+
+	if ( $DatabaseType === 'mysql' )
+	{
+		/**
+		 * Fix MySQL error 1069 Too many keys specified; max 64 keys allowed
+		 * Count columns having an index
+		 *
+		 * @since 10.3
+		 */
+		$indices = DBGet( DBQuery( "SHOW INDEX FROM " . DBEscapeIdentifier( $table ) ) );
+
+		$max_indices_reached = count( $indices ) >= 64;
+	}
+
+	if ( $create_index
+		&& ! $max_indices_reached )
 	{
 		// @since 5.0 SQL fix Change index suffix from '_IND' to '_IDX' to avoid collision.
 		$index_name = $table === 'students' ? 'CUSTOM_IND' : $table . '_IDX';
 
+		$key_length = '';
+
+		if ( $sql_type === 'TEXT'
+			&& $DatabaseType === 'mysql' )
+		{
+			/**
+			 * Fix MySQL error TEXT column used in key specification without a key length
+			 *
+			 * @since 10.2.3
+			 */
+			$key_length = '(255)';
+		}
+
 		DBQuery( 'CREATE INDEX ' . DBEscapeIdentifier( $index_name . (int) $id ) .
 			' ON ' . DBEscapeIdentifier( $table ) .
-			' (' . DBEscapeIdentifier( 'CUSTOM_' . (int) $id ) . ')' );
+			' (' . DBEscapeIdentifier( 'CUSTOM_' . (int) $id ) . $key_length . ')' );
 	}
 
 	return $id;
@@ -341,7 +370,7 @@ function GetFieldsForm( $table, $title, $RET, $extra_category_fields = [], $type
 		);
 
 		$delete_button = '<input type="button" value="' . AttrEscape( _( 'Delete' ) ) .
-			'" onclick="' . AttrEscape( 'ajaxLink(' . json_encode( $delete_url ) . ');' ) . '" /> ';
+			'" onclick="' . AttrEscape( 'ajaxLink(' . json_encode( $delete_url ) . ');' ) . '"> ';
 	}
 
 	ob_start();
@@ -359,7 +388,8 @@ function GetFieldsForm( $table, $title, $RET, $extra_category_fields = [], $type
 			issetVal( $RET['TITLE'], '' ),
 			'tables[' . $id . '][TITLE]',
 			( empty( $RET['TITLE'] ) ? '<span class="legend-red">' : '' ) . _( 'Field Name' ) .
-				( empty( $RET['TITLE'] ) ? '</span>' : '' )
+				( empty( $RET['TITLE'] ) ? '</span>' : '' ),
+			'maxlength="200"'
 		) . '</td>';
 
 		if ( ! $type_options )
@@ -482,7 +512,7 @@ function GetFieldsForm( $table, $title, $RET, $extra_category_fields = [], $type
 				issetVal( $RET['SELECT_OPTIONS'], '' ),
 				'tables[' . $id . '][SELECT_OPTIONS]',
 				_( 'Options' ) .
-				'<div class="tooltip"><i>' . _( 'One per line' ) . '<br />' .
+				'<div class="tooltip"><i>' . _( 'One per line' ) . '<br>' .
 				_( 'Pull-Down' ) . ' / ' . _( 'Auto Pull-Down' ) . ' / ' . _( 'Export Pull-Down' ) . ' / ' .
 				_( 'Select Multiple from Options' ) . '</i></div>',
 				'rows=5 cols=40',
@@ -498,7 +528,7 @@ function GetFieldsForm( $table, $title, $RET, $extra_category_fields = [], $type
 			issetVal( $RET['DEFAULT_SELECTION'], '' ),
 			'tables[' . $id . '][DEFAULT_SELECTION]',
 			_( 'Default' ) .
-			'<div class="tooltip"><i>' . _( 'For dates: YYYY-MM-DD' ).'<br />' .
+			'<div class="tooltip"><i>' . _( 'For dates: YYYY-MM-DD' ).'<br>' .
 			_( 'for checkboxes: Y' ) . '</i></div>'
 		) . '</td>';
 
@@ -529,7 +559,8 @@ function GetFieldsForm( $table, $title, $RET, $extra_category_fields = [], $type
 			issetVal( $RET['TITLE'], '' ),
 			'tables[' . $category_id . '][TITLE]',
 			( empty( $RET['TITLE'] ) ? '<span class="legend-red">' : '') . _( 'Title' ) .
-				( empty( $RET['TITLE'] ) ? '</span>' : '' )
+				( empty( $RET['TITLE'] ) ? '</span>' : '' ),
+			'maxlength="36"'
 		) . '</td>';
 
 		// Sort Order field.
@@ -770,9 +801,9 @@ function FilterCustomFieldsMarkdown( $table, $request_index, $request_index_2 = 
 		if ( isset( $post_values[ $custom_index ] )
 			&& ! empty( $post_values[ $custom_index ] ) )
 		{
-			$request_values[ $custom_index ] = SanitizeMarkDown(
+			$request_values[ $custom_index ] = DBEscapeString( SanitizeMarkDown(
 				$post_values[ $custom_index ]
-			);
+			) );
 		}
 	}
 
@@ -787,7 +818,7 @@ function FilterCustomFieldsMarkdown( $table, $request_index, $request_index_2 = 
  * @example $required_error = $required_error || CheckRequiredCustomFields( 'custom_fields', $_REQUEST['students'] );
  *
  * @param string $table          Custom fields TABLE name.
- * @param string $request_values $_REQUEST var array of fields values.
+ * @param array  $request_values $_REQUEST var array of fields values.
  *
  * @return boolean true if one Required Custom field is empty, else false.
  */

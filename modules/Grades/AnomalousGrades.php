@@ -1,8 +1,26 @@
 <?php
+if ( ! empty( $_REQUEST['period'] ) )
+{
+	// @since 10.9 Set current User Course Period before Secondary Teacher logic.
+	SetUserCoursePeriod( $_REQUEST['period'] );
+}
+
 if ( ! empty( $_SESSION['is_secondary_teacher'] ) )
 {
 	// @since 6.9 Add Secondary Teacher: set User to main teacher.
 	UserImpersonateTeacher();
+}
+
+if ( ! empty( $_REQUEST['student_id'] ) )
+{
+	if ( $_REQUEST['student_id'] != UserStudentID() )
+	{
+		SetUserStudentID( $_REQUEST['student_id'] );
+	}
+}
+elseif ( UserStudentID() )
+{
+	unset( $_SESSION['student_id'] );
 }
 
 $_REQUEST['include_all_courses'] = issetVal( $_REQUEST['include_all_courses'], '' );
@@ -21,8 +39,7 @@ DrawHeader(
 		'include_all_courses',
 		_( 'Include All Courses' )
 	),
-	'',
-	'&nbsp;' . CheckBoxOnclick(
+	CheckBoxOnclick(
 		'include_inactive',
 		_( 'Include Inactive Students' )
 	)
@@ -47,52 +64,6 @@ DrawHeader(
 );
 
 echo '</form>';
-
-if ( ! empty( $_REQUEST['student_id'] ) )
-{
-	if ( $_REQUEST['student_id'] != UserStudentID() )
-	{
-		SetUserStudentID( $_REQUEST['student_id'] );
-
-		if ( $_REQUEST['period'] && $_REQUEST['period'] != UserCoursePeriod() )
-		{
-			$_SESSION['UserCoursePeriod'] = $_REQUEST['period'];
-		}
-	}
-}
-else
-{
-	if ( UserStudentID() )
-	{
-		unset( $_SESSION['student_id'] );
-
-		if ( isset( $_REQUEST['period'] )
-			&& $_REQUEST['period'] != UserCoursePeriod() )
-		{
-			$_SESSION['UserCoursePeriod'] = $_REQUEST['period'];
-		}
-	}
-}
-
-if ( ! empty( $_REQUEST['period'] ) )
-{
-	if ( $_REQUEST['period'] != UserCoursePeriod() )
-	{
-		$_SESSION['UserCoursePeriod'] = $_REQUEST['period'];
-
-		if ( ! empty( $_REQUEST['student_id'] ) )
-		{
-			if ( $_REQUEST['student_id'] != UserStudentID() )
-			{
-				SetUserStudentID( $_REQUEST['student_id'] );
-			}
-		}
-		else
-		{
-			unset( $_SESSION['student_id'] );
-		}
-	}
-}
 
 $extra['WHERE'] = issetVal( $extra['WHERE'], '' );
 
@@ -138,7 +109,11 @@ if ( $_REQUEST['include_all_courses'] == 'Y' )
 	$extra['all_courses'] = 'Y';
 }
 
-$extra['functions'] = [ 'POINTS' => '_makePoints' ];
+$extra['functions'] = [
+	'POINTS' => '_makePoints',
+	'TYPE_TITLE' => '_makeTitle',
+	'TITLE' => '_makeTitle',
+];
 
 if ( ! UserStudentID() )
 {
@@ -253,4 +228,33 @@ function _makePoints( $value, $column )
 	}
 
 	return number_format(  ( $value / $THIS_RET['TOTAL_POINTS'] ) * 100, 0 ) . '%';
+}
+
+/**
+ * Make Assignment Title
+ * Truncate Assignment title to 36 chars
+ *
+ * Local function.
+ * GetStuList() DBGet() callback.
+ *
+ * @since 10.8
+ *
+ * @param  string $value  Title value.
+ * @param  string $column Column. Defaults to 'TITLE'.
+ *
+ * @return string         Assignment title truncated to 36 chars.
+ */
+function _makeTitle( $value, $column = 'TITLE' )
+{
+	if ( ! empty( $_REQUEST['LO_save'] ) )
+	{
+		// Export list.
+		return $value;
+	}
+
+	$title = mb_strlen( $value ) <= 36 ?
+		$value :
+		'<span title="' . AttrEscape( $value ) . '">' . mb_substr( $value, 0, 33 ) . '...</span>';
+
+	return $title;
 }

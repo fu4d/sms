@@ -47,7 +47,7 @@ function DateInput( $value, $name, $title = '', $div = true, $allow_na = true, $
     return $input_date;
 
 	if ( ! AllowEdit()
-		|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		return ( $value != '' ? ProperDate( $value ) : '-' ) . FormatInputTitle( $title );
 	}
@@ -57,7 +57,7 @@ function DateInput( $value, $name, $title = '', $div = true, $allow_na = true, $
 	];
 
 	if ( $value == ''
-		|| ! $div )
+	     || ! $div )
 	{
 		return PrepareDate( $value, '_' . $name, $allow_na, $options ) . $ftitle;
 	}
@@ -105,7 +105,7 @@ function TextInput( $value, $name, $title = '', $extra = '', $div = true )
 	$required = $value == '' && mb_strpos( $extra, 'required' ) !== false;
 
 	if ( ! AllowEdit()
-		|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		return ( $value != '' ? $display_val : '-' ) . FormatInputTitle( $title );
 	}
@@ -114,19 +114,30 @@ function TextInput( $value, $name, $title = '', $extra = '', $div = true )
 	if ( mb_strpos( $extra, 'size=' ) === false )
 	{
 		// Max size is 32 (more or less 300px)
-		$extra .= $value != '' ? ' size="' . min( mb_strlen( $value ), 32 ) . '"' : ' size="12"';
+		$size = min( mb_strlen( (string) $value ), 32 );
+
+		// Min size is 2 (more or less 35px)
+		$size = max( $size, 2 );
+
+		$extra .= $value != '' ? ' size="' . $size . '"' : ' size="12"';
 	}
 
 	// Specify input type via $extra (email,...).
 	$type = mb_strpos( $extra, 'type=' ) === false ? 'type="text"' : '';
 
+<<<<<<< HEAD
 	$input = '<input class="input"' . $type . ' id="' . $id . '" name="' . AttrEscape( $name ) .
 		'" value="' . AttrEscape( $value ) . '" ' . $extra . ' placeholder="'.$title.'" />' .
 		FormatInputTitle( $title, $id, $required );
+=======
+	$input = '<input ' . $type . ' id="' . $id . '" name="' . AttrEscape( $name ) .
+	         '" value="' . AttrEscape( $value ) . '" ' . $extra . '>' .
+	         FormatInputTitle( $title, $id, $required );
+>>>>>>> develop
 
 	if ( is_null( $value )
-		|| trim( $value ) == ''
-		|| ! $div )
+	     || trim( $value ) == ''
+	     || ! $div )
 	{
 		return $input;
 	}
@@ -147,6 +158,9 @@ function TextInput( $value, $name, $title = '', $extra = '', $div = true )
  *
  * @since 4.4
  * @since 5.5.1 Fill input value if $value != '********'.
+ * @since 11.1 Prevent using App name, username, or email in the password
+ *
+ * @global $_ROSARIO['PasswordInput']['user_inputs'] used in PasswordReset.php, FirstLogin.fnc.php & Preferences.php
  *
  * @uses GetInputID() to generate ID from name
  * @uses FormatInputTitle() to format title
@@ -164,6 +178,8 @@ function TextInput( $value, $name, $title = '', $extra = '', $div = true )
  */
 function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 {
+	global $_ROSARIO;
+
 	$id = GetInputID( $name );
 
 	$strength = ( mb_strpos( $extra, 'strength' ) !== false );
@@ -176,14 +192,14 @@ function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 	$required = $value == '' && mb_strpos( $extra, 'required' ) !== false;
 
 	if ( ! AllowEdit()
-		|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		return ( $value != '' ? $display_val : '-' ) . FormatInputTitle( $title );
 	}
 
 	// Default input size.
 	if ( $value == ''
-		&& mb_strpos( $extra, 'size=' ) === false )
+	     && mb_strpos( $extra, 'size=' ) === false )
 	{
 		$extra .= ' size="17"';
 	}
@@ -197,14 +213,14 @@ function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 	$input = TextInput( ( $value !== str_repeat( '*', 8 ) ? $value : '' ), $name, $title, $extra, false );
     $input .= FormatInputTitle( $title, $id, $required );
 	$lock_icons = button( 'unlocked', '', '', 'password-toggle password-show' ) .
-		button( 'locked', '', '', 'password-toggle password-hide' );
+	              button( 'locked', '', '', 'password-toggle password-hide' );
 
 	$password_strength_bars = '';
 
 	$min_required_strength = $strength ? Config( 'PASSWORD_STRENGTH' ) : 0;
 
 	if ( $strength
-		&& $min_required_strength )
+	     && $min_required_strength )
 	{
 		$password_strength_bars = '<div class="password-strength-bars">
 			<span class="score0"></span>
@@ -215,27 +231,36 @@ function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 		</div>';
 	}
 
+	// @since 11.1 Prevent using App name, username, or email in the password
+	$user_inputs = array_merge(
+		[ Config( 'NAME' ) ],
+		// Add username & email to this global var before calling PasswordInput().
+		issetVal( $_ROSARIO['PasswordInput']['user_inputs'], [] )
+	);
+
 	ob_start();
 
 	// Call our jQuery PasswordStrength plugin based on zxcvbn.
 	?>
 	<script>
-		$('#' + <?php echo json_encode( $id ); ?>).passwordStrength(
+        $('#' + <?php echo json_encode( $id ); ?>).passwordStrength(
 			<?php echo (int) $min_required_strength; ?>,
-			// Error message when trying to submit the form.
-			<?php echo json_encode( _( 'Your password must be stronger.' ) ); ?>
-		);
+            // Error message when trying to submit the form.
+			<?php echo json_encode( _( 'Your password must be stronger.' ) ); ?>,
+			<?php echo json_encode( $user_inputs ); ?>
+        );
 	</script>
 	<?php
 	$password_strength_js = ob_get_clean();
 
-	$input .= $lock_icons . $password_strength_bars . $password_strength_js;
+	$input .= $lock_icons . $password_strength_bars .
+	          FormatInputTitle( $title, $id, $required ) . $password_strength_js;
 
 	$input = '<div class="password-input-wrapper">' . $input . '</div>';
 
 	if ( is_null( $value )
-		|| trim( $value ) == ''
-		|| ! $div )
+	     || trim( $value ) == ''
+	     || ! $div )
 	{
 		return $input;
 	}
@@ -274,7 +299,7 @@ function PasswordInput( $value, $name, $title = '', $extra = '', $div = true )
 function MLTextInput( $value, $name, $title = '', $extra = '', $div = true )
 {
 	global $RosarioLocales,
-		$locale;
+	       $locale;
 
 	$value = is_array( $value ) ? $value[0] : $value;
 
@@ -286,41 +311,41 @@ function MLTextInput( $value, $name, $title = '', $extra = '', $div = true )
 	$id = GetInputID( $name );
 
 	if ( AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		// Ng - foreach possible language.
 		ob_start(); ?>
-<script>
-function setMLvalue(id, loc, value){
-	var res = document.getElementById(id).value.split("|");
+		<script>
+            function setMLvalue(id, loc, value){
+                var res = document.getElementById(id).value.split("|");
 
-	if (loc === "") {
-		res[0] = value;
-	} else {
-		var found = 0;
-		for ( var i = 1; i < res.length; i++ ) {
-			if (res[i].substring(0, loc.length) == loc) {
-				found = 1;
-				if (value === "") {
-					for ( var j = i + 1; j < res.length; j++ )
-						res[j - 1] = res[j];
-					res.pop();
-				} else {
-					res[i] = loc + ":" + value;
-				}
-			}
-		}
-		if ((found === 0) && (value !== "")) res.push(loc + ":" + value);
-	}
-	document.getElementById(id).value = res.join("|");
-}
-</script>
-<?php 	$return = ob_get_clean();
+                if (loc === "") {
+                    res[0] = value;
+                } else {
+                    var found = 0;
+                    for ( var i = 1; i < res.length; i++ ) {
+                        if (res[i].substring(0, loc.length) == loc) {
+                            found = 1;
+                            if (value === "") {
+                                for ( var j = i + 1; j < res.length; j++ )
+                                    res[j - 1] = res[j];
+                                res.pop();
+                            } else {
+                                res[i] = loc + ":" + value;
+                            }
+                        }
+                    }
+                    if ((found === 0) && (value !== "")) res.push(loc + ":" + value);
+                }
+                document.getElementById(id).value = res.join("|");
+            }
+		</script>
+		<?php 	$return = ob_get_clean();
 
-		$return .= '<div class="ml-text-input"><input type="hidden" id="' . $id . '" name="' . AttrEscape( $name ) . '" value="' . AttrEscape( $value ) . '" autocomplete="off" />';
+		$return .= '<div class="ml-text-input"><input type="hidden" id="' . $id . '" name="' . AttrEscape( $name ) . '" value="' . AttrEscape( $value ) . '" autocomplete="off">';
 
 		if ( mb_strpos( $extra, 'size=' ) === false
-			&& $value != '' )
+		     && $value != '' )
 		{
 			// MLInput size based on current locale value length.
 			$extra .=  ' size="' . mb_strlen( ParseMLField( $value ) ) . '"';
@@ -332,7 +357,7 @@ function setMLvalue(id, loc, value){
 				ucfirst( locale_get_display_language( $loc, $locale ) ) :
 				str_replace( '.utf8', '', $loc );
 
-			$return .= '<label><img src="locale/' . $loc . '/flag.png" class="button bigger" alt="' . AttrEscape( $language ) . '" title="' . AttrEscape( $language ) . '" /> ';
+			$return .= '<label><img src="locale/' . $loc . '/flag.png" class="button bigger" alt="' . AttrEscape( $language ) . '" title="' . AttrEscape( $language ) . '"> ';
 
 			//$return .= TextInput(ParseMLField($value, $loc),'ML_'.$name.'['.$loc.']','',$extra." onchange=\"javascript:setMLvalue('".$name."','".($id==0?'':$loc)."',this.value);\"",false);
 
@@ -343,11 +368,11 @@ function setMLvalue(id, loc, value){
 				'ML_' . $name . '[' . $loc . ']',
 				'',
 				$extra . ( $key == 0 ? ' required' : '' ) .
-					' onchange="' . AttrEscape( $onchange_js ) . '"',
+				' onchange="' . AttrEscape( $onchange_js ) . '"',
 				false
 			);
 
-			$return .= '</label><br />';
+			$return .= '</label><br>';
 		}
 
 		$return .= '</div>';
@@ -358,7 +383,7 @@ function setMLvalue(id, loc, value){
 	{
 		$return = ParseMLField( $value );
 
-		$title_break = '';
+		$title_break = '<br>';
 	}
 
 	return $return . FormatInputTitle( $title, '', false, $title_break );
@@ -383,7 +408,7 @@ function setMLvalue(id, loc, value){
  * @param  string  $title    Input title (optional). Defaults to ''.
  * @param  string  $extra    Extra HTML attributes added to the input.
  * @param  boolean $div      Is input wrapped into <div onclick>? (optional). Defaults to true.
- * @param  string  $markdown markdown|tinymce|text Text Type (optional). Defaults to 'markdown'.
+ * @param  string  $type     markdown|tinymce|text Text Type (optional). Defaults to 'markdown'.
  *
  * @return string  Input HTML
  */
@@ -396,6 +421,13 @@ function TextAreaInput( $value, $name, $title = '', $extra = '', $div = true, $t
 	$ftitle = FormatInputTitle( $title, $id, $required );
 
 	$ftitle_nobr = FormatInputTitle( $title, $id, $required, '' );
+
+	if ( $type === 'tinymce'
+	     && mb_strpos( (string) $extra, 'required' ) !== false )
+	{
+		// Remove required attribute, TinyMCE bug.
+		$extra = str_replace( 'required', '', $extra );
+	}
 
 	$display_val = '-';
 
@@ -415,11 +447,11 @@ function TextAreaInput( $value, $name, $title = '', $extra = '', $div = true, $t
 	}
 
 	if ( ! AllowEdit()
-		|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		return $display_val . ( $type !== 'text' && $display_val !== '-' ?
-			FormatInputTitle( $title, '', false, '' ) :
-			FormatInputTitle( $title ) );
+				FormatInputTitle( $title, '', false, '' ) :
+				FormatInputTitle( $title ) );
 	}
 
 	// Columns.
@@ -438,13 +470,16 @@ function TextAreaInput( $value, $name, $title = '', $extra = '', $div = true, $t
 	}
 
 	$textarea =  ( $type === 'markdown' ? MarkDownInputPreview( $id ) : '' ) .
-		'<textarea id="' . $id . '" name="' . AttrEscape( $name ) . '" ' . $extra . '>' .
-		// Fix Stored XSS security issue: escape textarea HTML.
-		htmlspecialchars( (string) $value ) .
-		'</textarea>' . ( $type === 'tinymce' ? $ftitle_nobr : $ftitle );
+	             '<textarea id="' . $id . '" name="' . AttrEscape( $name ) . '" ' . $extra . '>' .
+	             // Fix Stored XSS security issue: escape textarea HTML.
+	             htmlspecialchars(
+	             // Prevent double encoding single quote (&#039;), was encoded by SanitizeHTML() or SanitizeMarkDown()
+		             str_replace( '&#039;', "'", (string) $value )
+	             ) .
+	             '</textarea>' . ( $type === 'tinymce' ? $ftitle_nobr : $ftitle );
 
 	if ( $value == ''
-		|| ! $div )
+	     || ! $div )
 	{
 		return $textarea;
 	}
@@ -514,16 +549,10 @@ function TinyMCEInput( $value, $name, $title = '', $extra = '' )
 		}
 	}
 
-	if ( mb_strpos( (string) $extra, 'required' ) !== false )
-	{
-		// Remove required attribute, TinyMCE bug.
-		$extra = str_replace( 'required', '', $extra );
-	}
-
-	$textarea = TextAreaInput( $value, $name, $title, $extra , $div, 'tinymce' );
+	$textarea = TextAreaInput( $value, $name, $title, $extra, $div, 'tinymce' );
 
 	if ( ! AllowEdit()
-		|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		return $textarea;
 	}
@@ -559,7 +588,7 @@ function TinyMCEInput( $value, $name, $title = '', $extra = '' )
 				$lang_2_chars = mb_substr( $locale, 0, 2 );
 
 				// Right to left direction.
-				$RTL_languages = [ 'ar', 'he', 'dv', 'fa', 'ur' ];
+				$RTL_languages = [ 'ar', 'he', 'dv', 'fa', 'ur', 'ps' ];
 
 				$tinymce_directionality = in_array( $lang_2_chars, $RTL_languages ) ? 'rtl' : 'ltr';
 			}
@@ -569,34 +598,34 @@ function TinyMCEInput( $value, $name, $title = '', $extra = '' )
 		// and its configuration (plugin, language...).
 		ob_start(); ?>
 
-<script src="assets/js/tinymce/tinymce.min.js?v=4.9.8"></script>
-<script>
-	tinymceSettings = {
-		selector: '.tinymce',
-		plugins: 'link image pagebreak paste table textcolor colorpicker code fullscreen hr media lists',
-		toolbar: "bold italic underline bullist numlist alignleft aligncenter alignright alignjustify link image forecolor backcolor code fullscreen",
-		menu: {
-			// file: {title: 'File', items: 'newdocument'},
-			edit: {title: 'Edit', items: 'undo redo | cut copy paste pastetext'},
-			insert: {title: 'Insert', items: 'media | hr pagebreak | inserttable cell row column'},
-			// view: {title: 'View', items: 'visualaid'},
-			format: {title: 'Format', items: 'formats | removeformat'}
-		},
-		paste_data_images: true,
-		images_upload_handler: function (blobInfo, success, failure) {
-			success("data:" + blobInfo.blob().type + ";base64," + blobInfo.base64());
-		},
-		pagebreak_separator: '<div style="page-break-after: always;"></div>',
-		language: <?php echo json_encode( $tinymce_language ); ?>,
-		directionality : <?php echo json_encode( $tinymce_directionality ); ?>,
-		relative_urls: false,
-		// verify_html: false,
-		remove_script_host: false,
-		external_plugins: {
-			// Add your plugins using the action hook below.
-		}
-	};
-</script>
+		<script src="assets/js/tinymce/tinymce.min.js?v=4.9.8"></script>
+		<script>
+            tinymceSettings = {
+                selector: '.tinymce',
+                plugins: 'link image pagebreak paste table textcolor colorpicker code fullscreen hr media lists',
+                toolbar: "bold italic underline bullist numlist alignleft aligncenter alignright alignjustify link image forecolor backcolor code fullscreen",
+                menu: {
+                    // file: {title: 'File', items: 'newdocument'},
+                    edit: {title: 'Edit', items: 'undo redo | cut copy paste pastetext'},
+                    insert: {title: 'Insert', items: 'media | hr pagebreak | inserttable cell row column'},
+                    // view: {title: 'View', items: 'visualaid'},
+                    format: {title: 'Format', items: 'formats | removeformat'}
+                },
+                paste_data_images: true,
+                images_upload_handler: function (blobInfo, success, failure) {
+                    success("data:" + blobInfo.blob().type + ";base64," + blobInfo.base64());
+                },
+                pagebreak_separator: '<div style="page-break-after: always;"></div>',
+                language: <?php echo json_encode( $tinymce_language ); ?>,
+                directionality : <?php echo json_encode( $tinymce_directionality ); ?>,
+                relative_urls: false,
+                // verify_html: false,
+                remove_script_host: false,
+                external_plugins: {
+                    // Add your plugins using the action hook below.
+                }
+            };
+		</script>
 		<?php
 		/**
 		 * TinyMCE before init action hook
@@ -604,9 +633,9 @@ function TinyMCEInput( $value, $name, $title = '', $extra = '' )
 		 * @since 5.3
 		 */
 		do_action( 'functions/Inputs.php|tinymce_before_init' ); ?>
-<script>
-	tinymce.init(tinymceSettings);
-</script><!-- /TinyMCE -->
+		<script>
+            tinymce.init(tinymceSettings);
+		</script><!-- /TinyMCE -->
 
 		<?php $tinymce_js = ob_get_clean();
 
@@ -641,15 +670,15 @@ function MarkDownInputPreview( $input_id )
 	?>
 	<div class="md-preview">
 		<a href="#" onclick="<?php echo AttrEscape( 'MarkDownInputPreview(' .
-			json_encode( $input_id ) .
-			'); return false;' ); ?>" class="tab disabled"><?php echo _( 'Write' ); ?></a>
+		                                            json_encode( $input_id ) .
+		                                            '); return false;' ); ?>" class="tab disabled"><?php echo _( 'Write' ); ?></a>
 
 		<a href="#" onclick="<?php echo AttrEscape( 'MarkDownInputPreview(' .
-			json_encode( $input_id ) .
-			'); return false;' ); ?>" class="tab"><?php echo _( 'Preview' ); ?></a>
+		                                            json_encode( $input_id ) .
+		                                            '); return false;' ); ?>" class="tab"><?php echo _( 'Preview' ); ?></a>
 
 		<a href="https://gitlab.com/francoisjacquet/rosariosis/wikis/Markdown-Cheatsheet" title="<?php echo AttrEscape( _( 'Mastering MarkDown' ) ); ?>" target="_blank" class="md-link">
-			<img class="button" src="assets/themes/<?php echo Preferences( 'THEME' ); ?>/btn/md_button.png" alt="<?php echo AttrEscape( _( 'Mastering MarkDown' ) ); ?>" />
+			<img class="button" src="assets/themes/<?php echo Preferences( 'THEME' ); ?>/btn/md_button.png" alt="<?php echo AttrEscape( _( 'Mastering MarkDown' ) ); ?>">
 		</a>
 		<div class="markdown-to-html" id="<?php echo GetInputID( 'divMDPreview' . $input_id ); ?>"></div>
 	</div>
@@ -686,23 +715,23 @@ function CheckboxInput( $value, $name, $title = '', $checked = '', $new = false,
 
 	// $checked has been deprecated -- it remains only as a placeholder.
 	if ( $value
-		&& $value !== 'N' )
+	     && $value !== 'N' )
 	{
 		$checked = ' checked';
 	}
 
 	if ( AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		$id = GetInputID( $name );
 
-		$checkbox = '<input type="hidden" name="' . AttrEscape( $name ) . '" value="" />' . // Save unchecked value!
-			'<label class="checkbox-label">
-			<input type="checkbox" name="' . AttrEscape( $name ) . '" id="' . $id . '" value="Y"' . $checked . ' ' . $extra . ' />&nbsp;' .
-			$title . '</label>';
+		$checkbox = '<input type="hidden" name="' . AttrEscape( $name ) . '" value="">' . // Save unchecked value!
+		            '<label class="checkbox-label">
+			<input type="checkbox" name="' . AttrEscape( $name ) . '" id="' . $id . '" value="Y"' . $checked . ' ' . $extra . '>&nbsp;' .
+		            $title . '</label>';
 
 		if ( $new
-			|| ! $div )
+		     || ! $div )
 		{
 			return $checkbox;
 		}
@@ -718,9 +747,9 @@ function CheckboxInput( $value, $name, $title = '', $checked = '', $new = false,
 	}
 
 	return ( $value ?
-		( $yes === 'Yes' || isset( $_REQUEST['LO_save'] ) ? _( 'Yes' ) : $yes ) :
-		( $no === 'No' || isset( $_REQUEST['LO_save'] ) ? _( 'No' ) : $no ) ) .
-			( $title !== '' ? ' ' . $title : '' );
+			( $yes === 'Yes' || isset( $_REQUEST['LO_save'] ) ? _( 'Yes' ) : $yes ) :
+			( $no === 'No' || isset( $_REQUEST['LO_save'] ) ? _( 'No' ) : $no ) ) .
+	       ( $title !== '' ? ' ' . $title : '' );
 }
 
 
@@ -731,6 +760,7 @@ function CheckboxInput( $value, $name, $title = '', $checked = '', $new = false,
  * @since 4.2
  * @since 4.5 Allow associative $options array.
  * @since 6.1 Allow numeric key (ID) in associative $options array.
+ * @since 10.8.1 Fix save all unchecked, add hidden empty checkbox
  *
  * @example MultipleCheckboxInput( $value, 'values[' . $id . '][' . $name . '][]' );
  *
@@ -759,12 +789,12 @@ function MultipleCheckboxInput( $value, $name, $title, $options, $extra = '', $d
 		'-';
 
 	if ( ! AllowEdit()
-	 	|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		return $multiple_value . FormatInputTitle( $title );
 	}
 
-	$multiple_html = '<table class="cellpadding-5"><tr class="st">';
+	$multiple_html = '<table class="cellspacing-0 cellpadding-5"><tr class="st">';
 
 	$i = 0;
 
@@ -772,7 +802,7 @@ function MultipleCheckboxInput( $value, $name, $title, $options, $extra = '', $d
 
 	foreach ( (array) $options as $option_value => $option )
 	{
-		if ( $i++ % 3 == 0 )
+		if ( $i++ % 3 == 0 && $i > 1 )
 		{
 			$multiple_html .= '</tr><tr class="st">';
 		}
@@ -786,15 +816,17 @@ function MultipleCheckboxInput( $value, $name, $title, $options, $extra = '', $d
 		$multiple_html .= '<td><label>
 			<input type="checkbox" name="' . AttrEscape( $name ) . '"
 				value="' . AttrEscape( $option_value ) . '" ' . $extra . ' ' .
-				( $option != '' && mb_strpos( (string) $value, '||' . $option_value . '||' ) !== false ? ' checked' : '' ) . ' />&nbsp;' .
-			( $option != '' ? $option : '-' ) .
-		'</label></td>';
+		                  ( $option != '' && mb_strpos( (string) $value, '||' . $option_value . '||' ) !== false ? ' checked' : '' ) . '>&nbsp;' .
+		                  ( $option != '' ? $option : '-' ) .
+		                  '</label></td>';
 	}
 
 	$multiple_html .= '</tr></table>' . FormatInputTitle( $title, '', $required, '' );
 
-	if ( $value == ''
-		|| ! $div )
+	$multiple_html .= '<input type="hidden" name="' . AttrEscape( $name ) . '" value="">';
+
+	if ( trim( (string) $value, '|' ) == ''
+	     || ! $div )
 	{
 		return $multiple_html;
 	}
@@ -813,6 +845,7 @@ function MultipleCheckboxInput( $value, $name, $title, $options, $extra = '', $d
  *
  * @since 5.6 Support option groups (`<optgroup>`) by adding 'group' to $extra.
  * @since 6.0 Support multiple values.
+ * @since 10.8.4 Fix save multiple SelectInput() when none selected, add hidden empty input (only if $allow_na)
  *
  * @example SelectInput( $value, 'values[' . $id . '][' . $name . ']', '', $options, 'N/A', $extra )
  *
@@ -883,7 +916,7 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 	}
 
 	if ( ! AllowEdit()
-		|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		if ( $display_val == '' )
 		{
@@ -919,8 +952,8 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 		foreach ( (array) $values as $value )
 		{
 			if ( $value == $key
-				&& ( !( $value == false && $value !== $key )
-					|| ( $value === '0' && $key === 0 ) ) )
+			     && ( !( $value == false && $value !== $key )
+			          || ( $value === '0' && $key === 0 ) ) )
 			{
 
 				$selected = ' selected ';
@@ -930,7 +963,7 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 		}
 
 		return '<option value="' . AttrEscape( $key ) . '"' .
-			$selected . '>' . ( is_array( $val ) ? $val[0] : $val ) . '</option>';
+		       $selected . '>' . ( is_array( $val ) ? $val[0] : $val ) . '</option>';
 	};
 
 	if ( $is_group )
@@ -951,9 +984,9 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 	{
 		// Mab - append current val to select list if not in list.
 		if ( ! $is_multiple
-			&& $values[0] != ''
-			&& ( ! is_array( $options )
-				|| ! array_key_exists( $values[0], $options ) ) )
+		     && $values[0] != ''
+		     && ( ! is_array( $options )
+		          || ! array_key_exists( $values[0], $options ) ) )
 		{
 			$options[ $values[0] ] = [ $values[0], '<span style="color:red">' . $values[0] . '</span>' ];
 
@@ -968,9 +1001,16 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 
 	$select .= '</select>' . FormatInputTitle( $title, $id, $required );
 
+	if ( $is_multiple
+	     && $allow_na !== false )
+	{
+		// Fix save multiple SelectInput() when none selected, add hidden empty input (only if $allow_na)
+		$select .= '<input type="hidden" name="' . AttrEscape( $name ) . '" value="">';
+	}
+
 	if ( ! isset( $values[0] )
-		|| $values[0] == ''
-		|| ! $div )
+	     || $values[0] == ''
+	     || ! $div )
 	{
 		return $select;
 	}
@@ -1018,7 +1058,7 @@ function SelectInput( $values, $name, $title = '', $options = [], $allow_na = 'N
 function MLSelectInput( $value, $name, $title, $options, $allow_na = 'N/A', $extra = '', $div = true )
 {
 	global $RosarioLocales,
-		$locale;
+	       $locale;
 
 	// Mab - support array style $option values.
 	$value = is_array( $value ) ? $value[0] : $value;
@@ -1034,14 +1074,14 @@ function MLSelectInput( $value, $name, $title, $options, $allow_na = 'N/A', $ext
 
 	// Mab - append current val to select list if not in list.
 	if ( $value != ''
-		&& ( ! is_array( $options )
-			|| !array_key_exists( $value, $options ) ) )
+	     && ( ! is_array( $options )
+	          || !array_key_exists( $value, $options ) ) )
 	{
 		$options[ $value ] = [ $value, '<span style="color:red">' . $value . '</span>' ];
 	}
 
 	if ( AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		$select = '<select name="' . AttrEscape( $name ) . '" id="' . $id . '" '.$extra.'>';
 
@@ -1057,8 +1097,8 @@ function MLSelectInput( $value, $name, $title, $options, $allow_na = 'N/A', $ext
 			$key .= '';
 
 			if ( $value == $key
-				&& ( ! ( $value == false && $value !== $key )
-					|| ( $value === '0' && $key === 0 ) ) )
+			     && ( ! ( $value == false && $value !== $key )
+			          || ( $value === '0' && $key === 0 ) ) )
 			{
 				$selected = ' selected';
 			}
@@ -1066,13 +1106,13 @@ function MLSelectInput( $value, $name, $title, $options, $allow_na = 'N/A', $ext
 			$val_locale = ParseMLField( ( is_array( $val ) ? $val[0] : $val ), $locale );
 
 			$select .= '<option value="' . AttrEscape( $key ) . '"' .
-				$selected . '>' . $val_locale . '</option>';
+			           $selected . '>' . $val_locale . '</option>';
 		}
 
 		$select .= '</select>' . FormatInputTitle( $title, $id, $required );
 
 		if ( $value == ''
-			|| ! $div )
+		     || ! $div )
 		{
 			return $select;
 		}
@@ -1115,6 +1155,7 @@ function MLSelectInput( $value, $name, $title, $options, $allow_na = 'N/A', $ext
  * @link https://github.com/harvesthq/chosen
  *
  * @since 2.9.5
+ * @deprecated since 10.7 Use Select2Input() instead. Fixes the overflow issue.
  *
  * @example ChosenSelectInput( $value, 'values[' . $id . '][' . $name . ']', '', $options, 'N/A', $extra )
  *
@@ -1137,8 +1178,8 @@ function ChosenSelectInput( $value, $name, $title = '', $options = [], $allow_na
 	$js = '';
 
 	if ( ! $chosen_included
-		&& AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && AllowEdit()
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 
 		ob_start();	?>
@@ -1146,9 +1187,9 @@ function ChosenSelectInput( $value, $name, $title = '', $options = [], $allow_na
 		<script src="assets/js/jquery-chosen/chosen.jquery.min.js"></script>
 		<link rel="stylesheet" href="assets/js/jquery-chosen/chosen.min.css">
 		<script>
-			$(document).ready(function(){
-				$('.chosen-select').chosen('.chosen-select');
-			});
+            $(document).ready(function(){
+                $('.chosen-select').chosen('.chosen-select');
+            });
 		</script>
 		<?php $chosen_included = true;
 
@@ -1161,7 +1202,7 @@ function ChosenSelectInput( $value, $name, $title = '', $options = [], $allow_na
 	$chosen_rtl = in_array( mb_substr( $_SESSION['locale'], 0, 2 ), $RTL_languages ) ? ' chosen-rtl' : '';
 
 	if ( ! $extra
-		|| mb_strpos( $extra, 'class=' ) === false )
+	     || mb_strpos( $extra, 'class=' ) === false )
 	{
 		$extra .= ' class="chosen-select' . $chosen_rtl . '"';
 	}
@@ -1176,31 +1217,137 @@ function ChosenSelectInput( $value, $name, $title = '', $options = [], $allow_na
 
 	// Translate default "Select Some Options" multiple placeholder.
 	if ( mb_strpos( $extra, 'multiple' ) !== false
-		&& mb_strpos( $extra, 'data-placeholder=' ) === false )
+	     && mb_strpos( $extra, 'data-placeholder=' ) === false )
 	{
 		$extra .= ' data-placeholder="' . AttrEscape( _( 'Select some Options' ) ) . '"';
 	}
 
 	$return = $js . SelectInput(
-		$value,
-		$name,
-		$title,
-		$options,
-		$allow_na,
-		$extra,
-		$div
-	);
+			$value,
+			$name,
+			$title,
+			$options,
+			$allow_na,
+			$extra,
+			$div
+		);
 
 	if ( $value != ''
-		&& $div
-		&& AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && $div
+	     && AllowEdit()
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		$id = GetInputID( $name );
 
 		// On InputDivOnClick(), call Chosen.
 		$return .= '<script>$("#div' . $id . '").on("click", function(){
 			$("#' . $id . '").chosen();
+		});</script>';
+	}
+
+	return $return;
+}
+
+
+/**
+ * SelectInput() wrapper which adds jQuery Select2.
+ *
+ * Select2 gives you a customizable select box with support for searching, tagging, remote data sets, infinite scrolling, and many other highly used options.
+ * @link https://select2.org/
+ *
+ * @since 10.7
+ *
+ * @example Select2Input( $value, 'values[' . $id . '][' . $name . ']', '', $options, 'N/A', $extra )
+ *
+ * @uses SelectInput() to generate the Select input
+ *
+ * @param  string         $value    Input value.
+ * @param  string         $name     Input name.
+ * @param  string         $title    Input title (optional). Defaults to ''.
+ * @param  array          $options  Input options: array( option_value => option_text ).
+ * @param  string|boolean $allow_na Allow N/A (empty value); set to false to disallow (optional). Defaults to N/A.
+ * @param  string         $extra    Extra HTML attributes added to the input.
+ * @param  boolean        $div      Is input wrapped into <div onclick>? (optional). Defaults to true.
+ *
+ * @return string         Input HTML
+ */
+function Select2Input( $value, $name, $title = '', $options = [], $allow_na = 'N/A', $extra = '', $div = true )
+{
+	static $select2_included = false;
+
+	$js = '';
+
+	if ( ! $select2_included
+	     && AllowEdit()
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	{
+		ob_start();	?>
+		<!-- Select2 -->
+		<script src="assets/js/jquery-select2/select2.min.js"></script>
+		<link rel="stylesheet" href="assets/js/jquery-select2/select2.min.css">
+		<script>
+            $(document).ready(function(){
+                $('.select2-select').select2({
+                    language: {
+                        noResults: function() { return ''; }
+                    }
+                });
+            });
+		</script>
+		<?php $select2_included = true;
+
+		$js = ob_get_clean();
+	}
+
+	if ( ! $extra
+	     || mb_strpos( $extra, 'class=' ) === false )
+	{
+		$extra .= ' class="select2-select"';
+	}
+	elseif ( mb_strpos( $extra, 'class=' ) !== false )
+	{
+		$extra = str_replace(
+			[ 'class="', "class='" ],
+			[ 'class="select2-select ', "class='select2-select " ],
+			$extra
+		);
+	}
+
+	// Translate default "Select Some Options" multiple placeholder.
+	if ( mb_strpos( $extra, 'multiple' ) !== false
+	     && mb_strpos( $extra, 'data-placeholder=' ) === false )
+	{
+		$extra .= ' data-placeholder="' . AttrEscape( _( 'Select some Options' ) ) . '"';
+	}
+
+	$return = $js . SelectInput(
+			$value,
+			$name,
+			$title,
+			$options,
+			$allow_na,
+			$extra,
+			$div
+		);
+
+	if ( $value != ''
+	     && $div
+	     && AllowEdit()
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	{
+		$id = GetInputID( $name );
+
+		// On InputDivOnClick(), call Select2 (once).
+		$return .= '<script>var select2Div' . $id . '=false;
+		$("#div' . $id . '").on("click", function() {
+			if (select2Div' . $id . ') return;
+
+			select2Div' . $id . '=true;
+			$("#' . $id . '").select2({
+				language: {
+					noResults: function() { return ""; }
+				}
+			});
 		});</script>';
 	}
 
@@ -1236,14 +1383,14 @@ function RadioInput( $value, $name, $title, $options, $allow_na = 'N/A', $extra 
 
 	// mab - append current val to select list if not in list
 	if ( $value != ''
-		&& ( ! is_array( $options )
-			|| ! array_key_exists( $value, $options ) ) )
+	     && ( ! is_array( $options )
+	          || ! array_key_exists( $value, $options ) ) )
 	{
 		$options[ $value ] = [ $value, '<span style="color:red">' . $value . '</span>' ];
 	}
 
 	if ( AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		$table = '<table class="cellspacing-0 cellpadding-5"><tr class="st">';
 
@@ -1252,15 +1399,15 @@ function RadioInput( $value, $name, $title, $options, $allow_na = 'N/A', $extra 
 		if ( $allow_na !== false )
 		{
 			$table .= '<td><label><input type="radio" name="' . AttrEscape( $name ) . '" value=""' .
-				( $value == '' ? ' checked' : '' ) . ' ' . $extra . ' /> ' .
-				( $allow_na === 'N/A' ? _( 'N/A' ) : $allow_na ) . '</label></td>';
+			          ( $value == '' ? ' checked' : '' ) . ' ' . $extra . '> ' .
+			          ( $allow_na === 'N/A' ? _( 'N/A' ) : $allow_na ) . '</label></td>';
 
 			$i++;
 		}
 
 		foreach ( (array) $options as $key => $val )
 		{
-			if ( $i++ % 3 == 0 )
+			if ( $i++ % 3 == 0 && $i > 1 )
 			{
 				$table .= '</tr><tr class="st">';
 			}
@@ -1270,15 +1417,15 @@ function RadioInput( $value, $name, $title, $options, $allow_na = 'N/A', $extra 
 			$key .= '';
 
 			if ( $value == $key
-				&& ( !( $value == false && $value !== $key )
-					|| ( $value === '0' && $key === 0 ) ) )
+			     && ( !( $value == false && $value !== $key )
+			          || ( $value === '0' && $key === 0 ) ) )
 			{
 				$checked = ' checked';
 			}
 
 			$table .= '<td><label><input type="radio" name="' . AttrEscape( $name ) . '" value="' .
-				AttrEscape( $key ) . '"' . $checked . ' ' . $extra . ' /> ' .
-				( is_array( $val ) ? $val[0] : $val ) . '</label></td>';
+			          AttrEscape( $key ) . '"' . $checked . ' ' . $extra . '> ' .
+			          ( is_array( $val ) ? $val[0] : $val ) . '</label></td>';
 		}
 
 		$table .= '</tr></table>';
@@ -1286,7 +1433,7 @@ function RadioInput( $value, $name, $title, $options, $allow_na = 'N/A', $extra 
 		$table .= FormatInputTitle( $title, '', $required, '' );
 
 		if ( $value == ''
-			|| ! $div )
+		     || ! $div )
 		{
 			return $table;
 		}
@@ -1335,7 +1482,7 @@ function RadioInput( $value, $name, $title, $options, $allow_na = 'N/A', $extra 
 function ColorInput( $value, $name, $title = '', $extra = '', $div = true )
 {
 	if ( strpos( $_SERVER['HTTP_USER_AGENT'], 'MSIE' )
-		|| strpos( $_SERVER['HTTP_USER_AGENT'], 'Trident/7' ) )
+	     || strpos( $_SERVER['HTTP_USER_AGENT'], 'Trident/7' ) )
 	{
 		// Is Internet Explorer: not compatible with color input.
 		return ColorInputMiniColors( $value, $name, $title, 'hidden', $extra, $div );
@@ -1348,18 +1495,18 @@ function ColorInput( $value, $name, $title = '', $extra = '', $div = true )
 	$color_rect = '<div class="color-input-value" style="background-color:' . $value . ';"></div>';
 
 	if ( ! AllowEdit()
-		|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		return $color_rect . FormatInputTitle( $title, '', '', '' );
 	}
 
 	$input = '<input type="color" name="' . AttrEscape( $name ) . '" id="' . $id . '" value="' .
-		AttrEscape( $value ) . '"' . $extra . ' />';
+	         AttrEscape( $value ) . '"' . $extra . '>';
 
 	$input .= FormatInputTitle( $title, $id, $required );
 
 	if ( $value == ''
-		|| ! $div )
+	     || ! $div )
 	{
 		return $input;
 	}
@@ -1409,7 +1556,7 @@ function ColorInputMiniColors( $value, $name, $title = '', $type = 'hidden', $ex
 	$color_rect = '<div class="color-input-value" style="background-color:' . $value . ';"></div>';
 
 	if ( ! AllowEdit()
-		|| isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     || isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		return $color_rect . FormatInputTitle( $title, '', '', '' );
 	}
@@ -1421,15 +1568,15 @@ function ColorInputMiniColors( $value, $name, $title = '', $type = 'hidden', $ex
 		ob_start();
 		?>
 		<!-- MiniColors -->
-		<link rel="stylesheet" href="assets/js/jquery-minicolors/jquery.minicolors.css" />
+		<link rel="stylesheet" href="assets/js/jquery-minicolors/jquery.minicolors.css">
 		<script src="assets/js/jquery-minicolors/jquery.minicolors.js"></script>
 		<script>$(document).ready(function(){
-			$('.minicolors').each(function(){
-				$(this).minicolors({
-					position: $(this).attr('data-position') || 'bottom left'
-				});
-			});
-		});</script>
+                $('.minicolors').each(function(){
+                    $(this).minicolors({
+                        position: $(this).attr('data-position') || 'bottom left'
+                    });
+                });
+            });</script>
 		<?php
 		$js = ob_get_clean();
 
@@ -1439,28 +1586,28 @@ function ColorInputMiniColors( $value, $name, $title = '', $type = 'hidden', $ex
 	ob_start();
 	?>
 	<input type="<?php echo AttrEscape( $type ); ?>" name="<?php echo AttrEscape( $name ); ?>" id="<?php echo $id; ?>"
-		class="minicolors" value="<?php echo AttrEscape( $value ); ?>" <?php echo $extra; ?> />
+	       class="minicolors" value="<?php echo AttrEscape( $value ); ?>" <?php echo $extra; ?>>
 	<?php
 
 	$color = ob_get_clean() . FormatInputTitle( $title, $id, $required );
 
 	if ( $value == ''
-		|| ! $div )
+	     || ! $div )
 	{
 		return $js . $color;
 	}
 
 	return $js . InputDivOnclick(
-		$id,
-		$color,
-		$color_rect,
-		FormatInputTitle( $title ) .
-		'<script>$("#div' . $id . '").on("click", function(){
+			$id,
+			$color,
+			$color_rect,
+			FormatInputTitle( $title ) .
+			'<script>$("#div' . $id . '").on("click", function(){
 			$("#' . $id . '").minicolors({
 				position: $("#' . $id . '").attr("data-position") || "bottom left"
 			});
 		});</script>'
-	);
+		);
 }
 
 
@@ -1495,8 +1642,8 @@ function CaptchaInput( $name, $title, $extra = '' )
 
 	ob_start(); ?>
 	<div class="captcha">
-		<span id="<?php echo $id_base; ?>-n1"></span> + <span id="<?php echo $id_base; ?>-n2"></span> = <input id="<?php echo $id_base; ?>-input" name="<?php echo AttrEscape( $name ); ?>[input]" type="number" required />
-		<input id="<?php echo $id_base; ?>-answer" name="<?php echo AttrEscape( $name ); ?>[answer]" type="hidden" <?php echo $extra; ?> />
+		<span id="<?php echo $id_base; ?>-n1"></span> + <span id="<?php echo $id_base; ?>-n2"></span> = <input id="<?php echo $id_base; ?>-input" name="<?php echo AttrEscape( $name ); ?>[input]" type="number" required>
+		<input id="<?php echo $id_base; ?>-answer" name="<?php echo AttrEscape( $name ); ?>[answer]" type="hidden" <?php echo $extra; ?>>
 		<?php echo FormatInputTitle( $title, $id_base . '-input', $required ); ?>
 	</div>
 	<script>captcha(<?php echo json_encode( $id_base ); ?>);</script>
@@ -1523,7 +1670,7 @@ function CaptchaInput( $name, $title, $extra = '' )
 function CheckCaptcha()
 {
 	if ( ! isset( $_SESSION['CaptchaInput'] )
-		|| ! $_SESSION['CaptchaInput'] )
+	     || ! $_SESSION['CaptchaInput'] )
 	{
 		return true;
 	}
@@ -1540,6 +1687,8 @@ function CheckCaptcha()
 
 /**
  * File Input
+ * Warning: contrary to other *Input() functions, there is no AllowEdit() check
+ * so the file input will also be visible to students, parents & teachers.
  *
  * @since 3.8.1
  * @since 5.2 Add $max_file_size param & max file size validation.
@@ -1583,8 +1732,8 @@ function FileInput( $name, $title = '', $extra = '', $max_file_size = 0 )
 	}
 
 	return '<input type="file" id="' . $id . '" name="' . AttrEscape( $name ) . '" ' . $extra .
-		' onchange="fileInputSizeValidate(this,' . (float) $max_file_size . ');" /><span class="loading"></span>' .
-		$ftitle;
+	       ' onchange="fileInputSizeValidate(this,' . (float) $max_file_size . ');"><span class="loading"></span>' .
+	       $ftitle;
 }
 
 
@@ -1608,11 +1757,11 @@ function NoInput( $value, $title = '' )
 	$value = ( ! empty( $value ) || $value == '0' ? $value : '-' );
 
 	if ( AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		return '<span class="no-input-value">' .
-			$value .
-			'</span>' . $ftitle;
+		       $value .
+		       '</span>' . $ftitle;
 	}
 
 	return $value . $ftitle;
@@ -1639,8 +1788,8 @@ function CheckBoxOnclick( $name, $title = '' )
 	);
 
 	$input = '<input type="checkbox" name="' . AttrEscape( $name ) . '" value="Y"' .
-		( isset( $_REQUEST[ $name ] ) && $_REQUEST[ $name ] == 'Y' ? ' checked' : '' ) .
-		' onclick="' . AttrEscape( 'ajaxLink(' . json_encode( $onclick_URL ) . ');' ) . '" />';
+	         ( isset( $_REQUEST[ $name ] ) && $_REQUEST[ $name ] == 'Y' ? ' checked' : '' ) .
+	         ' onclick="' . AttrEscape( 'ajaxLink(' . json_encode( $onclick_URL ) . ');' ) . '">';
 
 	if ( $title != '' )
 	{
@@ -1693,11 +1842,11 @@ function GetInputID( $name )
  * @param  string  $title    Input Title
  * @param  string  $id       Input id attribute (optional). Defaults to ''
  * @param  boolean $required Required Input & AllowEdit() ? CSS class is .legend-red
- * @param  string  $break    Break before title (optional). Defaults to '<br />'
+ * @param  string  $break    Break before title (optional). Defaults to '<br>'
  *
  * @return string  Formatted Input Title
  */
-function FormatInputTitle( $title, $id = '', $required = false, $break = '' )
+function FormatInputTitle( $title, $id = '', $required = false, $break = '<br>' )
 {
 	if ( $title === '' )
 	{
@@ -1766,10 +1915,17 @@ function InputDivOnclick( $id, $input_html, $value, $input_ftitle )
 
 	$div_onclick = '<div id="div' . $id_var_name_sanitized . '">
 		<div class="onclick" tabindex="0" onfocus="' . AttrEscape( $onfocus_js ) . '">' .
+<<<<<<< HEAD
 		( mb_strpos( $value, '<div' ) === 0 ?
 			'<div class="underline-dots">' . $value . '</div>' :
 			$value ) .
 		$input_ftitle . '</div></div>';
+=======
+	               ( mb_strpos( $value, '<div' ) === 0 ?
+		               '<div class="underline-dots">' . $value . '</div>' :
+		               '<span class="underline-dots">' . $value . '</span>' ) .
+	               $input_ftitle . '</div></div>';
+>>>>>>> develop
 
 	return $script . $div_onclick;
 }
@@ -1800,8 +1956,8 @@ function MakeChooseCheckbox( $value, $column = '', $controller_name = '' )
 	global $THIS_RET;
 
 	static $controller_column,
-		$name,
-		$checked;
+	$name,
+	$checked;
 
 	if ( ! empty( $controller_name ) )
 	{
@@ -1818,9 +1974,9 @@ function MakeChooseCheckbox( $value, $column = '', $controller_name = '' )
 
 		return '<input type="checkbox" value="Y" name="controller" id="controller"
 			onclick="' . AttrEscape( 'checkAll(this.form,this.checked,' .
-				json_encode( $controller_name ) .
-				');' ) . '"' .
-			( $checked ? ' checked' : '' ) . ' />
+		                             json_encode( $controller_name ) .
+		                             ');' ) . '"' .
+		       ( $checked ? ' checked' : '' ) . '>
 			<label for="controller" class="a11y-hidden">' . _( 'Check All' ) . '</label>';
 	}
 
@@ -1835,8 +1991,8 @@ function MakeChooseCheckbox( $value, $column = '', $controller_name = '' )
 	}
 
 	return '<label><input type="checkbox" name="' . AttrEscape( $name ) . '[]" value="' . AttrEscape( $value ) . '"' .
-		( $checked ? ' checked' : '' ) . ' /><span class="a11y-hidden">' .
-		_( 'Select' ) . '</span></label>';
+	       ( $checked ? ' checked' : '' ) . '><span class="a11y-hidden">' .
+	       _( 'Select' ) . '</span></label>';
 }
 
 /**
@@ -1847,7 +2003,7 @@ function MakeChooseCheckbox( $value, $column = '', $controller_name = '' )
  * @see GetInputID() to escape id attribute
  *
  * @example $html = '<span title="' . AttrEscape( $value ) . '">' . _( 'Text' ) . '</span>';
- * @example <span title="<?php echo AttrEscape( $value ); ?>"><?php echo _( 'Text' ); ?></span>
+ * @example <span title="<?php echo AttrEscape( $value ); ?\>"><?php echo _( 'Text' ); ?\></span>
  *
  * @uses htmlspecialchars
  *

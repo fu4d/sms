@@ -23,9 +23,16 @@ if ( $_REQUEST['modfunc'] === 'add'
 	{
 		echo ErrorMessage( [ _( 'The activity you selected is already assigned to this student!' ) ] );
 	}
-	else
+	elseif ( UserStudentID() )
 	{
-		DBQuery( "INSERT INTO student_eligibility_activities (STUDENT_ID,ACTIVITY_ID,SYEAR) values('" . UserStudentID() . "','" . $_REQUEST['new_activity'] . "','" . UserSyear() . "')" );
+		DBInsert(
+			'student_eligibility_activities',
+			[
+				'SYEAR' => UserSyear(),
+				'STUDENT_ID' => UserStudentID(),
+				'ACTIVITY_ID' => (int) $_REQUEST['new_activity'],
+			]
+		);
 	}
 
 	// Unset modfunc & new activity & redirect URL.

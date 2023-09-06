@@ -13,7 +13,8 @@ if ( AllowEdit()
 	echo FileInput(
 		'photo',
 		_( 'Student Photo' ) . ' (.jpg, .png, .gif)',
-		'accept=".jpg,.jpeg,.png,.gif"'
+		// Fix photo use mime types, not file extensions so mobile browsers allow camera
+		'accept="image/jpeg, image/png, image/gif"'
 	);
 ?></div>
 <?php endif;
@@ -134,9 +135,9 @@ echo TextInput(
 	_( 'Username' ),
 	( $required ? 'required ' : '' ) .
 	( Config( 'STUDENTS_EMAIL_FIELD' ) === 'USERNAME' ?
-		'type="email" pattern="[^ @]*@[^ @]*" placeholder="' . AttrEscape( _( 'Email' ) ) . '" ' :
-		'' ) .
-	'autocomplete="off"',
+		'maxlength=100 type="email" placeholder="' . AttrEscape( _( 'Email' ) ) . '" ' :
+		'maxlength=100' ) .
+	'autocomplete="off" size=22',
 	empty( $_REQUEST['moodle_create_student'] )
 );
 
@@ -167,7 +168,7 @@ echo PasswordInput(
 echo '</td></tr></table>';
 
 $_REQUEST['category_id'] = '1';
-$separator = '<hr />';
+$separator = '<hr>';
 
 include 'modules/Students/includes/Other_Info.inc.php';
 
@@ -185,7 +186,7 @@ if ( basename( $_SERVER['PHP_SELF'] ) !== 'index.php' )
 else
 {
 	// Create account.
-	echo '<hr />';
+	echo '<hr>';
 
 	echo '<table class="create-account width-100p valign-top fixed-col"><tr class="st"><td>';
 
@@ -254,7 +255,7 @@ else
 
 	if ( $PopTable_opened )
 	{
-		echo '<table><tr><td>';
+		echo '<div><table><tr><td>';
 
 		PopTable( 'footer' );
 	}

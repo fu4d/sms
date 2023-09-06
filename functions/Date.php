@@ -45,8 +45,7 @@ function DBDate()
 function ProperDate( $date, $length = 'long' )
 {
 	if ( empty( $date )
-		|| mb_strlen( $date ) > 11
-		|| mb_strlen( $date ) < 9 )
+		|| ! VerifyDate( $date ) )
 	{
 		return '';
 	}
@@ -81,7 +80,7 @@ function ProperDate( $date, $length = 'long' )
 	return $comment .
 		'<span class="proper-date">' . strftime_compat(
 			Preferences( 'DATE' ),
-			strtotime( $date_exploded['year'] . '-' . $date_exploded['month'] . '-' . $date_exploded['day'] )
+			$date_exploded['year'] . '-' . $date_exploded['month'] . '-' . $date_exploded['day']
 		) . '</span>';
 }
 
@@ -103,8 +102,20 @@ function ProperDate( $date, $length = 'long' )
  */
 function ProperDateTime( $datetime, $length = 'long' )
 {
-	// @since 9.0 Fix PHP8.1 deprecated strftime() use strftime_compat() instead
-	$locale_time = strftime_compat( '%X', $datetime );
+	try
+	{
+		// @since 9.0 Fix PHP8.1 deprecated strftime() use strftime_compat() instead
+		$locale_time = strftime_compat( '%X', $datetime );
+	}
+	catch ( \Exception $e )
+	{
+		$local_time = '12:00:00';
+	}
+
+	// Remove trailing seconds :00.
+	$locale_time = mb_substr( $locale_time, -3 ) === ':00' ? mb_substr( $locale_time, 0, -3 ) : $locale_time;
+
+	$locale_time = str_replace( ':00 ', ' ', $locale_time );
 
 	$date = mb_substr( $datetime, 0, 10 );
 
@@ -115,7 +126,9 @@ function ProperDateTime( $datetime, $length = 'long' )
 		return $locale_time;
 	}
 
-	return ProperDate( $date, $length ) . ' ' . $locale_time;
+	$comment = '<!-- ' . $datetime . ' -->';
+
+	return $comment . ProperDate( $date, $length ) . ' ' . $locale_time;
 }
 
 
@@ -191,6 +204,12 @@ function PrepareDate( $date, $name_attr = '', $allow_na = true, $options = [] )
 		'submit' => false, // Submit onchange.
 		'required' => false, // Required fields.
 	];
+
+	if ( ! VerifyDate( $date ) )
+	{
+		// Fix PHP fatal error when not a date
+		$date = '';
+	}
 
 	$options = array_replace_recursive( $defaults, (array) $options );
 
@@ -394,7 +413,7 @@ function PrepareDate( $date, $name_attr = '', $allow_na = true, $options = [] )
 	// CALENDAR  ---------------.
 	if ( $options['C'] )
 	{
-		$return .= '<img src="assets/themes/' . Preferences( 'THEME' ) . '/btn/calendar.png" title="' . AttrEscape( _( 'Open calendar' ) ) . '" class="button cal" alt="' . AttrEscape( _( 'Open calendar' ) ) . '" id="trigger' . $_ROSARIO['PrepareDate'] . '" />';
+		$return .= '<img src="assets/themes/' . Preferences( 'THEME' ) . '/btn/calendar.png" title="' . AttrEscape( _( 'Open calendar' ) ) . '" class="button cal" alt="' . AttrEscape( _( 'Open calendar' ) ) . '" id="trigger' . $_ROSARIO['PrepareDate'] . '">';
 	}
 
 	// NOBR on date input.
@@ -483,7 +502,7 @@ function ExplodeDate( $date )
 		$year = mb_substr( $date, 6, 2 );
 
 		// Add 19 or 20 to complete 4 digits year.
-		$year .= 30 >= $year ? '19' : '20';
+		$year = 40 >= $year ? '19' . $year : '20' . $year;
 
 		$month = mb_substr( $date, 3, 2 );
 

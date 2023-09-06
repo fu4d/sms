@@ -29,6 +29,14 @@ body {
 	margin-bottom: 0;
 }
 
+/* @since 10.9 */
+
+/* Set Report Cards Comments column (max) width to 33% */
+
+.modname-grades-reportcards-php .list .list-column-comment {
+	width: 33%;
+}
+
 /* @since 4.3 */
 
 .wkhtmltopdf-header,
@@ -50,4 +58,5 @@ body {
 html,
 body {
 	background: #fff;
+	word-break: normal;
 }

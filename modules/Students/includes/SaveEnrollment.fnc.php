@@ -15,17 +15,13 @@ function SaveEnrollment()
 	echo '++++++++++++++++++++++++++++++++++++++ <br>';*/
 
 	if ( ! empty( $_POST['month_values']['student_enrollment'] )
-		|| ! empty( $_POST['values']['student_enrollment'] ) )
+	     || ! empty( $_POST['values']['student_enrollment'] ) )
 	{
-//		foreach ( (array) $_REQUEST['month_values']['student_enrollment'] as $stu_enrol_id => $stu_enrol_month )
-		foreach ( (array) $_REQUEST['values']['student_enrollment'] as $stu_enrol_id => $stu_enrol_data )
+		issetVal( $_REQUEST['month_values']['student_enrollment'] );
+
+		foreach ( (array) $_REQUEST['month_values']['student_enrollment'] as $stu_enrol_id => $stu_enrol_month )
 		{
-//			echo $stu_enrol_id;
-//			echo '======================================== <br>';
-//			var_dump($stu_enrol_data);
-//			echo "<br>";exit();
-//			if ( $stu_enrol_id == 'new' && ! $_REQUEST['values']['student_enrollment']['new']['ENROLLMENT_CODE'] && ! $_REQUEST['month_values']['student_enrollment']['new']['START_DATE'] )
-			if ($stu_enrol_id == 'new' && ! $stu_enrol_data['ENROLLMENT_CODE'] && ! isset($stu_enrol_data['START_DATE']))
+			if ( $stu_enrol_id == 'new' && ! $stu_enrol_month['START_DATE'] )
 			{
 				unset( $_REQUEST['values']['student_enrollment'][$stu_enrol_id] );
 //				unset( $_REQUEST['day_values']['student_enrollment'][$stu_enrol_id] );
@@ -33,7 +29,7 @@ function SaveEnrollment()
 //				unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
 			}
 			elseif ( $stu_enrol_id == 'new'
-				&& $_REQUEST['values']['student_enrollment']['new']['SCHOOL_ID'] )
+			         && $_REQUEST['values']['student_enrollment']['new']['SCHOOL_ID'] )
 			{
 				$enrollment_school_id = $_REQUEST['values']['student_enrollment']['new']['SCHOOL_ID'];
 
@@ -50,12 +46,7 @@ function SaveEnrollment()
 				{
 					$found_RET = 1;
 
-					/*$date = RequestedDate(
-						$_REQUEST['year_values']['student_enrollment'][$stu_enrol_id]['START_DATE'],
-						$_REQUEST['month_values']['student_enrollment'][$stu_enrol_id]['START_DATE'],
-						$_REQUEST['day_values']['student_enrollment'][$stu_enrol_id]['START_DATE']
-					);*/
-					$date = $stu_enrol_data['START_DATE'];
+					$date = $_REQUEST['values']['student_enrollment'][$stu_enrol_id]['START_DATE'];
 
 					if ( $date )
 					{
@@ -74,18 +65,16 @@ function SaveEnrollment()
 //						unset( $_REQUEST['month_values']['student_enrollment'][$stu_enrol_id] );
 //						unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
 
-						$error[] = _( 'The student is already enrolled on that date, and cannot be enrolled a second time on the date you specified. Please fix, and try enrolling the student again.' );
+						if ( $date )
+						{
+							$error[] = _( 'The student is already enrolled on that date, and cannot be enrolled a second time on the date you specified. Please fix, and try enrolling the student again.' );
+						}
 					}
 				}
 			}
 			elseif ( UserStudentID() && ! empty( $stu_enrol_data['START_DATE'] ) )
 			{
-				/*$date = RequestedDate(
-					$_REQUEST['year_values']['student_enrollment'][$stu_enrol_id]['START_DATE'],
-					$_REQUEST['month_values']['student_enrollment'][$stu_enrol_id]['START_DATE'],
-					$_REQUEST['day_values']['student_enrollment'][$stu_enrol_id]['START_DATE']
-				);*/
-				$date = $stu_enrol_data['START_DATE'];
+				$date = $_REQUEST['values']['student_enrollment'][$stu_enrol_id]['START_DATE'];
 
 				$found_RET = 1;
 
@@ -106,12 +95,15 @@ function SaveEnrollment()
 //					unset( $_REQUEST['month_values']['student_enrollment'][$stu_enrol_id] );
 //					unset( $_REQUEST['year_values']['student_enrollment'][$stu_enrol_id] );
 
-					$error[] = _( 'The student is already enrolled on that date, and cannot be enrolled a second time on the date you specified. Please fix, and try enrolling the student again.' );
+					if ( $date )
+					{
+						$error[] = _( 'The student is already enrolled on that date, and cannot be enrolled a second time on the date you specified. Please fix, and try enrolling the student again.' );
+					}
 				}
 			}
 			elseif ( UserStudentID()
-				&& isset( $stu_enrol_data['START_DATE'] )
-				&& empty( $stu_enrol_data['START_DATE'] ) )
+			         && isset( $stu_enrol_month['START_DATE'] )
+			         && empty( $stu_enrol_month['START_DATE'] ) )
 			{
 				// @since 5.4 Delete enrollment record if start date is empty.
 				// Check first if Student has previous enrollment records.

@@ -12,7 +12,7 @@ DrawHeader( ProgramTitle() );
 $date = RequestedDate( 'date', DBDate(), 'set' );
 
 if ( ! empty( $_SESSION['Administration.php']['date'] )
-	&& $_SESSION['Administration.php']['date'] !== $date )
+     && $_SESSION['Administration.php']['date'] !== $date )
 {
 	// Unset attendance & attendance day & redirect URL.
 	RedirectURL( [ 'attendance', 'attendance_day' ] );
@@ -39,9 +39,7 @@ $current_mp = GetCurrentMP( 'QTR', $date, false );
 
 if ( ! $current_mp )
 {
-	echo '<form action="' .
-		PreparePHP_SELF( $_REQUEST, [ 'codes', 'month_date', 'day_date', 'year_date' ] ) .
-		'" method="GET">';
+	echo '<form action="' . PreparePHP_SELF( $_REQUEST ) . '" method="POST">';
 
 	DrawHeader(
 		PrepareDate( $date, '_date', false, [ 'submit' => true ] )
@@ -57,7 +55,7 @@ $all_mp = GetAllMP( 'QTR', $current_mp );
 $current_Q = "SELECT ATTENDANCE_TEACHER_CODE,ATTENDANCE_CODE,ATTENDANCE_REASON,COMMENT,
 	STUDENT_ID,ADMIN,PERIOD_ID
 	FROM " . DBEscapeIdentifier( $table ) .
-	" WHERE SCHOOL_DATE='" . $date . "'" . $extra_sql;
+             " WHERE SCHOOL_DATE='" . $date . "'" . $extra_sql;
 
 if ( SchoolInfo( 'NUMBER_DAYS_ROTATION' ) !== null )
 {
@@ -85,7 +83,7 @@ if ( SchoolInfo( 'NUMBER_DAYS_ROTATION' ) !== null )
 			AND SYEAR=s.SYEAR)
 		AND CALENDAR_ID=cp.CALENDAR_ID)
 	" . ( $DatabaseType === 'mysql' ? "AS UNSIGNED)" : "AS INT)" ) .
-	" FOR 1) IN cpsp.DAYS)>0
+	                      " FOR 1) IN cpsp.DAYS)>0
 	AND s.MARKING_PERIOD_ID IN (" . $all_mp . ")
 	ORDER BY s.START_DATE ASC";
 }
@@ -102,10 +100,10 @@ else
 	AND position('," . $_REQUEST['table'] . ",' IN cp.DOES_ATTENDANCE)>0
 	AND ('" . $date . "' BETWEEN s.START_DATE AND s.END_DATE OR (s.END_DATE IS NULL AND '" . $date . "'>=s.START_DATE))
 	AND position(substring('UMTWHFS' FROM " .
-	( $DatabaseType === 'mysql' ?
-		"DAYOFWEEK(cast('" . $date . "' AS DATE))" :
-		"cast(extract(DOW FROM cast('" . $date . "' AS DATE)+1 AS int)" ) .
-	" FOR 1) IN cpsp.DAYS)>0
+	                      ( $DatabaseType === 'mysql' ?
+		                      "DAYOFWEEK(cast('" . $date . "' AS DATE))" :
+		                      "cast(extract(DOW FROM cast('" . $date . "' AS DATE))+1 AS int)" ) .
+	                      " FOR 1) IN cpsp.DAYS)>0
 	AND s.MARKING_PERIOD_ID IN (" . $all_mp . ")
 	ORDER BY s.START_DATE ASC";
 }
@@ -114,7 +112,7 @@ else
 $current_RET = DBGet( $current_Q, [], [ 'STUDENT_ID', 'PERIOD_ID' ] );
 
 if ( ! empty( $_REQUEST['attendance'] ) // Fix GET form: do not check $_POST.
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	foreach ( (array) $_REQUEST['attendance'] as $student_id => $values )
 	{
@@ -130,55 +128,38 @@ if ( ! empty( $_REQUEST['attendance'] ) // Fix GET form: do not check $_POST.
 
 		foreach ( (array) $values as $period_id => $columns )
 		{
+			$course_period_id = $current_schedule_RET[$student_id][$period_id][1]['COURSE_PERIOD_ID'];
+
 			if ( ! empty( $current_RET[$student_id][$period_id] ) )
 			{
-				$sql = "UPDATE " . DBEscapeIdentifier( $table ) .
-					" SET ADMIN='Y',
-					COURSE_PERIOD_ID='" . (int) $current_schedule_RET[$student_id][$period_id][1]['COURSE_PERIOD_ID'] . "',";
-
-				foreach ( (array) $columns as $column => $value )
-				{
-					$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-				}
-
-				$sql = mb_substr( $sql, 0, -1 ) . " WHERE SCHOOL_DATE='" . $date . "'
-					AND PERIOD_ID='" . (int) $period_id . "'
-					AND STUDENT_ID='" . (int) $student_id . "'" .
-					$extra_sql;
-
-				DBQuery( $sql );
+				DBUpdate(
+					$table,
+					[
+						'ADMIN' => 'Y',
+						'COURSE_PERIOD_ID' => (int) $course_period_id,
+					] + $columns,
+					[
+						'STUDENT_ID' => (int) $student_id,
+						'SCHOOL_DATE' => $date,
+						'PERIOD_ID' => (int) $period_id,
+					]
+				);
 			}
 			else
 			{
-				$sql = "INSERT INTO " . DBEscapeIdentifier( $table ) . " ";
+				$insert_columns = [
+					'STUDENT_ID' => (int) $student_id,
+					'SCHOOL_DATE' => $date,
+					'PERIOD_ID' => (int) $period_id,
+					'MARKING_PERIOD_ID' => (int) $current_mp,
+					'ADMIN' => 'Y',
+					'COURSE_PERIOD_ID' => (int) $course_period_id,
+				];
 
-				$fields = 'STUDENT_ID,SCHOOL_DATE,PERIOD_ID,MARKING_PERIOD_ID,ADMIN,COURSE_PERIOD_ID,';
-				$values = "'" . $student_id . "','" . $date . "','" . $period_id . "','" . $current_mp . "','Y','" . $current_schedule_RET[$student_id][$period_id][1]['COURSE_PERIOD_ID'] . "',";
-
-				if ( $table == 'lunch_period' )
-				{
-					$fields .= 'TABLE_NAME,';
-					$values .= "'" . $_REQUEST['table'] . "',";
-				}
-
-				$go = 0;
-
-				foreach ( (array) $columns as $column => $value )
-				{
-					if ( ! empty( $value ) || $value == '0' )
-					{
-						$fields .= DBEscapeIdentifier( $column ) . ',';
-						$values .= "'" . $value . "',";
-						$go = true;
-					}
-				}
-
-				$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-
-				if ( $go )
-				{
-					DBQuery( $sql );
-				}
+				DBInsert(
+					$table,
+					$insert_columns + $columns
+				);
 			}
 		}
 
@@ -240,7 +221,7 @@ $headerl = '';
 
 if ( ! empty( $categories_RET ) )
 {
-	$tmp_PHP_SELF = PreparePHP_SELF( $_REQUEST, [ 'table', 'codes' ] );
+	$tmp_PHP_SELF = PreparePHP_SELF( $_REQUEST );
 
 	$headerl .= '<a href="' . $tmp_PHP_SELF . '&table=0">';
 
@@ -304,7 +285,7 @@ if ( isset( $_REQUEST['student_id'] ) && $_REQUEST['student_id'] !== 'new' )
 				AND SYEAR=s.SYEAR)
 			AND CALENDAR_ID=cp.CALENDAR_ID)
 		" . ( $DatabaseType === 'mysql' ? "AS UNSIGNED)" : "AS INT)" ) .
-		" FOR 1) IN cpsp.DAYS)>0
+		                       " FOR 1) IN cpsp.DAYS)>0
 		AND ac.CALENDAR_ID=cp.CALENDAR_ID
 		AND ac.SCHOOL_DATE='" . $date . "'
 		AND ac.MINUTES!='0'
@@ -325,10 +306,10 @@ if ( isset( $_REQUEST['student_id'] ) && $_REQUEST['student_id'] !== 'new' )
 		AND s.STUDENT_ID='" . (int) $_REQUEST['student_id'] . "'
 		AND ('" . $date . "' BETWEEN s.START_DATE AND s.END_DATE OR (s.END_DATE IS NULL AND '" . $date . "'>=s.START_DATE))
 		AND position(substring('UMTWHFS' FROM " .
-		( $DatabaseType === 'mysql' ?
-			"DAYOFWEEK(cast('" . $date . "' AS DATE))" :
-			"cast(extract(DOW FROM cast('" . $date . "' AS DATE))+1 AS int)" ) .
-		" FOR 1) IN cpsp.DAYS)>0
+		                       ( $DatabaseType === 'mysql' ?
+			                       "DAYOFWEEK(cast('" . $date . "' AS DATE))" :
+			                       "cast(extract(DOW FROM cast('" . $date . "' AS DATE))+1 AS int)" ) .
+		                       " FOR 1) IN cpsp.DAYS)>0
 		AND ac.CALENDAR_ID=cp.CALENDAR_ID AND ac.SCHOOL_DATE='" . $date . "' AND ac.MINUTES!='0'
 		ORDER BY p.SORT_ORDER IS NULL,p.SORT_ORDER", $functions );
 	}
@@ -342,9 +323,7 @@ if ( isset( $_REQUEST['student_id'] ) && $_REQUEST['student_id'] !== 'new' )
 		'COMMENT' => _( 'Teacher Comment' ),
 	];
 
-	echo '<form action="' .
-		PreparePHP_SELF( $_REQUEST, [ 'codes', 'month_date', 'day_date', 'year_date' ] ) .
-		'" method="GET">';
+	echo '<form action="' . PreparePHP_SELF( $_REQUEST ) . '" method="POST">';
 
 	DrawHeader(
 		PrepareDate( $date, '_date', false, [ 'submit' => true ] ),
@@ -352,7 +331,7 @@ if ( isset( $_REQUEST['student_id'] ) && $_REQUEST['student_id'] !== 'new' )
 	);
 
 	$headerr = '<a href="' . PreparePHP_Self( $_REQUEST, [ 'student_id' ] ) . '">' .
-	_( 'Student List' ) . '</a>';
+	           _( 'Student List' ) . '</a>';
 
 	DrawHeader( $headerl, $headerr );
 
@@ -396,7 +375,7 @@ else
 
 	if ( ! empty( $REQ_codes ) && ! $abs )
 	{
-		$extra['WHERE'] .= "AND ac.ID IN (";
+		$extra['WHERE'] .= " AND ac.ID IN (";
 
 		foreach ( (array) $REQ_codes as $code )
 		{
@@ -423,7 +402,7 @@ else
 
 		if ( ! empty( $RET ) )
 		{
-			$extra['WHERE'] .= "AND ac.ID IN (";
+			$extra['WHERE'] .= " AND ac.ID IN (";
 
 			foreach ( (array) $RET as $code )
 			{
@@ -490,8 +469,34 @@ else
 	$extra['Redirect'] = false;
 	$extra['new'] = true;
 
+	$extra3 = $extra;
+
+	$students_RET = GetStuList( $extra3 );
+
+	$student_ids = [];
+
+	foreach ( $students_RET as $student )
+	{
+		$student_ids[] = $student['STUDENT_ID'];
+	}
+
+	if ( $student_ids )
+	{
+		$current_schedules_RET = DBGet( str_replace(
+			"='__student_id__'",
+			" IN('" . implode( "','", $student_ids ) . "')",
+			$current_schedule_Q
+		), [], [ 'PERIOD_ID' ] );
+	}
+
 	foreach ( (array) $periods_RET as $period )
 	{
+		if ( empty( $current_schedules_RET[ $period['PERIOD_ID'] ] ) )
+		{
+			// @since 11.0 Skip School Period column if has no students scheduled for selected date
+			continue;
+		}
+
 		$extra['SELECT'] .= ",s.STUDENT_ID AS PERIOD_" . $period['PERIOD_ID'];
 		$extra['functions']['PERIOD_' . $period['PERIOD_ID']] = '_makeCodePulldown';
 		$extra['columns_after']['PERIOD_' . $period['PERIOD_ID']] = $period['SHORT_NAME'];
@@ -515,9 +520,7 @@ else
 		$code_pulldowns = _makeCodeSearch();
 	}
 
-	echo '<form action="' .
-		PreparePHP_SELF( $_REQUEST, [ 'codes', 'month_date', 'day_date', 'year_date' ] ) .
-		'" method="GET">';
+	echo '<form action="' . PreparePHP_SELF( $_REQUEST ) . '" method="POST">';
 
 	DrawHeader(
 		PrepareDate( $date, '_date', false, [ 'submit' => true ] ),
@@ -529,8 +532,8 @@ else
 	if ( UserStudentID() )
 	{
 		$current_student_link = ' <a href="' .
-		PreparePHP_Self( $_REQUEST, [], [ 'student_id' => UserStudentID() ] ) . '">' .
-		_( 'Current Student' ) . '</a></td><td>';
+		                        PreparePHP_Self( $_REQUEST, [], [ 'student_id' => UserStudentID() ] ) . '">' .
+		                        _( 'Current Student' ) . '</a></td><td>';
 	}
 
 	if ( $headerl )
@@ -542,13 +545,13 @@ else
 	$headerl .= AttendanceCodesTipMessage( '', $_REQUEST['table'] );
 
 	$headerr = '<table style="float: right;"><tr><td class="align-right">' .
-	button(
-		'add',
-		'',
-		'"#" onclick="' . AttrEscape( 'addHTML(' . json_encode( _makeCodeSearch() ) .
-			',\'code_pulldowns\'); return false;' ) . '"'
-	) . '</td><td><div id="code_pulldowns">' . $code_pulldowns . '</div></td>' .
-		'<td class="align-right">' . $current_student_link . '</td></tr></table>';
+	           button(
+		           'add',
+		           '',
+		           '"#" onclick="' . AttrEscape( 'addHTML(' . json_encode( _makeCodeSearch() ) .
+		                                         ',\'code_pulldowns\'); return false;' ) . '"'
+	           ) . '</td><td><div id="code_pulldowns">' . $code_pulldowns . '</div></td>' .
+	           '<td class="align-right">' . $current_student_link . '</td></tr></table>';
 
 	DrawHeader( $headerl, $headerr );
 
@@ -567,10 +570,10 @@ else
 function _makeCodePulldown( $value, $title )
 {
 	global $THIS_RET,
-	$codes_RET,
-	$current_RET,
-	$current_schedule_RET,
-	$current_schedule_Q;
+	       $codes_RET,
+	       $current_RET,
+	       $current_schedule_RET,
+	       $current_schedule_Q;
 
 	if ( empty( $current_schedule_RET[$value] ) )
 	{
@@ -632,7 +635,7 @@ function _makeCode( $value, $title )
 	foreach ( (array) $codes_RET as $code )
 	{
 		if ( isset( $current_RET[$value][$THIS_RET['PERIOD_ID']][1]['ATTENDANCE_TEACHER_CODE'] )
-			&& $current_RET[$value][$THIS_RET['PERIOD_ID']][1]['ATTENDANCE_TEACHER_CODE'] == $code['ID'] )
+		     && $current_RET[$value][$THIS_RET['PERIOD_ID']][1]['ATTENDANCE_TEACHER_CODE'] == $code['ID'] )
 		{
 			return $code['TITLE'];
 		}

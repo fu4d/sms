@@ -25,11 +25,11 @@
 function db_start( $show_error = true )
 {
 	global $DatabaseServer,
-		$DatabaseUsername,
-		$DatabasePassword,
-		$DatabaseName,
-		$DatabasePort,
-		$DatabaseType;
+	       $DatabaseUsername,
+	       $DatabasePassword,
+	       $DatabaseName,
+	       $DatabasePort,
+	       $DatabaseType;
 
 	if ( $DatabaseType === 'mysql' )
 	{
@@ -59,7 +59,7 @@ function db_start( $show_error = true )
 		$connectstring = 'host=' . $DatabaseServer . ' ';
 
 		if ( isset( $DatabasePort )
-			&& $DatabasePort !== '5432' )
+		     && $DatabasePort !== '5432' )
 		{
 			$connectstring .= 'port=' . $DatabasePort . ' ';
 		}
@@ -76,7 +76,7 @@ function db_start( $show_error = true )
 
 	// Error code for both.
 	if ( $db_connection === false
-		&& $show_error )
+	     && $show_error )
 	{
 		// TRANSLATION: do NOT translate these since error messages need to stay in English for technical support.
 		db_show_error(
@@ -113,7 +113,7 @@ function db_start( $show_error = true )
 function db_query( $sql, $show_error = true )
 {
 	global $db_connection,
-		$DatabaseType;
+	       $DatabaseType;
 
 	if ( ! isset( $db_connection ) )
 	{
@@ -162,7 +162,7 @@ function db_query( $sql, $show_error = true )
 	}
 
 	if ( $result === false
-		&& $show_error )
+	     && $show_error )
 	{
 		// TRANSLATION: do NOT translate these since error messages need to stay in English for technical support.
 		db_show_error(
@@ -248,19 +248,23 @@ function DBQuery( $sql )
  * Return next row
  *
  * @since 10.0 Add MySQL support
+ * @since 10.2.1 Fix error mysqli_fetch_assoc(): Argument #1 must be of type mysqli_result, null given
  *
  * @global $db_connection PgSql or MySQLi connection instance
  * @global $DatabaseType  Database type: mysql or postgresql
  *
  * @param  resource PostgreSQL result resource $result Result.
- * @return array    Next row in result set.
+ * @return array|bool    Next row in result set or false.
  */
 function db_fetch_row( $result )
 {
 	global $db_connection,
-		$DatabaseType;
+	       $DatabaseType;
 
-	if ( $DatabaseType === 'mysql' )
+	$return = false;
+
+	if ( $DatabaseType === 'mysql'
+	     && $result instanceof mysqli_result )
 	{
 		$return = mysqli_fetch_assoc( $result );
 	}
@@ -300,6 +304,8 @@ function db_seq_nextval( $seqname )
  *
  * @deprecated since 9.2.1 Use DBLastInsertID() instead (with the exception of student ID)
  *
+ * @since 11.0.1 MySQL fix infinite loop, emulate PostgreSQL's nextval()
+ *
  * @example $id = DBSeqNextID( 'people_person_id_seq' );
  *
  * @global $DatabaseType  Database type: mysql or postgresql
@@ -311,6 +317,8 @@ function db_seq_nextval( $seqname )
 function DBSeqNextID( $seqname )
 {
 	global $DatabaseType;
+
+	static $auto_increment = [];
 
 	if ( $DatabaseType === 'mysql' )
 	{
@@ -325,6 +333,32 @@ function DBSeqNextID( $seqname )
 
 		// Return 0 if query failed. 0 in a MySQL query is valid for an AUTO_INCREMENT ID column.
 		$seq_next_id = empty( $seq_next_RET ) ? 0 : $seq_next_RET['AUTO_INCREMENT'];
+
+		if ( $seq_next_id )
+		{
+			if ( empty( $auto_increment[ $table_name ] ) )
+			{
+				$auto_increment[ $table_name ] = $seq_next_id;
+			}
+			elseif ( $auto_increment[ $table_name ] == $seq_next_id )
+			{
+				/**
+				 * Manually increment AUTO_INCREMENT
+				 *
+				 * @since 11.0.1 MySQL fix infinite loop, emulate PostgreSQL's nextval()
+				 */
+				$seq_next_id++;
+
+				DBQuery( "ALTER TABLE " . DBEscapeIdentifier( $table_name ) . "
+					AUTO_INCREMENT=" . (int) $seq_next_id );
+
+				$auto_increment[ $table_name ] = $seq_next_id;
+			}
+			else
+			{
+				unset( $auto_increment[ $table_name ] );
+			}
+		}
 	}
 	else
 	{
@@ -423,7 +457,7 @@ function db_trans_rollback()
  * @example $can_delete = DBTransDryRun( UserDeleteSQL( UserStaffID() ) );
  *
  * @param  string     $sql       SQL statement.
- * @return PostgreSQL result resource
+ * @return bool Can run the queries in the transaction without error?
  */
 function DBTransDryRun( $sql )
 {
@@ -466,7 +500,7 @@ function db_case( $array )
 		$value = $array[$i];
 
 		if ( $value == "''"
-			&& mb_substr( $string, -1 ) == '=' )
+		     && mb_substr( $string, -1 ) == '=' )
 		{
 			$value = ' IS NULL';
 
@@ -476,7 +510,7 @@ function db_case( $array )
 		$string .= $value;
 
 		if ( $counter == ( $array_count - 2 )
-			&& $array_count % 2 == 0 )
+		     && $array_count % 2 == 0 )
 		{
 			$string .= ' ELSE ';
 		}
@@ -608,34 +642,34 @@ function db_properties( $table )
 function db_show_error( $sql, $failnote, $additional = '' )
 {
 	global $RosarioNotifyAddress,
-		$RosarioErrorsAddress;
+	       $RosarioErrorsAddress;
 
 	// TRANSLATION: do NOT translate these since error messages need to stay in English for technical support.
 	?>
 	<br />
 	<table class="postbox cellspacing-0">
 		<thead><tr><th class="center">
-			<h3><?php echo function_exists( '_' ) ?
-	_( 'We have a problem, please contact technical support ...' ) :
-	// PHP gettext extension not loaded, and polyfill either (PHPCompatibility functions not loaded yet).
-	'We have a problem, please contact technical support ...'; ?></h3>
-		</th></tr></thead>
-	<tbody><tr><td class="popTable">
-		<table>
-			<tr>
-				<td><?php echo date( 'm/d/Y H:i:s' ); ?><br />
-					<span class="legend-gray">Date</span></td>
-			</tr>
-			<tr>
-				<td><?php echo $failnote; ?> <?php echo $additional; ?><br />
-					<span class="legend-gray">Failure Notice</span></td>
-			</tr>
-			<tr>
-				<td><pre class="size-1" style="max-width: 65vw; overflow: auto;"><?php echo str_replace( "\t\t", '', $sql ); ?></pre>
-					<span class="legend-gray">SQL query</span></td>
-			</tr>
-		</table>
-	</td></tr></tbody></table>
+				<h3><?php echo function_exists( '_' ) ?
+						_( 'We have a problem, please contact technical support ...' ) :
+						// PHP gettext extension not loaded, and polyfill either (PHPCompatibility functions not loaded yet).
+						'We have a problem, please contact technical support ...'; ?></h3>
+			</th></tr></thead>
+		<tbody><tr><td class="popTable">
+				<table>
+					<tr>
+						<td><?php echo date( 'm/d/Y H:i:s' ); ?><br />
+							<span class="legend-gray">Date</span></td>
+					</tr>
+					<tr>
+						<td><?php echo $failnote; ?> <?php echo $additional; ?><br />
+							<span class="legend-gray">Failure Notice</span></td>
+					</tr>
+					<tr>
+						<td><pre class="size-1" style="max-width: 65vw; overflow: auto;"><?php echo str_replace( "\t\t", '', $sql ); ?></pre>
+							<span class="legend-gray">SQL query</span></td>
+					</tr>
+				</table>
+			</td></tr></tbody></table>
 	<?php
 
 	// Send notification email if $RosarioNotifyAddress set & functions loaded.
@@ -672,7 +706,7 @@ function db_show_error( $sql, $failnote, $additional = '' )
 function DBEscapeString( $input )
 {
 	global $db_connection,
-		$DatabaseType;
+	       $DatabaseType;
 
 	if ( $DatabaseType === 'mysql' )
 	{
@@ -727,7 +761,7 @@ function DBUnescapeString( $input )
 function DBEscapeIdentifier( $identifier )
 {
 	global $db_connection,
-		$DatabaseType;
+	       $DatabaseType;
 
 	$identifier = mb_strtolower( $identifier );
 
@@ -758,20 +792,20 @@ function MySQLRemoveDelimiter( $sql )
 	// https://stackoverflow.com/questions/1462720/iterate-over-each-line-in-a-string-in-php
 	$separator = "\r\n";
 
-	$line = strtok( $sql, $separator );
+	$lines = explode( "\r", str_replace( [ "\r\n", "\n" ], "\r", $sql ) );
 
 	$sql_without_delimiter = '';
 
 	$delimiter = ';';
 
-	while ( $line !== false )
+	foreach ( $lines as $line )
 	{
 		if ( stripos( $line, 'DELIMITER' ) !== false )
 		{
 			$delimiter = ';';
 
 			if ( $line !== 'DELIMITER ;'
-				&& $line !== 'delimiter ;' )
+			     && $line !== 'delimiter ;' )
 			{
 				// Declaring custom delimiter, get it.
 				$line = trim( $line );
@@ -780,8 +814,6 @@ function MySQLRemoveDelimiter( $sql )
 
 				$delimiter = trim( $line_exploded[1] );
 			}
-
-			$line = strtok( $separator );
 
 			// DELIMITER declaration, skip.
 			continue;
@@ -796,9 +828,32 @@ function MySQLRemoveDelimiter( $sql )
 		}
 
 		$sql_without_delimiter .= $line_without_delimiter . $separator;
-
-		$line = strtok( $separator );
 	}
 
 	return $sql_without_delimiter;
+}
+
+/**
+ * SQL result as comma separated list
+ *
+ * @since 10.8
+ * @link https://dev.mysql.com/doc/refman/5.7/en/aggregate-functions.html#function_group-concat
+ *
+ * @example "SELECT " . DBSQLCommaSeparatedResult( 's.STUDENT_ID' ) . " AS STUDENTS_LIST FROM STUDENTS s"
+ *
+ * @param string $column    SQL column.
+ * @param string $separator List separator, default to comma.
+ *
+ * @return string MySQL or PostgreSQL function
+ */
+function DBSQLCommaSeparatedResult( $column, $separator = ',' )
+{
+	global $DatabaseType;
+
+	if ( $DatabaseType === 'mysql' )
+	{
+		return "GROUP_CONCAT(" . $column . " SEPARATOR '" . DBEscapeString( $separator ) . "')";
+	}
+
+	return "ARRAY_TO_STRING(ARRAY_AGG(" . $column . "), '" . DBEscapeString( $separator ) . "')";
 }

@@ -16,7 +16,6 @@
  * @since 6.0 Handle single quotes in $value with DBEscapeString().
  *
  * @global array  $_ROSARIO     Sets $_ROSARIO['Config']
- * @global string $DefaultSyear
  *
  * @param  string $item  Config title.
  * @param  string $value Value to INSERT or UPDATE. Defaults to null.
@@ -25,8 +24,7 @@
  */
 function Config( $item, $value = null )
 {
-	global $_ROSARIO,
-		$DefaultSyear;
+	global $_ROSARIO;
 
 	if ( ! $item )
 	{
@@ -46,7 +44,7 @@ function Config( $item, $value = null )
 			FROM config
 			WHERE " . $school_where, [], [ 'TITLE' ] );
 
-		$_ROSARIO['Config']['SYEAR'][1]['CONFIG_VALUE'] = $DefaultSyear;
+		$_ROSARIO['Config']['SYEAR'][1]['CONFIG_VALUE'] = $_SESSION['DefaultSyear'];
 	}
 
 	if ( ! is_null( $value ) )
@@ -55,19 +53,17 @@ function Config( $item, $value = null )
 			$_ROSARIO['Config'][ (string) $item ][1]['SCHOOL_ID'] :
 			( UserSchool() > 0 ? UserSchool() : '0' );
 
-		if ( ! isset( $_ROSARIO['Config'][ (string) $item ][1]['TITLE'] ) )
+		if ( ! isset( $_ROSARIO['Config'][ (string) $item ][1]['TITLE'] )
+			|| $value != DBEscapeString( $_ROSARIO['Config'][ (string) $item ][1]['CONFIG_VALUE'] ) )
 		{
-			// Insert value (does not exist).
-			DBQuery( "INSERT INTO config (CONFIG_VALUE,TITLE,SCHOOL_ID)
-				VALUES('" . $value . "','" . $item . "','" . $school_id . "')" );
-		}
-		elseif ( $value != DBEscapeString( $_ROSARIO['Config'][ (string) $item ][1]['CONFIG_VALUE'] ) )
-		{
-			// Update value (different from current value).
-			DBQuery( "UPDATE config
-				SET CONFIG_VALUE='" . $value . "'
-				WHERE TITLE='" . $item . "'
-				AND SCHOOL_ID='" . (int) $school_id . "'" );
+			$mode = ! isset( $_ROSARIO['Config'][ (string) $item ][1]['TITLE'] ) ? 'insert' : 'update';
+
+			DBUpsert(
+				'config',
+				[ 'CONFIG_VALUE' => $value ],
+				[ 'TITLE' => $item, 'SCHOOL_ID' => (int) $school_id ],
+				$mode
+			);
 		}
 
 		if ( $value !== DBEscapeString( $value ) )
@@ -112,7 +108,8 @@ function ProgramConfig( $program, $item = 'all', $value = null )
 	global $_ROSARIO;
 
 	if ( ! $program
-		|| ! $item )
+		|| ! $item
+		|| ! UserSchool() )
 	{
 		return '';
 	}
@@ -128,23 +125,20 @@ function ProgramConfig( $program, $item = 'all', $value = null )
 	if ( ! is_null( $value )
 		&& $item !== 'all' )
 	{
-		if ( ! isset( $_ROSARIO['ProgramConfig'][ (string) $program ][ (string) $item ][1]['TITLE'] ) )
+		if ( ! isset( $_ROSARIO['ProgramConfig'][ (string) $program ][ (string) $item ][1]['TITLE'] )
+			|| $value != DBEscapeString( $_ROSARIO['ProgramConfig'][ (string) $program ][ (string) $item ][1]['VALUE'] ) )
 		{
-			// Insert value (does not exist).
-			DBQuery( "INSERT INTO program_config (VALUE,PROGRAM,TITLE,SCHOOL_ID,SYEAR)
-				VALUES('" . $value . "','" . $program . "','" . $item . "','" .
-				UserSchool() . "','" . UserSyear() . "')" );
+			$mode = ! isset( $_ROSARIO['ProgramConfig'][ (string) $program ][ (string) $item ][1]['TITLE'] ) ?
+				'insert' : 'update';
+
+			DBUpsert(
+				'program_config',
+				[ 'VALUE' => $value, 'PROGRAM' => $program ],
+				[ 'TITLE' => $item, 'SYEAR' => UserSyear(), 'SCHOOL_ID' => UserSchool() ],
+				$mode
+			);
 
 			$_ROSARIO['ProgramConfig'][ (string) $program ][ (string) $item ][1]['TITLE'] = $item;
-		}
-		elseif ( $value != DBEscapeString( $_ROSARIO['ProgramConfig'][ (string) $program ][ (string) $item ][1]['VALUE'] ) )
-		{
-			// Update value (different from current value).
-			DBQuery( "UPDATE program_config
-				SET VALUE='" . $value . "'
-				WHERE TITLE='" . $item . "'
-				AND SCHOOL_ID='" . UserSchool() . "'
-				AND SYEAR='" . UserSyear() . "'" );
 		}
 
 		if ( $value !== DBEscapeString( $value ) )
@@ -231,21 +225,18 @@ function ProgramUserConfig( $program, $staff_id = 0, $values = null )
 				continue;
 			}
 
-			if ( ! array_key_exists( $title, (array) $program_config[ $program ][ $staff_id ] ) )
+			if ( ! array_key_exists( $title, (array) $program_config[ $program ][ $staff_id ] )
+				|| $value != DBEscapeString( $program_config[ $program ][ $staff_id ][ $title ] ) )
 			{
-				// Insert value (does not exist).
-				DBQuery( "INSERT INTO program_user_config (VALUE,PROGRAM,TITLE,USER_ID)
-					VALUES('" . $value . "','" . $program . "','" . $title . "','" .
-					$staff_id . "')" );
-			}
-			elseif ( $value != DBEscapeString( $program_config[ $program ][ $staff_id ][ $title ] ) )
-			{
-				// Update value (different from current value).
-				DBQuery( "UPDATE program_user_config
-					SET VALUE='" . $value . "'
-					WHERE TITLE='" . $title . "'
-					AND PROGRAM='" . $program . "'
-					AND USER_ID='" . (int) $staff_id . "'" );
+				$mode = ! array_key_exists( $title, (array) $program_config[ $program ][ $staff_id ] ) ?
+					'insert' : 'update';
+
+				DBUpsert(
+					'program_user_config',
+					[ 'VALUE' => $value ],
+					[ 'PROGRAM' => $program, 'TITLE' => $title, 'USER_ID' => (int) $staff_id ],
+					$mode
+				);
 			}
 
 			if ( $value !== DBEscapeString( $value ) )

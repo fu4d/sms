@@ -112,7 +112,7 @@ if ( ! function_exists( 'TranscriptsIncludeForm' ) )
 			$return .= '</table></div>';
 		}
 
-		$return .= '<hr /></td></tr>';
+		$return .= '<hr></td></tr>';
 
 		// History grades & previous school years in Transripts.
 		if ( User( 'PROFILE' ) === 'admin' )
@@ -146,7 +146,7 @@ if ( ! function_exists( 'TranscriptsIncludeForm' ) )
 					);
 				}
 
-				$return .= ChosenSelectInput(
+				$return .= Select2Input(
 					UserSyear(),
 					'syear_arr[]',
 					_( 'School Years' ),
@@ -156,7 +156,7 @@ if ( ! function_exists( 'TranscriptsIncludeForm' ) )
 					false
 				);
 
-				$return .= '<hr /></td></tr>';
+				$return .= '<hr></td></tr>';
 			}
 		}
 
@@ -296,6 +296,8 @@ if ( ! function_exists( 'TranscriptsGenerate' ) )
 
 			$student['ID'] = $student_id;
 
+			$grades_total = [];
+
 			foreach ( (array) $t_sgrades as $syear => $mps )
 			{
 				// Start buffer.
@@ -377,11 +379,6 @@ if ( ! function_exists( 'TranscriptsGenerate' ) )
 						// @since 5.0 Add GPA or Total row.
 						if ( ! isset( $grades_total[$mp_id] ) )
 						{
-							if ( ! isset( $grades_total ) )
-							{
-								$grades_total = [];
-							}
-
 							$grades_total[$mp_id] = 0;
 						}
 
@@ -522,7 +519,7 @@ if ( ! function_exists( 'TranscriptPDFHeader' ) )
 		{
 			// Student Photo.
 			// @since 9.0 Fix Improper Access Control security issue: add random string to photo file name.
-			$picture_path = (array) glob( $StudentPicturesPath . '*/' . UserStudentID() . '.*jpg' );
+			$picture_path = (array) glob( $StudentPicturesPath . '*/' . $student['ID'] . '.*jpg' );
 
 			$picture_path = end( $picture_path );
 
@@ -791,7 +788,7 @@ function _getTranscriptsStudents( $st_list, $syear )
 
 	$students_RET = DBGet( $students_dataquery .
 		' WHERE s.student_id IN (' . $st_list . ')
-		ORDER BY LAST_NAME,FIRST_NAME', [], [ 'STUDENT_ID' ] );
+		ORDER BY FULL_NAME', [], [ 'STUDENT_ID' ] );
 
 	return $students_RET;
 }

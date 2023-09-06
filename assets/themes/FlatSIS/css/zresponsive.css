@@ -1,14 +1,24 @@
-/*tablet vertical*/
+/*Below Laptop MDPI screen*/
 
-@media only screen and (max-width:800px) {
-	.BottomButton span {
-		display: none
+@media only screen and (max-width:1270px) {
+	/*stackable Address & Contacts tables: stack before mobile as we have up to 4 large columns*/
+	tr.address.st > td {
+		float: left;
+		width: 100%;
+		box-sizing: border-box
+	}
+	tr.address > td {
+		border-style: none none dotted none;
+		padding: 12px 0 12px 0
+	}
+	tr.address > td:last-of-type {
+		border-style: none;
 	}
 }
 
-/*mobile*/
+/*mobile + tablet vertical*/
 
-@media only screen and (max-width:736px) {
+@media only screen and (max-width:874px) {
 	/*quick smartphone reset*/
 	.mod {
 		position: relative !important;
@@ -29,6 +39,9 @@
 	#footerhelp {
 		border-width: 1px 0;
 		border-style: solid;
+	}
+	.BottomButton span {
+		display: none
 	}
 	#menu .logo {
 		max-width: 64px;
@@ -82,6 +95,9 @@
 		padding-left: 36px;
 		text-indent: -36px;
 	}
+	.header2 .fixed-col {
+		word-break: break-all;
+	}
 	#search input,
 	#search select,
 	#LO_search {
@@ -96,10 +112,6 @@
 	}
 	#modulesBody textarea {
 		width: 100% !important
-	}
-	tr.address > td {
-		border-style: none none dotted none;
-		padding: 12px 0 12px 0
 	}
 	/* Chart.js */
 	.chart {
@@ -129,7 +141,7 @@
 		/*no fixed layout for stackable tables*/
 	}
 	.fixed-col select {
-		max-width: 440px;
+		max-width: 340px;
 	}
 	.divPortalPoll {
 		min-width: 0
@@ -144,12 +156,10 @@
 	/* Smaller tooltip size */
 	.tooltip > i {
 		bottom: 150%;
-		left: -55px;
-		width: 120px;
-		padding: 5px;
-		border-radius: 3px;
+		left: -70px;
+		width: 140px;
 		font-size: 0.9em;
-		line-height: 1.5
+		line-height: 1.4
 	}
 	/* Login, First login & Password Reset pages */
 	.login,
@@ -183,8 +193,9 @@
 	#body {
 		padding: 0 6px 0;
 	}
-	#calendar > thead > tr > th {
-		font-size: 13px;
+	/*responsive <br> does not break line, use inside responsive table*/
+	.rbr {
+		display: none;
 	}
 	/*responsive tables*/
 	.rt {
@@ -207,15 +218,15 @@
 	.rt thead tr {
 		display: block
 	}
-	.rt th {
+	.rt th,
+	.list.rt th {
 		display: block;
-		line-height: 2em;
-		height: 2em
+		line-height: 2.137em;
+		height: 2.137em
 	}
 	.rt th,
 	.rt th a {
-		font-size: 15px;
-		line-height: 2em;
+		line-height: 2.137em;
 		white-space: nowrap;
 		text-overflow: ellipsis;
 	}
@@ -243,7 +254,7 @@
 	.rt input,
 	.rt select,
 	.rt textarea {
-		max-width: 150px
+		max-width: 190px
 	}
 	.list.rt td,
 	.list.rt th {
@@ -261,6 +272,10 @@
 	}
 	.rt2colorBox {
 		overflow: auto
+	}
+	/* Remove padding for LO_SORT arrow */
+	.widefat th a[href*="LO_dir"] {
+		padding-right: 0;
 	}
 	/*if content on 1 line & text <= 36 chars*/
 	.widefat td .rt2colorBox p {
@@ -340,10 +355,7 @@
 		float: right;
 	}
 	/* Hide List sorting icons */
-	.widefat th a[href*="LO_dir"]:after {
-		content: "";
-		padding-left: 0;
-	}
+	.widefat th a[href*="LO_dir"]:after,
 	.widefat th a[href*="LO_dir"]:hover:after {
 		content: "";
 	}

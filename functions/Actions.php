@@ -384,6 +384,64 @@ $RosarioActions = [];
 	 * @since 8.7
 	 */
 	/*'ProgramFunctions/SendEmail.fnc.php|send_error' => array(),
+
+	/**
+	 * Widgets init
+	 * Add your add-on custom widgets to the $myextra['Widgets'] var:
+	 * $myextra['Widgets']['Addon_Name'] = [ 'widget_1', 'widget_2' ];
+	 * And load your custom \Addon_Name\Widget_[widget_name] class(es).
+	 *
+	 * @since 10.4
+	 */
+	/*'functions/Widgets.fnc.php|widgets_init' => array(),
+
+	/**
+	 * Staff Widgets init
+	 * Add your add-on custom staff widgets to the $myextra['Widgets'] var:
+	 * $myextra['Widgets']['Addon_Name'] = [ 'widget_1', 'widget_2' ];
+	 * And load your custom \Addon_Name\StaffWidget_[widget_name] class(es).
+	 *
+	 * @since 10.4
+	 */
+	/*'functions/StaffWidgets.fnc.php|widgets_init' => array(),
+
+	/**
+	 * Filter Total Minutes Present
+	 *
+	 * @since 11.2
+	 *
+	 * @example add_action( 'Attendance/includes/UpdateAttendanceDaily.fnc.php|total_minutes', 'MyFilter', 5 );
+	 * @example function MyFilter( $tag, &$total_present, $total_minutes, $total_absent, $total_half ) { $total_present = ... }
+	 *
+	 */
+	/*'Attendance/includes/UpdateAttendanceDaily.fnc.php|total_minutes_present' => array(),
+
+	/**
+	 * Filter each menu item in the loop
+	 *
+	 * @since 11.2
+	 *
+	 * @example add_action( 'Food_Service/Kiosk.php|menu_item_loop', 'MyFilter', 3 );
+	 * @example function MyFilter( $tag, &$kiosk_menu_item, $item ) { $kiosk_menu_item = ... }
+	 *
+	 */
+	/*'Food_Service/Kiosk.php|menu_item_loop' => array(),
+
+	/**
+	 * Student Account fields table after
+	 * Add your own fields
+	 *
+	 * @since 11.2
+	 */
+	/*'Food_Service/Students/Accounts.php|table_after' => array(),
+
+	/**
+	 * Food Service tab fields table after
+	 * Add your own fields
+	 *
+	 * @since 11.2
+	 */
+	/*'Food_Service/Student.inc.php|table_after' => array(),
 );*/
 
 /**

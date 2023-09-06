@@ -62,21 +62,16 @@ if ( isset( $_POST['tables'] )
 						$_REQUEST['category_id'] = $columns['CATEGORY_ID'];
 					}
 
-					$sql = 'UPDATE ' . DBEscapeIdentifier( $table ) . ' SET ';
-
-					foreach ( (array) $columns as $column => $value )
-					{
-						$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-					}
-
-					$sql = mb_substr( $sql, 0, -1 ) . " WHERE ID='" . (int) $id . "'";
-
-					$go = true;
+					DBUpdate(
+						$table,
+						$columns,
+						[ 'ID' => (int) $id ]
+					);
 				}
 				// New Field / Category.
 				else
 				{
-					$sql = 'INSERT INTO ' . DBEscapeIdentifier( $table ) . ' ';
+					$insert_columns = [];
 
 					// New Field.
 					if ( $table === 'custom_fields' )
@@ -88,43 +83,17 @@ if ( isset( $_POST['tables'] )
 							unset( $columns['CATEGORY_ID'] );
 						}
 
-						$fields = 'CATEGORY_ID,';
-
-						$values = "'" . $_REQUEST['category_id'] . "',";
-					}
-					// New Category.
-					elseif ( $table === 'student_field_categories' )
-					{
-						$fields = '';
-
-						$values = '';
+						$insert_columns = [ 'CATEGORY_ID' => (int) $_REQUEST['category_id'] ];
 					}
 
-					$go = false;
+					$id = DBInsert(
+						$table,
+						$insert_columns + $columns,
+						'id'
+					);
 
-					foreach ( (array) $columns as $column => $value )
+					if ( $id )
 					{
-						if ( ! empty( $value )
-							|| $value == '0' )
-						{
-							$fields .= DBEscapeIdentifier( $column ) . ',';
-
-							$values .= "'" . $value . "',";
-
-							$go = true;
-						}
-					}
-					$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-				}
-
-				if ( $go )
-				{
-					DBQuery( $sql );
-
-					if ( $id === 'new' )
-					{
-						$id = DBLastInsertID();
-
 						if ( $table === 'custom_fields' )
 						{
 							AddDBField( 'students', $id, $columns['TYPE'] );
@@ -134,16 +103,17 @@ if ( isset( $_POST['tables'] )
 						elseif ( $table === 'student_field_categories' )
 						{
 							// Add to profile or permissions of user creating it.
-							if ( User( 'PROFILE_ID' ) )
-							{
-								DBQuery( "INSERT INTO profile_exceptions (PROFILE_ID,MODNAME,CAN_USE,CAN_EDIT)
-									values('" . User( 'PROFILE_ID' ) . "','Students/Student.php&category_id=" . $id . "','Y','Y')" );
-							}
-							else
-							{
-								DBQuery( "INSERT INTO staff_exceptions (USER_ID,MODNAME,CAN_USE,CAN_EDIT)
-									values('" . User( 'STAFF_ID' ) . "','Students/Student.php&category_id=" . $id . "','Y','Y')" );
-							}
+							DBInsert(
+								User( 'PROFILE_ID' ) ? 'profile_exceptions' : 'staff_exceptions',
+								[
+									( User( 'PROFILE_ID' ) ?
+										'PROFILE_ID' : 'USER_ID' ) => ( User( 'PROFILE_ID' ) ?
+											User( 'PROFILE_ID' ) : User( 'STAFF_ID' ) ),
+									'MODNAME' => 'Students/Student.php&category_id=' . $id,
+									'CAN_USE' => 'Y',
+									'CAN_EDIT' => 'Y',
+								]
+							);
 
 							$_REQUEST['category_id'] = $id;
 						}
@@ -171,6 +141,12 @@ if ( $_REQUEST['modfunc'] === 'delete'
 		if ( DeletePrompt( _( 'Student Field' ) ) )
 		{
 			DeleteDBField( 'students', $_REQUEST['id'] );
+
+			if ( Config( 'STUDENTS_EMAIL_FIELD' ) === $_REQUEST['id'] )
+			{
+				// Fix SQL error if delete Student email field, reset.
+				Config( 'STUDENTS_EMAIL_FIELD', '' );
+			}
 
 			// Unset modfunc & ID & redirect URL.
 			RedirectURL( [ 'modfunc', 'id' ] );

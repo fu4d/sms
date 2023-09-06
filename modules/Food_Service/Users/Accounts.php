@@ -5,7 +5,7 @@ require_once 'ProgramFunctions/TipMessage.fnc.php';
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( UserStaffID()
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		if ( ! empty( $_REQUEST['submit']['delete'] ) )
 		{
@@ -38,10 +38,10 @@ if ( $_REQUEST['modfunc'] === 'update' )
 						WHERE STAFF_ID='" . (int) $account_id . "'" );
 
 					$message = sprintf(
-						_( "That barcode is already assigned to User <b>%s</b>." ),
-						$staff_full_name
-					) . ' ' .
-					_( "Hit OK to reassign it to the current user or Cancel to cancel all changes." );
+						           _( "That barcode is already assigned to User <b>%s</b>." ),
+						           $staff_full_name
+					           ) . ' ' .
+					           _( "Hit OK to reassign it to the current user or Cancel to cancel all changes." );
 				}
 				else
 				{
@@ -57,16 +57,16 @@ if ( $_REQUEST['modfunc'] === 'update' )
 							AND fssa.ACCOUNT_ID='" . (int) $account_id . "'" );
 
 						$message = sprintf(
-							_( "That barcode is already assigned to Student <b>%s</b>." ),
-							$student_full_name
-						) . ' ' .
-						_( "Hit OK to reassign it to the user student or Cancel to cancel all changes." );
+							           _( "That barcode is already assigned to Student <b>%s</b>." ),
+							           $student_full_name
+						           ) . ' ' .
+						           _( "Hit OK to reassign it to the user student or Cancel to cancel all changes." );
 					}
 				}
 			}
 
-			if ( ! $account_id
-				|| Prompt( 'Confirm', $question, $message ) )
+			if ( empty( $account_id )
+			     || Prompt( 'Confirm', $question, $message ) )
 			{
 				$sql = 'UPDATE food_service_staff_accounts SET ';
 
@@ -100,25 +100,19 @@ if ( $_REQUEST['modfunc'] === 'update' )
 if ( $_REQUEST['modfunc'] === 'create' )
 {
 	if ( UserStaffID()
-		&& AllowEdit()
-		&& ! DBGet( "SELECT 1
+	     && AllowEdit()
+	     && ! DBGet( "SELECT 1
 			FROM food_service_staff_accounts
 			WHERE STAFF_ID='" . UserStaffID() . "'" ) )
 	{
-		$fields = 'STAFF_ID,BALANCE,TRANSACTION_ID,';
-		$values = "'" . UserStaffID() . "','0.00','0',";
-
-		foreach ( (array) $_REQUEST['food_service'] as $column_name => $value )
-		{
-			$fields .= DBEscapeIdentifier( $column_name ) . ',';
-
-			$values .= "'" . trim( $value ) . "',";
-		}
-
-		$sql = 'INSERT INTO food_service_staff_accounts (' . mb_substr( $fields, 0, -1 ) .
-		') VALUES (' . mb_substr( $values, 0, -1 ) . ')';
-
-		DBQuery( $sql );
+		DBInsert(
+			'food_service_staff_accounts',
+			[
+				'STAFF_ID' => UserStaffID(),
+				'BALANCE' => '0.00',
+				'TRANSACTION_ID' => '0',
+			] + $_REQUEST['food_service']
+		);
 	}
 
 	// Unset modfunc & food service & redirect URL.
@@ -180,32 +174,39 @@ if ( UserStaffID() && ! $_REQUEST['modfunc'] )
 
 	if ( ! $staff['ACCOUNT_ID'] )
 	{
-		echo '<br />' . MakeTipMessage(
-			_( 'This user does not have a Meal Account.' ),
-			_( 'Warning' ),
-			button( 'warning' )
-		);
+		echo ' ' . MakeTipMessage(
+				_( 'This user does not have a Meal Account.' ),
+				_( 'Warning' ),
+				button( 'warning' )
+			);
 	}
 
 	echo '</td><td>';
 
 	echo NoInput( red( $staff['BALANCE'] ), _( 'Balance' ) );
 
-	echo '</td></tr></table>';
-	echo '<hr />';
+	echo '</td></tr></table><hr>';
 
 	echo '<table class="width-100p valign-top fixed-col"><tr><td>';
 
 	$options = [ 'Inactive' => _( 'Inactive' ), 'Disabled' => _( 'Disabled' ), 'Closed' => _( 'Closed' ) ];
-	echo ( $staff['ACCOUNT_ID'] ? SelectInput( $staff['STATUS'], 'food_service[STATUS]', _( 'Status' ), $options, _( 'Active' ) ) : NoInput( '-', _( 'Status' ) ) );
-	echo '</td>';
-	echo '<td>';
-	echo ( $staff['ACCOUNT_ID'] ? TextInput( $staff['BARCODE'], 'food_service[BARCODE]', _( 'Barcode' ), 'size=12 maxlength=25' ) : NoInput( '-', _( 'Barcode' ) ) );
-	echo '</td>';
-	echo '</tr></table>';
+
+	echo SelectInput(
+		     $staff['STATUS'],
+		     'food_service[STATUS]',
+		     _( 'Status' ),
+		     $options,
+		     _( 'Active' )
+	     ) . '</td><td>';
+
+	echo TextInput(
+		     $staff['BARCODE'],
+		     'food_service[BARCODE]',
+		     _( 'Barcode' ),
+		     'size=12 maxlength=25'
+	     ) . '</td></tr></table>';
 
 	PopTable( 'footer' );
 
-	echo '<br /><div class="center">' . SubmitButton() . '</div>';
-	echo '</form>';
+	echo '<br /><div class="center">' . SubmitButton( $staff['ACCOUNT_ID'] ? '' : _( 'Create Account' ) ) . '</div></form>';
 }

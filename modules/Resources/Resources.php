@@ -1,5 +1,7 @@
 <?php
 
+require_once 'modules/Resources/includes/Resources.fnc.php';
+
 DrawHeader( ProgramTitle() );
 
 if ( $_REQUEST['modfunc'] === 'update' )
@@ -10,45 +12,58 @@ if ( $_REQUEST['modfunc'] === 'update' )
 	{
 		foreach ( (array) $_REQUEST['values'] as $id => $columns )
 		{
-			if ( $id !== 'new' )
+			if ( isset( $columns['PUBLISHED_PROFILES'] ) )
 			{
-				$sql = "UPDATE resources SET ";
+				// @since 10.8 Add Resource Visibility options
+				$published_profiles = '';
 
-				foreach ( (array) $columns as $column => $value )
+				foreach ( (array) $columns['PUBLISHED_PROFILES'] as $profile => $yes )
 				{
-					$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
+					if ( $yes )
+					{
+						$published_profiles .= ',' . $profile;
+					}
 				}
 
-				$sql = mb_substr( $sql, 0, -1 ) . " WHERE ID='" . (int) $id . "'";
-				DBQuery( $sql );
+				$columns['PUBLISHED_PROFILES'] = '';
+
+				if ( $published_profiles )
+				{
+					$columns['PUBLISHED_PROFILES'] = $published_profiles . ',';
+				}
+			}
+
+			if ( isset( $columns['PUBLISHED_GRADE_LEVELS'] ) )
+			{
+				// @since 10.8 Add Resource Visibility options
+				$published_grade_levels = implode( ',', $columns['PUBLISHED_GRADE_LEVELS'] );
+
+				$columns['PUBLISHED_GRADE_LEVELS'] = '';
+
+				if ( $published_grade_levels )
+				{
+					$columns['PUBLISHED_GRADE_LEVELS'] = ',' . $published_grade_levels;
+				}
+			}
+
+			if ( $id !== 'new' )
+			{
+				DBUpdate(
+					'resources',
+					$columns,
+					[ 'ID' => (int) $id ]
+				);
 			}
 
 			// New: check for Title.
 			elseif ( $columns['TITLE'] )
 			{
-				$sql = "INSERT INTO resources ";
+				$insert_columns = [ 'SCHOOL_ID' => UserSchool() ];
 
-				$fields = 'SCHOOL_ID,';
-				$values = "'" . UserSchool() . "',";
-
-				$go = 0;
-
-				foreach ( (array) $columns as $column => $value )
-				{
-					if ( ! empty( $value ) || $value == '0' )
-					{
-						$fields .= DBEscapeIdentifier( $column ) . ',';
-						$values .= "'" . $value . "',";
-						$go = true;
-					}
-				}
-
-				$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-
-				if ( $go )
-				{
-					DBQuery( $sql );
-				}
+				DBInsert(
+					'resources',
+					$insert_columns + $columns
+				);
 			}
 		}
 	}
@@ -72,13 +87,45 @@ if ( $_REQUEST['modfunc'] === 'remove'
 
 if ( ! $_REQUEST['modfunc'] )
 {
-	$resources_RET = DBGet( "SELECT ID,TITLE,LINK
+	$functions = [
+		'TITLE' => 'ResourcesMakeTextInput',
+		'LINK' => 'ResourcesMakeLink',
+	];
+
+	if ( AllowEdit() )
+	{
+		$functions['VISIBLE_TO'] = 'ResourcesMakeVisibleTo';
+	}
+
+	$resources_RET = DBGet( "SELECT ID,TITLE,LINK,PUBLISHED_PROFILES,PUBLISHED_GRADE_LEVELS,
+		'' AS VISIBLE_TO
 		FROM resources
 		WHERE SCHOOL_ID='" . UserSchool() . "'
-		ORDER BY ID", [ 'TITLE' => '_makeTextInput', 'LINK' => '_makeLink' ] );
+		" . ResourcesVisibilityWhereSQL() . "
+		ORDER BY ID", $functions );
 
-	$columns = [ 'TITLE' => _( 'Title' ), 'LINK' => _( 'Link' ) ];
-	$link['add']['html'] = [ 'TITLE' => _makeTextInput( '', 'TITLE' ), 'LINK' => _makeLink( '', 'LINK' ) ];
+	$columns = [
+		'TITLE' => _( 'Title' ),
+		'LINK' => _( 'Link' ),
+	];
+
+	if ( AllowEdit() )
+	{
+		$tooltip = '<div class="tooltip" style="text-transform: none;"><i>' . _( 'Note: All unchecked means visible to all profiles' ) . '</i></div>';
+
+		$columns['VISIBLE_TO'] = _( 'Visible To' ) . $tooltip;
+	}
+
+	$link['add']['html'] = [
+		'TITLE' => ResourcesMakeTextInput( '', 'TITLE' ),
+		'LINK' => ResourcesMakeLink( '', 'LINK' ),
+	];
+
+	if ( AllowEdit() )
+	{
+		$link['add']['html']['VISIBLE_TO'] = ResourcesMakeVisibleTo( '', 'VISIBLE_TO' );
+	}
+
 	$link['remove']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=remove';
 	$link['remove']['variables'] = [ 'id' => 'ID' ];
 
@@ -88,86 +135,4 @@ if ( ! $_REQUEST['modfunc'] )
 	ListOutput( $resources_RET, $columns, 'Resource', 'Resources', $link );
 	echo '<div class="center">' . SubmitButton() . '</div>';
 	echo '</form>';
-}
-
-/**
- * @param $value
- * @param $name
- */
-function _makeTextInput( $value, $name )
-{
-	global $THIS_RET;
-
-	if ( ! empty( $THIS_RET['ID'] ) )
-	{
-		$id = $THIS_RET['ID'];
-	}
-	else
-	{
-		$id = 'new';
-	}
-
-	if ( $name === 'LINK' )
-	{
-		$extra = 'size="32" maxlength="1000"';
-	}
-
-	if ( $name === 'TITLE' )
-	{
-		$extra = 'maxlength="256"';
-	}
-
-	if ( $id !== 'new' )
-	{
-		$extra .= ' required';
-	}
-
-	return TextInput( $value, 'values[' . $id . '][' . $name . ']', '', $extra );
-}
-
-/**
- * @param $value
- * @param $name
- * @return mixed
- */
-function _makeLink( $value, $name )
-{
-	if ( isset( $_REQUEST['LO_save'] )
-		&& $_REQUEST['LO_save'] )
-	{
-		// Export list.
-		return $value;
-	}
-
-	if ( AllowEdit() )
-	{
-		if ( $value )
-		{
-			return '<div style="display:table-cell;"><a href="' . URLEscape( $value ) . '" target="_blank">' .
-				_( 'Link' ) . '</a>&nbsp;</div>
-				<div style="display:table-cell;">' . _makeTextInput( $value, $name ) . '</div>';
-		}
-
-		return _makeTextInput( $value, $name );
-	}
-
-	if ( ! $value )
-	{
-		return $value;
-	}
-
-	// Truncate links > 100 chars.
-	$truncated_link = $value;
-
-	if ( mb_strlen( $truncated_link ) > 100 )
-	{
-		$separator = '/.../';
-		$separator_length = mb_strlen( $separator );
-		$max_length = 100 - $separator_length;
-		$start = $max_length / 2;
-		$trunc = mb_strlen( $truncated_link ) - $max_length;
-		$truncated_link = substr_replace( $truncated_link, $separator, $start, $trunc );
-	}
-
-	return '<a href="' . URLEscape( $value ) . '" target="_blank">' . $truncated_link . '</a>';
 }

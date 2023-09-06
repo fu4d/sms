@@ -105,16 +105,17 @@ if ( $_REQUEST['modfunc'] === 'upload'
 			// Remove path.
 			$addon_dir = str_replace( $FileUploadsPath . 'upload-plugin/', '', $addon_dir_path );
 
-			if ( mb_substr( $addon_dir, -1, 7 ) === '-master' )
+			if ( mb_substr( $addon_dir, -7, 7 ) === '-master' )
 			{
 				// Remove trailing '-master'.
-				$addon_dir = mb_substr( $addon_dir, -1, 7 );
+				$addon_dir = mb_substr( $addon_dir, 0, mb_strlen( $addon_dir ) -7 );
 			}
 
 			// Check add-on is not a core plugin...
 			if ( ! in_array( $addon_dir, $RosarioCorePlugins ) )
 			{
-				if ( _delTree( 'plugins/' . $addon_dir ) )
+				if ( ! file_exists( 'plugins/' . $addon_dir )
+					|| _delTree( 'plugins/' . $addon_dir ) )
 				{
 					// Remove warning if directory already exists: just overwrite.
 					rename( $addon_dir_path, 'plugins/' . $addon_dir );
@@ -189,6 +190,9 @@ if ( $_REQUEST['modfunc'] === 'activate'
 			{
 				// @since 10.0 Install plugin: execute the install_mysql.sql script for MySQL
 				$install_sql_file = 'plugins/' . $_REQUEST['plugin'] . '/install_mysql.sql';
+
+				// @since 10.4.3 MySQL always use InnoDB (default), avoid MyISAM
+				DBQuery( "SET default_storage_engine=InnoDB;" );
 			}
 
 			if ( file_exists( $install_sql_file ) )
@@ -204,13 +208,23 @@ if ( $_REQUEST['modfunc'] === 'activate'
 				DBQuery( $install_sql );
 			}
 
-			$locale_code = mb_substr( $locale, 0, 2 );
+			// @since 10.9.3 Add-on SQL translation file can be named "install_es.sql" or "install_pt_BR.sql"
+			$install_locale_paths = [
+				'plugins/' . $_REQUEST['plugin'] . '/install_' . mb_substr( $locale, 0, 2 ) . '.sql',
+				'plugins/' . $_REQUEST['plugin'] . '/install_' . mb_substr( $locale, 0, 5 ) . '.sql',
+			];
 
-			if ( file_exists( 'plugins/' . $_REQUEST['plugin'] . '/install_' . $locale_code . '.sql' ) )
+			foreach ( $install_locale_paths as $install_locale_path )
 			{
-				// @since 7.3 Translate database on add-on install: run 'install_fr.sql' file.
-				$install_locale_sql = file_get_contents( 'plugins/' . $_REQUEST['plugin'] . '/install_' . $locale_code . '.sql' );
-				DBQuery( $install_locale_sql );
+				if ( file_exists( $install_locale_path ) )
+				{
+					// @since 7.3 Translate database on add-on install: run 'install_fr.sql' file.
+					$install_locale_sql = file_get_contents( $install_locale_path );
+
+					DBQuery( $install_locale_sql );
+
+					break;
+				}
 			}
 
 			$update_RosarioPlugins = true;
@@ -265,11 +279,24 @@ if ( ! $_REQUEST['modfunc'] )
 		$directories_bypass[] = 'plugins/' . $plugin_title;
 	}
 
-	// scan plugins/ folder for uninstalled plugins
+	// Scan plugins/ folder for uninstalled plugins.
 	$plugins = array_diff( glob( 'plugins/*', GLOB_ONLYDIR ), $directories_bypass );
 
 	foreach ( $plugins as $plugin )
 	{
+		if ( mb_substr( $plugin, -7, 7 ) === '-master'
+			&& is_writable( $plugin ) )
+		{
+			// @since 11.0.2 Remove "-master" suffix from manually uploaded add-ons
+			$plugin_without_master = mb_substr( $plugin, 0, mb_strlen( $plugin ) -7 );
+
+			if ( ! file_exists( $plugin_without_master )
+				&& @rename( $plugin, $plugin_without_master ) )
+			{
+				$plugin = $plugin_without_master;
+			}
+		}
+
 		$plugin_title = str_replace( 'plugins/', '', $plugin );
 
 		$THIS_RET = [];
@@ -387,17 +414,18 @@ function _makeDelete( $plugin_title, $activated = null )
 		$return = button(
 			'remove',
 			_( 'Deactivate' ),
-			'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=plugins&modfunc=deactivate&plugin=' . $plugin_title ) . '"'
+			URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=plugins&modfunc=deactivate&plugin=' . $plugin_title )
 		);
 	}
 	else
 	{
-		if ( file_exists( 'plugins/' . $plugin_title . '/functions.php' ) )
+		if ( file_exists( 'plugins/' . $plugin_title . '/functions.php' )
+			&& ! file_exists( 'plugins/' . $plugin_title . '/Menu.php' ) )
 		{
 			$return = button(
 				'add',
 				_( 'Activate' ),
-				'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=plugins&modfunc=activate&plugin=' . $plugin_title ) . '"'
+				URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=plugins&modfunc=activate&plugin=' . $plugin_title )
 			);
 
 			// @since 8.0 Add-on disable delete.
@@ -414,14 +442,20 @@ function _makeDelete( $plugin_title, $activated = null )
 				button(
 					'remove',
 					_( 'Delete' ),
-					'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=plugins&modfunc=delete&plugin=' . $plugin_title ) . '"'
+					URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab=plugins&modfunc=delete&plugin=' . $plugin_title )
 				);
 			}
 		}
 		else
 		{
-			$return = '<span style="color:red">' .
-			sprintf( _( '%s file missing or wrong permissions.' ), 'functions.php' ) . '</span>';
+			$error_msg = sprintf( _( '%s file missing or wrong permissions.' ), 'functions.php' );
+
+			if ( file_exists( 'plugins/' . $plugin_title . '/Menu.php' ) )
+			{
+				$error_msg = _( 'Probably a module. Move it to the modules/ folder.' );
+			}
+
+			$return = '<span style="color:red">' . $error_msg . '</span>';
 		}
 	}
 

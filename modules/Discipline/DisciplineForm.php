@@ -3,8 +3,8 @@
 DrawHeader( ProgramTitle() );
 
 if ( ! empty( $_REQUEST['values'] )
-	&& $_POST['values']
-	&& AllowEdit() )
+     && $_POST['values']
+     && AllowEdit() )
 {
 	foreach ( (array) $_REQUEST['values'] as $id => $columns )
 	{
@@ -14,69 +14,44 @@ if ( ! empty( $_REQUEST['values'] )
 		{
 			if ( $id !== 'new' )
 			{
-				$sql = "UPDATE discipline_field_usage SET ";
-
-				foreach ( (array) $columns as $column => $value )
-				{
-					$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-				}
-
-				$sql = mb_substr( $sql, 0, -1 ) . " WHERE ID='" . (int) $id . "'";
-
-				DBQuery( $sql );
+				DBUpdate(
+					'discipline_field_usage',
+					$columns,
+					[ 'ID' => (int) $id ]
+				);
 			}
 
 			// New: check for Title.
 			elseif ( $columns['TITLE'] )
 			{
-				$sql = "INSERT INTO discipline_fields ";
-
-				$fields = "COLUMN_NAME,";
-				$values = "'CATEGORY_',"; // ID is added to CATEGORY_ after INSERT, when we retrieve the ID...
-
-				$go = 0;
+				$insert_columns = [
+					// ID is added to CATEGORY_ after INSERT, when we retrieve the ID...
+					'COLUMN_NAME' => 'CATEGORY_',
+				];
 
 				foreach ( (array) $columns as $column => $value )
 				{
 					if ( $value && $column != 'SORT_ORDER' && $column != 'SELECT_OPTIONS' )
 					{
-						$fields .= DBEscapeIdentifier( $column ) . ',';
-						$values .= "'" . $value . "',";
-						$go = true;
+						$insert_columns[ $column ] = $value;
 					}
 				}
 
-				$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
+				$id = DBInsert(
+					'discipline_fields',
+					$insert_columns,
+					'id'
+				);
 
-				if ( ! $go )
+				if ( ! $id )
 				{
 					continue;
 				}
-
-				DBQuery( $sql );
-
-				$id = DBLastInsertID();
 
 				// Update CATEGORY_ with ID now we have it.
 				DBQuery( "UPDATE discipline_fields
 					SET COLUMN_NAME='CATEGORY_" . $id . "'
 					WHERE ID='" . (int) $id . "'" );
-
-				$usage_sql = "INSERT INTO discipline_field_usage ";
-
-				$fields = "DISCIPLINE_FIELD_ID,SYEAR,SCHOOL_ID,";
-				$values = "'" . $id . "','" . UserSyear() . "','" . UserSchool() . "',";
-
-				foreach ( (array) $columns as $column => $value )
-				{
-					if ( $value && $column != 'DATA_TYPE' )
-					{
-						$fields .= DBEscapeIdentifier( $column ) . ',';
-						$values .= "'" . $value . "',";
-					}
-				}
-
-				$usage_sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
 
 				$create_index = true;
 
@@ -129,16 +104,62 @@ if ( ! empty( $_REQUEST['values'] )
 				}
 
 				DBQuery( 'ALTER TABLE discipline_referrals ADD ' .
-					DBEscapeIdentifier( 'CATEGORY_' . (int) $id ) . ' ' . $sql_type );
+				         DBEscapeIdentifier( 'CATEGORY_' . (int) $id ) . ' ' . $sql_type );
 
-				if ( $create_index )
+				$max_indices_reached = false;
+
+				if ( $DatabaseType === 'mysql' )
 				{
-					DBQuery( 'CREATE INDEX ' . DBEscapeIdentifier( 'discipline_referrals_ind' . (int) $id ) .
-						' ON discipline_referrals (' .
-						DBEscapeIdentifier( 'CATEGORY_' . (int) $id ) . ')' );
+					/**
+					 * Fix MySQL error 1069 Too many keys specified; max 64 keys allowed
+					 * Count columns having an index
+					 *
+					 * @since 10.3
+					 */
+					$indices = DBGet( DBQuery( "SHOW INDEX FROM " . DBEscapeIdentifier( 'discipline_referrals' ) ) );
+
+					$max_indices_reached = count( $indices ) >= 64;
 				}
 
-				DBQuery( $usage_sql );
+				if ( $create_index
+				     && ! $max_indices_reached )
+				{
+					$key_length = '';
+
+					if ( $sql_type === 'TEXT'
+					     && $DatabaseType === 'mysql' )
+					{
+						/**
+						 * Fix MySQL error TEXT column used in key specification without a key length
+						 *
+						 * @since 10.2.3
+						 */
+						$key_length = '(255)';
+					}
+
+					DBQuery( 'CREATE INDEX ' . DBEscapeIdentifier( 'discipline_referrals_ind' . (int) $id ) .
+					         ' ON discipline_referrals (' .
+					         DBEscapeIdentifier( 'CATEGORY_' . (int) $id ) . $key_length . ')' );
+				}
+
+				$usage_columns = [];
+
+				foreach ( (array) $columns as $column => $value )
+				{
+					if ( $value && $column != 'DATA_TYPE' )
+					{
+						$usage_columns[ $column ] = $value;
+					}
+				}
+
+				DBInsert(
+					'discipline_field_usage',
+					[
+						'DISCIPLINE_FIELD_ID' => (int) $id,
+						'SYEAR' => UserSyear(),
+						'SCHOOL_ID' => UserSchool(),
+					] + $usage_columns
+				);
 			}
 		}
 		else
@@ -152,7 +173,7 @@ if ( ! empty( $_REQUEST['values'] )
 }
 
 if ( $_REQUEST['modfunc'] === 'delete'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( DeletePrompt( _( 'Category' ) ) )
 	{
@@ -177,7 +198,7 @@ if ( $_REQUEST['modfunc'] === 'delete'
 }
 
 if ( $_REQUEST['modfunc'] === 'delete_usage'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( DeletePrompt( _( 'Category' ), _( 'Don\'t use' ) ) )
 	{
@@ -190,7 +211,7 @@ if ( $_REQUEST['modfunc'] === 'delete_usage'
 }
 
 if ( $_REQUEST['modfunc'] === 'add_usage'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	DBQuery( "INSERT INTO discipline_field_usage (DISCIPLINE_FIELD_ID,SYEAR,SCHOOL_ID,TITLE,SELECT_OPTIONS,SORT_ORDER)
 		SELECT '" . (int) $_REQUEST['id'] . "' AS DISCIPLINE_FIELD_ID,
@@ -247,7 +268,7 @@ if ( ! $_REQUEST['modfunc'] )
 		'SORT_ORDER' => _( 'Sort Order' ),
 		'DATA_TYPE' => _( 'Data Type' ),
 		'SELECT_OPTIONS' => _( 'Pull-Down' ) . '/' . _( 'Select Multiple from Options' ) . '/' .
-			_( 'Select One from Options' ),
+		                    _( 'Select One from Options' ),
 	];
 
 	$link['add']['html'] = [
@@ -286,14 +307,14 @@ function _makeType( $value, $name )
 	}
 
 	$new_options = [
-		'checkbox' => _( 'Checkbox' ),
-		'text' => _( 'Text' ),
-		'multiple_checkbox' => _( 'Select Multiple from Options' ),
-		'multiple_radio' => _( 'Select One from Options' ),
 		'select' => _( 'Pull-Down' ),
-		'date' => _( 'Date' ),
-		'numeric' => _( 'Number' ),
+		'multiple_radio' => _( 'Select One from Options' ),
+		'multiple_checkbox' => _( 'Select Multiple from Options' ),
+		'text' => _( 'Text' ),
 		'textarea' => _( 'Long Text' ),
+		'checkbox' => _( 'Checkbox' ),
+		'numeric' => _( 'Number' ),
+		'date' => _( 'Date' ),
 	];
 
 	if ( ! empty( $THIS_RET['ID'] ) )
@@ -355,7 +376,7 @@ function _makeTextInput( $value, $name )
 	else
 	{
 		return $comment .
-		TextInput( $value, 'values[' . $id . '][' . $name . ']', '', $extra );
+		       TextInput( $value, 'values[' . $id . '][' . $name . ']', '', $extra );
 	}
 }
 
@@ -386,16 +407,16 @@ function _makeTextAreaInput( $value, $name )
 		return $value;
 	}
 	elseif ( $id === 'new'
-		|| $THIS_RET['DATA_TYPE'] === 'multiple_checkbox'
-		|| $THIS_RET['DATA_TYPE'] === 'multiple_radio'
-		|| $THIS_RET['DATA_TYPE'] === 'select' )
+	         || $THIS_RET['DATA_TYPE'] === 'multiple_checkbox'
+	         || $THIS_RET['DATA_TYPE'] === 'multiple_radio'
+	         || $THIS_RET['DATA_TYPE'] === 'select' )
 	{
 		$return = TextAreaInput( $value, 'values[' . $id . '][' . $name . ']', '', '', $id !== 'new', 'text' );
 
 		//FJ responsive rt td too large
 		$return = '<div id="divTextAreaContent' . $id . '" class="rt2colorBox">' .
-			$return .
-			'</div>';
+		          $return .
+		          '</div>';
 
 		return $return;
 	}
@@ -422,21 +443,21 @@ function _makeRemove( $value, $column )
 		{
 			$return = button(
 				'remove', _( 'Don\'t use' ),
-				'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=delete_usage&id=' . $THIS_RET['USAGE_ID'] ) . '"'
+				URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=delete_usage&id=' . $THIS_RET['USAGE_ID'] )
 			);
 
-			$return .= '<br />' . button(
-				'remove',
-				_( 'Delete' ),
-				'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=delete&id=' . $THIS_RET['ID'] ) . '"'
-			);
+			$return .= '<br class="rbr"> ' . button(
+					'remove',
+					_( 'Delete' ),
+					URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=delete&id=' . $THIS_RET['ID'] )
+				);
 		}
 		else
 		{
 			$return = button(
 				'add',
 				_( 'Use at this school' ),
-				'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=add_usage&id=' . $THIS_RET['ID'] ) . '"'
+				URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=add_usage&id=' . $THIS_RET['ID'] )
 			);
 		}
 	}

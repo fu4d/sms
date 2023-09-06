@@ -188,7 +188,8 @@ if ( User( 'PROFILE' ) === 'admin' ):
 		</li>
 		<li>' . _help( 'The Attendance module:' ) .
 	'<ul>
-				<li>' . _help( '<i>Minutes in a Full School Day</i>: if a student attends school for 300 minutes or more, RosarioSIS will automatically mark him Present for the day. If a student attends school for 150 minutes to 299 minutes, RosarioSIS will marked him Half Day present. If a student attends school for less than 150 minutes, RosarioSIS will mark him Absent. If your School Day is not 300 minutes long, then please adjust the Minutes in a Full School Day' ) . '</li>
+				<li>' . _help( '<i>Minutes in a Full School Day</i>: if a student attends school for 300 minutes or more, RosarioSIS will automatically mark him Present for the day. If a student attends school for 150 minutes to 299 minutes, RosarioSIS will marked him Half Day present. If a student attends school for less than 150 minutes, RosarioSIS will mark him Absent. If your School Day is not 300 minutes long, then please adjust the Minutes in a Full School Day' ) . '<br />' .
+				_help( 'Set to 0 for dynamic Daily Attendance calculation based on total course period minutes. That is, the sum of the lengths of each course period during the day. Period lengths (in minutes) are defined in the School > Periods program.' ) . '</li>
 				<li>' . _help( '<i>Number of days before / after the school date teachers can edit attendance</i>: leave the fields blank to always allow teachers to edit attendance' ) . '</li>
 			</ul>
 		</li>
@@ -835,6 +836,12 @@ if ( User( 'PROFILE' ) === 'admin' ):
 
 	$help['Grades/Configuration.php'] = '<p>' . _help( '<i>Configuration</i> allows you to override individual teacher configuration and configure the gradebook for them.' ) . '</p>
 
+	<p>' . _help( 'By default, grades are weighted by points. This means that the number of points in each assignment determines its weight, and the total of points in all assignments in a category determines how much the category counts.' ) . '</p>
+
+	<p>' . _help( 'You can choose to weight grades by assignment categories. This will add a "Percent of Final Grade" field to categories.' ) . '</p>
+
+	<p>' . _help( 'You can also choose to weight assignments. This lets you edit the weight of each assignment. In case you do not weight categories, the total of weights in all assignments in a category determines how much the category counts.' ) . '</p>
+
 	<p>' . _help( 'Finally, you can also configure the final grading percentages of each semester. These values are used when averaging the quarter grades to calculate the semester grade.' ) . '</p>';
 
 	$help['Grades/ReportCardGrades.php'] = '<p>' . _help( '<i>Grading Scales</i> allows you to setup your school\'s report card grades. Report card grades are used in the Input Final Grades program by teachers and in most of the Grades reports. Report card grades include letter grades as well as grade comments that a teacher can choose from when entering grades.' ) . '</p>
@@ -885,11 +892,13 @@ if ( User( 'PROFILE' ) === 'admin' ):
 
 	<p>' . _help( 'To add an assignment type, click on the Add icon (+) in the assignment type column. Then, fill in the information in the fields above the list of assignment types. Select the Courses in the list at the bottom of the screen and click the "Create Assignment Type for Selected Courses" button.' ) . '</p>
 
-	<p>' . _help( 'If you set the "Percent of Final Grade", teachers will see it only if they have checked the "Weight Grades" checkbox in their Gradebook Configuration.' ) . '</p>
+	<p>' . _help( 'If you set the "Percent of Final Grade", teachers will see it only if they have checked the "Weight Assignment Categories" checkbox in their Gradebook Configuration.' ) . '</p>
 
 	<p>' . _help( 'To add an assignment, click on the desired assignment type in the assignment type column. Then, fill in the information in the fields above the list of assignment types. Select the Course Periods in the list at the bottom of the screen and click the "Create Assignment for Selected Course Periods" button.' ) . '</p>
 
 	<p>' . _help( 'If you enter 0 "Points", this will let you give Students Extra Credit.' ) . '</p>
+
+	<p>' . _help( 'If you set the "Weight", teachers will see it only if they have checked the "Weight Assignments" checkbox in their Gradebook Configuration.' ) . '</p>
 
 	<p>' . _help( 'If you check "Enable Assignment Submission", Students (or Parents) can submit the assignment (upload a file and/or leave a message). Submissions are opened from the assigned date and until the due date. If no due date has been set, submissions are open until the end of the quarter. Teachers can later consult the submissions in the "Grades" program.' ) . '</p>';
 
@@ -906,6 +915,12 @@ elseif ( User( 'PROFILE' ) === 'teacher' ):
 	$help['Grades/Configuration.php'] = '<p>' . _help( '<i>Configuration</i> allows you to configure the gradebook.' ) . '</p>
 
 	<p>' . _help( 'You can configure the gradebook to round scores up, down, or normally. Normal rounding would round 19.5 to 20 but 19.4 to 19.' ) . '</p>
+
+	<p>' . _help( 'By default, grades are weighted by points. This means that the number of points in each assignment determines its weight, and the total of points in all assignments in a category determines how much the category counts.' ) . '</p>
+
+	<p>' . _help( 'You can choose to weight grades by assignment categories. This will add a "Percent of Final Grade" field to categories.' ) . '</p>
+
+	<p>' . _help( 'You can also choose to weight assignments. This lets you edit the weight of each assignment. In case you do not weight categories, the total of weights in all assignments in a category determines how much the category counts.' ) . '</p>
 
 	<p>' . _help( 'You can also configure the score breakoff points for each letter grade. For example, if you set the score breakoff points for A+, A, and A- to 99, 91, and 90 respectively, a student with 99% to 100% would have an A+, another student with a 91% to 98% would have an A, and a student with a 90% would have an A-. The score breakoff point for F should probably be 0.' ) . '</p>
 

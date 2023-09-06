@@ -17,8 +17,10 @@ if ( $_REQUEST['modfunc'] === 'save'
 		{
 			if ( empty( $current_RET[$staff_id] ) )
 			{
-				DBQuery( "INSERT INTO students_join_users (STAFF_ID,STUDENT_ID)
-					VALUES('" . $staff_id . "','" . UserStudentID() . "')" );
+				DBInsert(
+					'students_join_users',
+					[ 'STAFF_ID' => (int) $staff_id, 'STUDENT_ID' => UserStudentID() ]
+				);
 
 				//hook
 				do_action( 'Students/AddUsers.php|user_assign_role' );
@@ -112,6 +114,20 @@ if ( ! $_REQUEST['modfunc'] )
 		if ( AllowEdit() )
 		{
 			unset( $extra );
+
+			$current_parent_ids = [];
+
+			foreach ( $current_RET as $current_parent )
+			{
+				$current_parent_ids[] = $current_parent['STAFF_ID'];
+			}
+
+			if ( $current_parent_ids )
+			{
+				// @since 10.9 Exclude already associated parents from Search()
+				$extra['WHERE'] = " AND s.STAFF_ID NOT IN(" . implode( ',', $current_parent_ids ) . ")";
+			}
+
 			$extra['link'] = [ 'FULL_NAME' => false ];
 			$extra['SELECT'] = ",NULL AS CHECKBOX";
 			$extra['functions'] = [ 'CHECKBOX' => 'MakeChooseCheckbox' ];

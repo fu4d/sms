@@ -15,43 +15,20 @@ if ( $_REQUEST['modfunc'] === 'update'
 		{
 			if ( $id !== 'new' )
 			{
-				$sql = "UPDATE student_enrollment_codes SET ";
-
-				foreach ( (array) $columns as $column => $value )
-				{
-					$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-				}
-
-				$sql = mb_substr( $sql, 0, -1 ) . " WHERE ID='" . (int) $id . "'";
-				DBQuery( $sql );
+				DBUpdate(
+					'student_enrollment_codes',
+					$columns,
+					[ 'ID' => (int) $id ]
+				);
 			}
 
 			// New: check for Title.
 			elseif ( $columns['TITLE'] )
 			{
-				$sql = "INSERT INTO student_enrollment_codes ";
-
-				$fields = 'SYEAR,';
-				$values = "'" . UserSyear() . "',";
-
-				$go = 0;
-
-				foreach ( (array) $columns as $column => $value )
-				{
-					if ( ! empty( $value ) || $value == '0' )
-					{
-						$fields .= DBEscapeIdentifier( $column ) . ',';
-						$values .= "'" . $value . "',";
-						$go = true;
-					}
-				}
-
-				$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-
-				if ( $go )
-				{
-					DBQuery( $sql );
-				}
+				DBInsert(
+					'student_enrollment_codes',
+					[ 'SYEAR' => UserSyear() ] + $columns
+				);
 			}
 		}
 		else
@@ -90,13 +67,12 @@ if ( ! $rollover_default_RET
 	$warning[] = _( 'There must be exactly one Rollover default enrollment code (of type Add).' );
 }
 
-// FJ fix SQL bug invalid sort order.
-echo ErrorMessage( $error );
-
-echo ErrorMessage( $warning, 'warning' );
-
 if ( ! $_REQUEST['modfunc'] )
 {
+	echo ErrorMessage( $error );
+
+	echo ErrorMessage( $warning, 'warning' );
+
 	$codes_RET = DBGet( "SELECT ID,TITLE,SHORT_NAME,TYPE,DEFAULT_CODE,SORT_ORDER
 		FROM student_enrollment_codes
 		WHERE SYEAR='" . UserSyear() . "'
@@ -126,7 +102,7 @@ if ( ! $_REQUEST['modfunc'] )
 	];
 
 	$link['remove']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=remove';
-	$link['remove']['variables'] = [ 'id' => _( 'ID' ) ];
+	$link['remove']['variables'] = [ 'id' => 'ID' ];
 
 	echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=update' ) . '" method="POST">';
 	DrawHeader( '', SubmitButton() );

@@ -13,8 +13,8 @@ Do not forget to add the `.utf8` suffix to the locale code.
 | bn_BD | Bengali (Bangladesh)          | 32%       |                     |
 | cs_CZ | Czech (Czech Republic)        | 32%       |                     |
 | da_DK | Danish (Denmark)              | 32%       |                     |
-| de_DE | German (Germany)              | **55%**   | Heike Gutsche       |
 | el_GR | Greek (Greece)                | 33%       |                     |
+| de_DE | German (Germany)              | **99%**   | Heike Gutsche, @0xD0M1M0 |
 | en_CA | English (Canada)              | 1%        | RDH Associates Inc. |
 | es_ES | Spanish (Spain)               | **100%**  | RosarioSIS          |
 | et_EE | Estonian (Estonia)            | 33%       |                     |
@@ -38,6 +38,7 @@ Do not forget to add the `.utf8` suffix to the locale code.
 | nl_NL | Dutch (Netherlands)           | 32%       |                     |
 | nn_NO | Norwegian Nynorsk (Norway)    | 33%       |                     |
 | pl_PL | Polish (Poland)               | 33%       |                     |
+| pt_BR | Portuguese (Brazil)           | **100%**  | Emerson Barros      |
 | pt_PT | Portuguese (Portugal)         | 37%       |                     |
 | ro_RO | Romanian (Romania)            | 33%       |                     |
 | ru_RU | Russian (Russia)              | 32%       |                     |
@@ -49,7 +50,7 @@ Do not forget to add the `.utf8` suffix to the locale code.
 | th_TH | Thai (Thailand)               | 33%       |                     |
 | tr_TR | Turkish (Turkey)              | 32%       |                     |
 | uk_UA | Ukrainian (Ukraine)           | 33%       |                     |
-| vi_VN | Vietnamese (Vietnam)          | 32%       |                     |
+| vi_VN | Vietnamese (Vietnam)          | **99%**   | Steven M. Haag & Trân Thi Kim Thanh |
 | wa_BE | Walloon (Belgium)             | 33%       |                     |
 | zh_CN | Chinese (Simplified, China)   | 32%       |                     |
 | zh_TW | Chinese (Traditional, Taiwan) | 33%       |                     |

@@ -72,7 +72,7 @@ if ( UserStudentID()
 		{
 			// get details of each transaction
 			$tmpRET = DBGet( "SELECT TRANSACTION_ID AS TRANS_ID,
-				ITEM_ID,AMOUNT,DISCOUNT,SHORT_NAME,DESCRIPTION,
+				ITEM_ID,TRANSACTION_ID,AMOUNT,DISCOUNT,SHORT_NAME,DESCRIPTION,
 				'" . DBEscapeString( $value['SHORT_NAME'] ) . "' AS TRANSACTION_SHORT_NAME
 				FROM food_service_transaction_items
 				WHERE TRANSACTION_ID='" . (int) $value['TRANSACTION_ID'] . "'", [ 'SHORT_NAME' => 'bump_items_count' ] );
@@ -166,9 +166,9 @@ if ( UserStudentID()
 	$staff_RET = DBGet( "SELECT STAFF_ID," . DisplayNameSQL() . " AS FULL_NAME
 		FROM staff
 		WHERE SYEAR='" . UserSyear() . "'
-		AND SCHOOLS LIKE '%," . UserSchool() . ",%'
+		AND (SCHOOLS IS NULL OR position('," . UserSchool() . ",' IN SCHOOLS)>0)
 		AND PROFILE='admin'
-		ORDER BY LAST_NAME" );
+		ORDER BY FULL_NAME" );
 
 	$staff_select = '<label>' . _( 'User' ) .
 		' <select name="staff_select"><option value="">' . _( 'Not Specified' ) . '</option>';

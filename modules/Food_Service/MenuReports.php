@@ -68,6 +68,8 @@ else
 	}
 }
 
+$menu_title = $menus_RET[$_REQUEST['menu_id']][1]['TITLE'];
+
 $users = [
 	'Student' => [
 		'' => [ 'ELLIGIBLE' => 0, 'PARTICIPATED' => 0 ],
@@ -110,16 +112,16 @@ foreach ( (array) $items_RET as $value )
 //echo '<pre>'; var_dump($items_columns); echo '</pre>';
 
 $types = [ 'Student' => [ '' => $items,
-	'Reduced' => $items,
-	'Free' => $items,
+                          'Reduced' => $items,
+                          'Free' => $items,
 ],
-	'User' => [ '' => $items,
-	],
+           'User' => [ '' => $items,
+           ],
 ];
 
 $types_totals = [ 'Student' => $items,
-	'User' => $items,
-	'' => $items,
+                  'User' => $items,
+                  '' => $items,
 ];
 
 $types_columns = $items_columns;
@@ -159,7 +161,7 @@ GROUP BY ac.CALENDAR_ID", [ 'ELLIGIBLE' => 'bump_dep', 'DAYS' => 'bump_dep' ] );
 $RET = DBGet( "SELECT 1 AS PARTICIPATED,'Student' AS TYPE,DISCOUNT
 FROM food_service_transactions
 WHERE SYEAR='" . UserSyear() . "'
-AND SHORT_NAME='" . $menus_RET[$_REQUEST['menu_id']][1]['TITLE'] . "'
+AND SHORT_NAME='" . DBEscapeString( $menu_title ) . "'
 AND TIMESTAMP BETWEEN '" . $start_date . "' AND date '" . $end_date . "' +1
 AND SCHOOL_ID='" . UserSchool() . "'
 GROUP BY STUDENT_ID,DISCOUNT", [ 'PARTICIPATED' => 'bump_dep' ] );
@@ -167,7 +169,7 @@ GROUP BY STUDENT_ID,DISCOUNT", [ 'PARTICIPATED' => 'bump_dep' ] );
 $RET = DBGet( "SELECT 1 AS PARTICIPATED,'User' AS TYPE,'' AS DISCOUNT
 FROM food_service_staff_transactions
 WHERE SYEAR='" . UserSyear() . "'
-AND SHORT_NAME='" . $menus_RET[$_REQUEST['menu_id']][1]['TITLE'] . "'
+AND SHORT_NAME='" . DBEscapeString( $menu_title ) . "'
 AND TIMESTAMP BETWEEN '" . $start_date . "' AND date '" . $end_date . "' +1
 AND SCHOOL_ID='" . UserSchool() . "'
 GROUP BY STAFF_ID", [ 'PARTICIPATED' => 'bump_dep' ] );
@@ -185,9 +187,10 @@ if ( 'sales' == $_REQUEST['type_select'] )
 	WHERE fsti.TRANSACTION_ID=fst.TRANSACTION_ID
 	AND fst.SYEAR='" . UserSyear() . "'
 	AND fst.SCHOOL_ID='" . UserSchool() . "'
-	AND fst.SHORT_NAME='" . $menus_RET[$_REQUEST['menu_id']][1]['TITLE'] . "'
+	AND fst.SHORT_NAME='" . DBEscapeString( $menu_title ) . "'
 	AND fst.TIMESTAMP BETWEEN '" . $start_date . "' AND date '" . $end_date . "' +1
 	GROUP BY fsti.SHORT_NAME,fst.DISCOUNT", [ 'SHORT_NAME' => 'bump_count' ] );
+
 	$RET = DBGet( "SELECT 'User' AS TYPE,fsti.SHORT_NAME,'' AS DISCOUNT,-sum((SELECT sum(AMOUNT)
 		FROM food_service_staff_transaction_items
 		WHERE TRANSACTION_ID=fsti.TRANSACTION_ID
@@ -196,7 +199,7 @@ if ( 'sales' == $_REQUEST['type_select'] )
 	WHERE fsti.TRANSACTION_ID=fst.TRANSACTION_ID
 	AND fst.SYEAR='" . UserSyear() . "'
 	AND fst.SCHOOL_ID='" . UserSchool() . "'
-	AND fst.SHORT_NAME='" . $menus_RET[$_REQUEST['menu_id']][1]['TITLE'] . "'
+	AND fst.SHORT_NAME='" . DBEscapeString( $menu_title ) . "'
 	AND fst.TIMESTAMP BETWEEN '" . $start_date . "' AND date '" . $end_date . "' +1
 	GROUP BY fsti.SHORT_NAME", [ 'SHORT_NAME' => 'bump_count' ] );
 
@@ -211,27 +214,27 @@ if ( 'sales' == $_REQUEST['type_select'] )
 			$total = array_sum( $types[$user][$discount] );
 
 			$TMP_types[] = [
-				'TYPE' => ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ),
-				'DISCOUNT' => $discount,
-				'ELLIGIBLE' => number_format( $value['ELLIGIBLE'], 1 ),
-				'DAYS_POSSIBLE' => number_format(  ( ! empty( $value['ELLIGIBLE'] ) ? $value['DAYS'] / $value['ELLIGIBLE'] : 0 ), 1 ),
-				'TOTAL_ELLIGIBLE' => $value['DAYS'],
-				'PARTICIPATED' => $value['PARTICIPATED'],
-				'TOTAL' => '<b>' . format( $total ) . '</b>',
-			] + array_map( 'format', $types[$user][$discount] );
+				               'TYPE' => ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ),
+				               'DISCOUNT' => $discount,
+				               'ELLIGIBLE' => number_format( $value['ELLIGIBLE'], 1 ),
+				               'DAYS_POSSIBLE' => number_format(  ( ! empty( $value['ELLIGIBLE'] ) ? $value['DAYS'] / $value['ELLIGIBLE'] : 0 ), 1 ),
+				               'TOTAL_ELLIGIBLE' => issetVal( $value['DAYS'] ),
+				               'PARTICIPATED' => $value['PARTICIPATED'],
+				               'TOTAL' => '<b>' . format( $total ) . '</b>',
+			               ] + array_map( 'format', $types[$user][$discount] );
 		}
 
 		$total = array_sum( $types_totals[$user] );
 
 		$TMP_types[] = [
-			'TYPE' => '<b>' . ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ) . '</b>',
-			'DISCOUNT' => '<b>' . _( 'Totals' ) . '</b>',
-			'ELLIGIBLE' => '<b>' . number_format( $users_totals['']['ELLIGIBLE'], 1 ) . '</b>',
-			'DAYS_POSSIBLE' => '<b>' . number_format(  ( ! empty( $users_totals[$user]['ELLIGIBLE'] ) ? $users_totals[$user]['DAYS'] / $users_totals[$user]['ELLIGIBLE'] : 0 ), 1 ) . '</b>',
-			'TOTAL_ELLIGIBLE' => '<b>' . $users_totals[$user]['DAYS'] . '</b>',
-			'PARTICIPATED' => '<b>' . $users_totals[$user]['PARTICIPATED'] . '</b>',
-			'TOTAL' => '<b>' . format( $total ) . '</b>',
-		] + array_map( 'bold_format', $types_totals[$user] );
+			               'TYPE' => '<b>' . ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ) . '</b>',
+			               'DISCOUNT' => '<b>' . _( 'Totals' ) . '</b>',
+			               'ELLIGIBLE' => '<b>' . number_format( $users_totals['']['ELLIGIBLE'], 1 ) . '</b>',
+			               'DAYS_POSSIBLE' => '<b>' . number_format(  ( ! empty( $users_totals[$user]['ELLIGIBLE'] ) ? $users_totals[$user]['DAYS'] / $users_totals[$user]['ELLIGIBLE'] : 0 ), 1 ) . '</b>',
+			               'TOTAL_ELLIGIBLE' => '<b>' . issetVal( $users_totals[$user]['DAYS'] ) . '</b>',
+			               'PARTICIPATED' => '<b>' . $users_totals[$user]['PARTICIPATED'] . '</b>',
+			               'TOTAL' => '<b>' . format( $total ) . '</b>',
+		               ] + array_map( 'bold_format', $types_totals[$user] );
 
 		unset( $TMP_types[0] );
 
@@ -262,27 +265,27 @@ if ( 'sales' == $_REQUEST['type_select'] )
 	unset( $LO_types[0] );
 
 	$LO_columns = [
-		'TYPE' => _( 'Type' ),
-		'DISCOUNT' => _( 'Discount' ),
-	] + $users_columns + $types_columns + [ 'TOTAL' => _( 'Total' ) ];
+		              'TYPE' => _( 'Type' ),
+		              'DISCOUNT' => _( 'Discount' ),
+	              ] + $users_columns + $types_columns + [ 'TOTAL' => _( 'Total' ) ];
 }
 else
 {
-	$RET = DBGet( "SELECT 'Student' AS TYPE,fst.DISCOUNT,fsti.SHORT_NAME,count(*)
+	$RET = DBGet( "SELECT 'Student' AS TYPE,fst.DISCOUNT,fsti.SHORT_NAME,count(*) AS COUNT
 	FROM food_service_transactions fst,food_service_transaction_items fsti
 	WHERE fsti.TRANSACTION_ID=fst.TRANSACTION_ID
 	AND fst.SYEAR='" . UserSyear() . "'
 	AND fst.SCHOOL_ID='" . UserSchool() . "'
-	AND fst.SHORT_NAME='" . $menus_RET[$_REQUEST['menu_id']][1]['TITLE'] . "'
+	AND fst.SHORT_NAME='" . DBEscapeString( $menu_title ) . "'
 	AND fst.TIMESTAMP BETWEEN '" . $start_date . "' AND date '" . $end_date . "' +1
 	GROUP BY fsti.SHORT_NAME,fst.DISCOUNT", [ 'SHORT_NAME' => 'bump_count' ] );
 
-	$RET = DBGet( "SELECT 'User' AS TYPE,'' AS DISCOUNT,fsti.SHORT_NAME,count(*)
+	$RET = DBGet( "SELECT 'User' AS TYPE,'' AS DISCOUNT,fsti.SHORT_NAME,count(*) AS COUNT
 	FROM food_service_staff_transactions fst,food_service_staff_transaction_items fsti
 	WHERE fsti.TRANSACTION_ID=fst.TRANSACTION_ID
 	AND fst.SYEAR='" . UserSyear() . "'
 	AND fst.SCHOOL_ID='" . UserSchool() . "'
-	AND fst.SHORT_NAME='" . $menus_RET[$_REQUEST['menu_id']][1]['TITLE'] . "'
+	AND fst.SHORT_NAME='" . DBEscapeString( $menu_title ) . "'
 	AND fst.TIMESTAMP BETWEEN '" . $start_date . "' AND date '" . $end_date . "' +1
 	GROUP BY fsti.SHORT_NAME", [ 'SHORT_NAME' => 'bump_count' ] );
 
@@ -296,27 +299,27 @@ else
 		{
 			//FJ fix error Warning: Division by zero
 			$TMP_types[] = [
-				'TYPE' => ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ),
-				'DISCOUNT' => $discount,
-				'ELLIGIBLE' => number_format( $value['ELLIGIBLE'], 1 ),
-				'DAYS_POSSIBLE' => ( 0 == $value['ELLIGIBLE'] ? '0.0' : number_format( $value['DAYS'] / $value['ELLIGIBLE'], 1 ) ),
-				'TOTAL_ELLIGIBLE' => issetVal( $value['DAYS'] ),
-				'PARTICIPATED' => $value['PARTICIPATED'],
-			] + $types[$user][$discount];
+				               'TYPE' => ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ),
+				               'DISCOUNT' => $discount,
+				               'ELLIGIBLE' => number_format( $value['ELLIGIBLE'], 1 ),
+				               'DAYS_POSSIBLE' => ( 0 == $value['ELLIGIBLE'] ? '0.0' : number_format( $value['DAYS'] / $value['ELLIGIBLE'], 1 ) ),
+				               'TOTAL_ELLIGIBLE' => issetVal( $value['DAYS'] ),
+				               'PARTICIPATED' => $value['PARTICIPATED'],
+			               ] + $types[$user][$discount];
 		}
 
 		$TMP_types[] = [
-			'TYPE' => '<b>' . ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ) . '</b>',
-			'DISCOUNT' => '<b>' . _( 'Totals' ) . '</b>',
-			'ELLIGIBLE' => '<b>' . number_format( $users_totals[$user]['ELLIGIBLE'], 1 ) . '</b>',
-			'DAYS_POSSIBLE' => '<b>' . number_format(
-				( empty( $users_totals[$user]['ELLIGIBLE'] ) ?
-					0 : $users_totals[$user]['DAYS'] / $users_totals[$user]['ELLIGIBLE'] ),
-				1
-			) . '</b>',
-			'TOTAL_ELLIGIBLE' => '<b>' . issetVal( $users_totals[$user]['DAYS'], '' ) . '</b>',
-			'PARTICIPATED' => '<b>' . $users_totals[$user]['PARTICIPATED'] . '</b>',
-		] + array_map( 'bold', $types_totals[$user] );
+			               'TYPE' => '<b>' . ( empty( $users_locale[$user] ) ? $user : $users_locale[$user] ) . '</b>',
+			               'DISCOUNT' => '<b>' . _( 'Totals' ) . '</b>',
+			               'ELLIGIBLE' => '<b>' . number_format( $users_totals[$user]['ELLIGIBLE'], 1 ) . '</b>',
+			               'DAYS_POSSIBLE' => '<b>' . number_format(
+					               ( empty( $users_totals[$user]['ELLIGIBLE'] ) ?
+						               0 : $users_totals[$user]['DAYS'] / $users_totals[$user]['ELLIGIBLE'] ),
+					               1
+				               ) . '</b>',
+			               'TOTAL_ELLIGIBLE' => '<b>' . issetVal( $users_totals[$user]['DAYS'], '' ) . '</b>',
+			               'PARTICIPATED' => '<b>' . $users_totals[$user]['PARTICIPATED'] . '</b>',
+		               ] + array_map( 'bold', $types_totals[$user] );
 
 		unset( $TMP_types[0] );
 
@@ -332,12 +335,12 @@ else
 	}
 
 	$LO_types[] = [ [
-		'TYPE' => '<b>' . _( 'Totals' ) . '</b>',
-		'ELLIGIBLE' => '<b>' . number_format( $users_totals['']['ELLIGIBLE'], 1 ) . '</b>',
-		'DAYS_POSSIBLE' => '<b>' . number_format( ( empty( $users_totals['']['ELLIGIBLE'] ) ? 0 : $users_totals['']['DAYS'] / $users_totals['']['ELLIGIBLE'] ), 1 ) . '</b>',
-		'TOTAL_ELLIGIBLE' => '<b>' . $users_totals['']['DAYS'] . '</b>',
-		'PARTICIPATED' => '<b>' . $users_totals['']['PARTICIPATED'] . '</b>',
-	] + array_map( 'bold', $types_totals[''] ) ];
+		                'TYPE' => '<b>' . _( 'Totals' ) . '</b>',
+		                'ELLIGIBLE' => '<b>' . number_format( $users_totals['']['ELLIGIBLE'], 1 ) . '</b>',
+		                'DAYS_POSSIBLE' => '<b>' . number_format( ( empty( $users_totals['']['ELLIGIBLE'] ) ? 0 : $users_totals['']['DAYS'] / $users_totals['']['ELLIGIBLE'] ), 1 ) . '</b>',
+		                'TOTAL_ELLIGIBLE' => '<b>' . issetVal( $users_totals['']['DAYS'] ) . '</b>',
+		                'PARTICIPATED' => '<b>' . $users_totals['']['PARTICIPATED'] . '</b>',
+	                ] + array_map( 'bold', $types_totals[''] ) ];
 
 	unset( $LO_types[0] );
 
@@ -358,9 +361,9 @@ DrawHeader( $type_select );
 echo '<br />';
 
 $date_start_end_type_url_params = '&day_start=' . $_REQUEST['day_start'] .
-	'&month_start=' . $_REQUEST['month_start'] . '&year_start=' . $_REQUEST['year_start'] .
-	'&day_end=' . $_REQUEST['day_end'] . '&month_end=' . $_REQUEST['month_end'] .
-	'&year_end=' . $_REQUEST['year_end'] . '&type_select=' . $_REQUEST['type_select'];
+                                  '&month_start=' . $_REQUEST['month_start'] . '&year_start=' . $_REQUEST['year_start'] .
+                                  '&day_end=' . $_REQUEST['day_end'] . '&month_end=' . $_REQUEST['month_end'] .
+                                  '&year_end=' . $_REQUEST['year_end'] . '&type_select=' . $_REQUEST['type_select'];
 
 $tabs = [];
 
@@ -369,7 +372,7 @@ foreach ( (array) $menus_RET as $id => $menu )
 	$tabs[] = [
 		'title' => $menu[1]['TITLE'],
 		'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&menu_id=' . $id .
-		$date_start_end_type_url_params,
+		          $date_start_end_type_url_params,
 	];
 }
 
@@ -437,8 +440,8 @@ function bold_format( $item )
 function bump_dep( $value, $column )
 {
 	global $THIS_RET,
-		$users,
-		$users_totals;
+	       $users,
+	       $users_totals;
 
 	if ( 'ELLIGIBLE' == $column )
 	{

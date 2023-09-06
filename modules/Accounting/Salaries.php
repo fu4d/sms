@@ -27,62 +27,44 @@ if ( ! empty( $_REQUEST['values'] )
 	{
 		if ( $id !== 'new' )
 		{
-			$sql = "UPDATE accounting_salaries SET ";
+			$columns['FILE_ATTACHED'] = _saveSalariesFile( $id );
 
-			foreach ( (array) $columns as $column => $value )
+			if ( ! $columns['FILE_ATTACHED'] )
 			{
-				$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
+				unset( $columns['FILE_ATTACHED'] );
 			}
 
-			$sql = mb_substr( $sql, 0, -1 ) . " WHERE STAFF_ID='" . UserStaffID() . "' AND ID='" . (int) $id . "'";
-			DBQuery( $sql );
+			DBUpdate(
+				'accounting_salaries',
+				$columns,
+				[ 'STAFF_ID' => UserStaffID(), 'ID' => (int) $id ]
+			);
 		}
 
-		// New: check for Title
-		elseif ( $columns['TITLE'] )
+		// New: check for Title & Amount.
+		elseif ( $columns['TITLE']
+			&& $columns['AMOUNT'] != '' )
 		{
-			$sql = "INSERT INTO accounting_salaries ";
+			$insert_columns = [
+				'STAFF_ID' => UserStaffID(),
+				'SYEAR' => UserSyear(),
+				'SCHOOL_ID' => UserSchool(),
+				'ASSIGNED_DATE' => DBDate(),
+			];
 
-			$fields = 'STAFF_ID,SCHOOL_ID,SYEAR,ASSIGNED_DATE,';
-			$values = "'" . UserStaffID() . "','" . UserSchool() . "','" . UserSyear() . "','" . DBDate() . "',";
+			$columns['AMOUNT'] = preg_replace( '/[^0-9.-]/', '', $columns['AMOUNT'] );
 
-			if ( isset( $_FILES['FILE_ATTACHED'] ) )
+			if ( ! is_numeric( $columns['AMOUNT'] ) )
 			{
-				$columns['FILE_ATTACHED'] = FileUpload(
-					'FILE_ATTACHED',
-					$FileUploadsPath . UserSyear() . '/staff_' . UserStaffID() . '/',
-					FileExtensionWhiteList(),
-					0,
-					$error
-				);
-
-				// Fix SQL error when quote in uploaded file name.
-				$columns['FILE_ATTACHED'] = DBEscapeString( $columns['FILE_ATTACHED'] );
+				$columns['AMOUNT'] = 0;
 			}
 
-			$go = 0;
+			$columns['FILE_ATTACHED'] = _saveSalariesFile( $id );
 
-			foreach ( (array) $columns as $column => $value )
-			{
-				if ( ! empty( $value ) || $value == '0' )
-				{
-					if ( $column == 'AMOUNT' )
-					{
-						$value = preg_replace( '/[^0-9.-]/', '', $value );
-					}
-
-					$fields .= DBEscapeIdentifier( $column ) . ',';
-					$values .= "'" . $value . "',";
-					$go = true;
-				}
-			}
-
-			$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-
-			if ( $go )
-			{
-				DBQuery( $sql );
-			}
+			DBInsert(
+				'accounting_salaries',
+				$insert_columns + $columns
+			);
 		}
 	}
 

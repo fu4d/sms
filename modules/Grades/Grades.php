@@ -7,6 +7,12 @@
 require_once 'ProgramFunctions/_makeLetterGrade.fnc.php';
 require_once 'modules/Grades/includes/StudentAssignments.fnc.php';
 
+if ( ! empty( $_REQUEST['period'] ) )
+{
+	// @since 10.9 Set current User Course Period before Secondary Teacher logic.
+	SetUserCoursePeriod( $_REQUEST['period'] );
+}
+
 if ( ! empty( $_SESSION['is_secondary_teacher'] ) )
 {
 	// @since 6.9 Add Secondary Teacher: set User to main teacher.
@@ -26,10 +32,10 @@ DrawHeader( _( 'Gradebook' ) . ' - ' . ProgramTitle() . ' - ' . GetMP( UserMP() 
 // if running as a teacher program then rosario[allow_edit] will already be set according to admin permissions
 
 if ( ! isset( $_ROSARIO['allow_edit'] )
-	// Do not allow edit past quarter grades for Teachers according to Program Config.
-	&& ( ProgramConfig( 'grades', 'GRADES_GRADEBOOK_TEACHER_ALLOW_EDIT' )
-		|| GetCurrentMP( 'QTR', DBDate(), false ) == UserMP()
-		|| GetMP( 'END_DATE' ) > DBDate() ) )
+     // Do not allow edit past quarter grades for Teachers according to Program Config.
+     && ( ProgramConfig( 'grades', 'GRADES_GRADEBOOK_TEACHER_ALLOW_EDIT' )
+          || GetCurrentMP( 'QTR', DBDate(), false ) == UserMP()
+          || GetMP( 'END_DATE' ) > DBDate() ) )
 {
 	$_ROSARIO['allow_edit'] = true;
 }
@@ -61,33 +67,43 @@ AND (SELECT count(1) FROM gradebook_assignments WHERE STAFF_ID=gt.STAFF_ID
 AND ((COURSE_ID=gt.COURSE_ID AND STAFF_ID=gt.STAFF_ID) OR COURSE_PERIOD_ID='" . UserCoursePeriod() . "')
 AND MARKING_PERIOD_ID='" . UserMP() . "'
 AND ASSIGNMENT_TYPE_ID=gt.ASSIGNMENT_TYPE_ID)>0
-ORDER BY SORT_ORDER IS NULL,SORT_ORDER,TITLE", [], [ 'ASSIGNMENT_TYPE_ID' ] );
+ORDER BY SORT_ORDER IS NULL,SORT_ORDER,TITLE", [ 'TITLE' => '_makeTitle' ], [ 'ASSIGNMENT_TYPE_ID' ] );
 //echo '<pre>'; var_dump($types_RET); echo '</pre>';
 
 if ( $_REQUEST['type_id']
-	&& ! $types_RET[$_REQUEST['type_id']] )
+     && empty( $types_RET[$_REQUEST['type_id']] ) )
 {
 	// Unset type ID & redirect URL.
 	RedirectURL( 'type_id' );
 }
 
-//FJ default points
-$assignments_RET = DBGet( "SELECT ASSIGNMENT_ID,ASSIGNMENT_TYPE_ID,TITLE,POINTS,ASSIGNED_DATE,
-DUE_DATE,DEFAULT_POINTS," . _SQLUnixTimestamp( 'DUE_DATE' ) . " AS DUE_EPOCH,
-CASE WHEN (ASSIGNED_DATE IS NULL OR CURRENT_DATE>=ASSIGNED_DATE) AND (DUE_DATE IS NULL OR CURRENT_DATE>=DUE_DATE) OR CURRENT_DATE>(SELECT END_DATE FROM school_marking_periods WHERE MARKING_PERIOD_ID=gradebook_assignments.MARKING_PERIOD_ID) THEN 'Y' ELSE NULL END AS DUE
-FROM gradebook_assignments
-WHERE STAFF_ID='" . User( 'STAFF_ID' ) . "'
-AND ((COURSE_ID=(SELECT COURSE_ID FROM course_periods WHERE COURSE_PERIOD_ID='" . UserCoursePeriod() . "') AND STAFF_ID='" . User( 'STAFF_ID' ) . "') OR COURSE_PERIOD_ID='" . UserCoursePeriod() . "')
-AND MARKING_PERIOD_ID='" . UserMP() . "'" . ( $_REQUEST['type_id'] ? "
-AND ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' ) . "
-ORDER BY " . Preferences( 'ASSIGNMENT_SORTING', 'Gradebook' ) . " DESC,ASSIGNMENT_ID DESC,TITLE", [], [ 'ASSIGNMENT_ID' ] );
+$assignments_RET = DBGet( "SELECT ga.ASSIGNMENT_ID,ga.ASSIGNMENT_TYPE_ID,ga.TITLE,ga.POINTS,ga.ASSIGNED_DATE,
+ga.DUE_DATE,ga.DEFAULT_POINTS," . _SQLUnixTimestamp( 'DUE_DATE' ) . " AS DUE_EPOCH,ga.WEIGHT,
+CASE WHEN (ASSIGNED_DATE IS NULL OR CURRENT_DATE>=ASSIGNED_DATE)
+	AND (DUE_DATE IS NULL OR CURRENT_DATE>=DUE_DATE)
+	OR CURRENT_DATE>(SELECT END_DATE FROM school_marking_periods WHERE MARKING_PERIOD_ID=ga.MARKING_PERIOD_ID)
+THEN 'Y' ELSE NULL END AS DUE
+FROM gradebook_assignments ga,gradebook_assignment_types gat
+WHERE ga.STAFF_ID='" . User( 'STAFF_ID' ) . "'
+AND ((ga.COURSE_ID=(SELECT cp.COURSE_ID
+		FROM course_periods cp
+		WHERE cp.COURSE_PERIOD_ID='" . UserCoursePeriod() . "')
+	AND ga.STAFF_ID='" . User( 'STAFF_ID' ) . "')
+	OR ga.COURSE_PERIOD_ID='" . UserCoursePeriod() . "')
+AND ga.MARKING_PERIOD_ID='" . UserMP() . "'" .
+                          ( $_REQUEST['type_id'] ? " AND ga.ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' ) .
+                          " AND gat.ASSIGNMENT_TYPE_ID=ga.ASSIGNMENT_TYPE_ID
+ORDER BY gat.TITLE,ga." .
+                          // SQL ORDER BY Assignment Type first, then order Assignments.
+                          DBEscapeIdentifier( Preferences( 'ASSIGNMENT_SORTING', 'Gradebook' ) ) .
+                          " DESC,ga.ASSIGNMENT_ID DESC,ga.TITLE", [], [ 'ASSIGNMENT_ID' ] );
 //echo '<pre>'; var_dump($assignments_RET); echo '</pre>';
 
 // when changing course periods the assignment_id will be wrong except for '' (totals) and 'all'
 
 if ( $_REQUEST['assignment_id']
-	&& $_REQUEST['assignment_id'] !== 'all'
-	&& ! $assignments_RET[$_REQUEST['assignment_id']] )
+     && $_REQUEST['assignment_id'] !== 'all'
+     && empty( $assignments_RET[$_REQUEST['assignment_id']] ) )
 {
 	// Unset assignment ID & redirect URL.
 	RedirectURL( 'assignment_id' );
@@ -97,16 +113,14 @@ if ( $_REQUEST['assignment_id']
 //	$_REQUEST['type_id'] = $assignments_RET[$_REQUEST['assignment_id']][1]['ASSIGNMENT_TYPE_ID'];
 
 if ( UserStudentID()
-	&& ! $_REQUEST['assignment_id'] )
+     && ! $_REQUEST['assignment_id'] )
 {
 	$_REQUEST['assignment_id'] = 'all';
 }
 
 if ( ! empty( $_REQUEST['values'] )
-	&& ! empty( $_POST['values'] )
-	// Fix use weak comparison "==" operator as $_SESSION['type_id'] maybe null.
-	 && $_SESSION['type_id'] == $_REQUEST['type_id']
-	&& $_SESSION['assignment_id'] == $_REQUEST['assignment_id'] )
+     && ! empty( $_POST['values'] )
+     && $_REQUEST['assignment_id'] )
 {
 	include 'ProgramFunctions/_makePercentGrade.fnc.php';
 
@@ -118,13 +132,13 @@ if ( ! empty( $_REQUEST['values'] )
 			AND a.MARKING_PERIOD_ID='" . UserMP() . "'
 			AND g.STUDENT_ID='" . UserStudentID() . "'
 			AND g.COURSE_PERIOD_ID='" . UserCoursePeriod() . "'" .
-			( $_REQUEST['assignment_id'] === 'all' ? '' :
-				" AND g.ASSIGNMENT_ID='" . (int) $_REQUEST['assignment_id'] . "'" ),
+		                                       ( $_REQUEST['assignment_id'] === 'all' ? '' :
+			                                       " AND g.ASSIGNMENT_ID='" . (int) $_REQUEST['assignment_id'] . "'" ),
 			[],
 			[ 'ASSIGNMENT_ID' ]
 		);
 	}
-	elseif ( $_REQUEST['assignment_id'] === 'all' )
+    elseif ( $_REQUEST['assignment_id'] === 'all' )
 	{
 		$current_RET = DBGet( "SELECT g.STUDENT_ID,g.ASSIGNMENT_ID,g.POINTS
 			FROM gradebook_grades g,gradebook_assignments a
@@ -150,7 +164,8 @@ if ( ! empty( $_REQUEST['values'] )
 	{
 		foreach ( (array) $assignments as $assignment_id => $columns )
 		{
-			if ( isset( $columns['POINTS'] ) )
+			if ( isset( $columns['POINTS'] )
+			     && $columns['POINTS'] != '' )
 			{
 				if ( $columns['POINTS'] == '*' )
 				{
@@ -158,11 +173,14 @@ if ( ! empty( $_REQUEST['values'] )
 				}
 				else
 				{
+					// Handle Points decimal with comma instead of point, ie "10,5"
+					$columns['POINTS'] = str_replace( ',', '.', $columns['POINTS'] );
+
 					if ( mb_substr( $columns['POINTS'], -1 ) == '%' )
 					{
 						$columns['POINTS'] = mb_substr( $columns['POINTS'], 0, -1 ) * $assignments_RET[$assignment_id][1]['POINTS'] / 100;
 					}
-					elseif ( ! is_numeric( $columns['POINTS'] ) )
+                    elseif ( ! is_numeric( $columns['POINTS'] ) )
 					{
 						$columns['POINTS'] = _makePercentGrade( $columns['POINTS'], UserCoursePeriod() ) * $assignments_RET[$assignment_id][1]['POINTS'] / 100;
 					}
@@ -171,38 +189,39 @@ if ( ! empty( $_REQUEST['values'] )
 					{
 						$columns['POINTS'] = '0';
 					}
-					elseif ( $columns['POINTS'] > 9999.99 )
+                    elseif ( $columns['POINTS'] > 9999.99 )
 					{
 						$columns['POINTS'] = '9999.99';
 					}
 				}
 			}
 
-			$sql = '';
-
 			if ( ! empty( $current_RET[$student_id][$assignment_id] ) )
 			{
-				$sql = "UPDATE gradebook_grades SET ";
-
-				foreach ( (array) $columns as $column => $value )
-				{
-					$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-				}
-
-				$sql = mb_substr( $sql, 0, -1 ) . " WHERE STUDENT_ID='" . (int) $student_id . "'
-					AND ASSIGNMENT_ID='" . (int) $assignment_id . "'
-					AND COURSE_PERIOD_ID='" . UserCoursePeriod() . "'";
+				DBUpdate(
+					'gradebook_grades',
+					$columns,
+					[
+						'STUDENT_ID' => (int) $student_id,
+						'COURSE_PERIOD_ID' => UserCoursePeriod(),
+						'ASSIGNMENT_ID' => (int) $assignment_id,
+					]
+				);
 			}
-			elseif ( $columns['POINTS'] != '' || $columns['COMMENT'] )
+            elseif ( $columns['POINTS'] != ''
+			         || ( isset( $columns['COMMENT'] ) && $columns['COMMENT'] != '' ) )
 			{
 				// @deprecated since 6.9 SQL gradebook_grades column PERIOD_ID.
-				$sql = "INSERT INTO gradebook_grades (STUDENT_ID,COURSE_PERIOD_ID,ASSIGNMENT_ID,POINTS,COMMENT)
-					values('" . $student_id . "','" . UserCoursePeriod() . "','" . $assignment_id . "','" . $columns['POINTS'] . "','" . $columns['COMMENT'] . "')";
-			}
-
-			if ( $sql )
-			{
-				DBQuery( $sql );
+				DBInsert(
+					'gradebook_grades',
+					[
+						'STUDENT_ID' => (int) $student_id,
+						'COURSE_PERIOD_ID' => UserCoursePeriod(),
+						'ASSIGNMENT_ID' => (int) $assignment_id,
+						'POINTS' => $columns['POINTS'],
+						'COMMENT' => issetVal( $columns['COMMENT'], '' ),
+					]
+				);
 			}
 		}
 	}
@@ -212,9 +231,6 @@ if ( ! empty( $_REQUEST['values'] )
 
 	unset( $current_RET );
 }
-
-$_SESSION['type_id'] = ! empty( $_REQUEST['type_id'] ) ? $_REQUEST['type_id'] : null;
-$_SESSION['assignment_id'] = ! empty( $_REQUEST['assignment_id'] ) ? $_REQUEST['assignment_id'] : null;
 
 $LO_options = [ 'search' => false ];
 
@@ -268,12 +284,12 @@ if ( UserStudentID() )
 	AND a.MARKING_PERIOD_ID='" . UserMP() . "'
 	AND g.STUDENT_ID='" . UserStudentID() . "'
 	AND g.COURSE_PERIOD_ID='" . UserCoursePeriod() . "'" .
-		( $_REQUEST['assignment_id'] == 'all' ? '' : " AND g.ASSIGNMENT_ID='" . (int) $_REQUEST['assignment_id'] . "'" ), [], [ 'ASSIGNMENT_ID' ] );
+	                                       ( $_REQUEST['assignment_id'] == 'all' ? '' : " AND g.ASSIGNMENT_ID='" . (int) $_REQUEST['assignment_id'] . "'" ), [], [ 'ASSIGNMENT_ID' ] );
 
 	$count_assignments = count( (array) $assignments_RET );
 
 	$extra['SELECT'] = ",ga.ASSIGNMENT_TYPE_ID,ga.ASSIGNMENT_ID,ga.TITLE,ga.POINTS AS TOTAL_POINTS,
-		ga.SUBMISSION,'' AS PERCENT_GRADE,'' AS LETTER_GRADE,
+		ga.SUBMISSION,'' AS PERCENT_GRADE,'' AS LETTER_GRADE,ga.WEIGHT,
 		CASE WHEN (ga.ASSIGNED_DATE IS NULL OR CURRENT_DATE>=ga.ASSIGNED_DATE)
 			AND (ga.DUE_DATE IS NULL OR CURRENT_DATE>=ga.DUE_DATE)
 			OR CURRENT_DATE>(SELECT END_DATE FROM school_marking_periods WHERE MARKING_PERIOD_ID=ga.MARKING_PERIOD_ID)
@@ -295,8 +311,8 @@ if ( UserStudentID() )
 	AND ((ga.COURSE_ID=cp.COURSE_ID AND ga.STAFF_ID=cp.TEACHER_ID)
 		OR ga.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID)
 	AND ga.MARKING_PERIOD_ID='" . UserMP() . "'" .
-	( $_REQUEST['assignment_id'] == 'all' ? '' : " AND ga.ASSIGNMENT_ID='" . (int) $_REQUEST['assignment_id'] . "'" ) .
-	( $_REQUEST['type_id'] ? " AND ga.ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' ) . ")
+	                 ( $_REQUEST['assignment_id'] == 'all' ? '' : " AND ga.ASSIGNMENT_ID='" . (int) $_REQUEST['assignment_id'] . "'" ) .
+	                 ( $_REQUEST['type_id'] ? " AND ga.ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' ) . ")
 	LEFT OUTER JOIN gradebook_grades gg ON
 	(gg.STUDENT_ID=s.STUDENT_ID
 	AND gg.ASSIGNMENT_ID=ga.ASSIGNMENT_ID
@@ -309,12 +325,13 @@ if ( UserStudentID() )
 			OR (GREATEST(ssm.START_DATE,ss.START_DATE)<=ga.DUE_DATE)
 			AND (LEAST(ssm.END_DATE,ss.END_DATE) IS NULL
 			OR LEAST(ssm.END_DATE,ss.END_DATE)>=ga.DUE_DATE)))" .
-		( $_REQUEST['type_id'] ? " AND ga.ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' );
+		                   ( $_REQUEST['type_id'] ? " AND ga.ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' );
 	}
 
-	$extra['ORDER_BY'] = Preferences( 'ASSIGNMENT_SORTING', 'Gradebook' ) . " DESC";
+	$extra['ORDER_BY'] = DBEscapeIdentifier( Preferences( 'ASSIGNMENT_SORTING', 'Gradebook' ) ) . " DESC";
 
 	$extra['functions'] = [
+		'TYPE_TITLE' => '_makeTitle',
 		'POINTS' => '_makeExtraStuCols',
 		'PERCENT_GRADE' => '_makeExtraStuCols',
 		'LETTER_GRADE' => '_makeExtraStuCols',
@@ -340,13 +357,13 @@ else
 	}
 
 	$link['FULL_NAME']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] .
-		'&include_inactive=' . $_REQUEST['include_inactive'] .
-		'&include_all=' . $_REQUEST['include_all'] . '&type_id=' . $_REQUEST['type_id'] . '&assignment_id=all';
+	                             '&include_inactive=' . $_REQUEST['include_inactive'] .
+	                             '&include_all=' . $_REQUEST['include_all'] . '&type_id=' . $_REQUEST['type_id'] . '&assignment_id=all';
 
 	$link['FULL_NAME']['variables'] = [ 'student_id' => 'STUDENT_ID' ];
 
 	$sql_start_end_epoch = "," . _SQLUnixTimestamp( 'GREATEST(ssm.START_DATE, ss.START_DATE)' ) . " AS START_EPOCH," .
-		_SQLUnixTimestamp( 'LEAST(ssm.END_DATE, ss.END_DATE)' ) . " AS END_EPOCH";
+	                       _SQLUnixTimestamp( 'LEAST(ssm.END_DATE, ss.END_DATE)' ) . " AS END_EPOCH";
 
 	if ( $_REQUEST['assignment_id'] == 'all' )
 	{
@@ -355,7 +372,7 @@ else
 			WHERE a.ASSIGNMENT_ID=g.ASSIGNMENT_ID
 			AND a.MARKING_PERIOD_ID='" . UserMP() . "'
 			AND g.COURSE_PERIOD_ID='" . UserCoursePeriod() . "'" .
-			( $_REQUEST['type_id'] ? " AND a.ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' ),
+		                      ( $_REQUEST['type_id'] ? " AND a.ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' ),
 			[],
 			[ 'STUDENT_ID', 'ASSIGNMENT_ID' ]
 		);
@@ -378,7 +395,12 @@ else
 
 			$extra['functions'] += [ 'G' . $id => '_makeExtraCols' ];
 
-			$column_title = $assignment['TITLE'];
+			// @since 10.4 Truncate Assignment title to 36 chars.
+			$title = mb_strlen( $assignment['TITLE'] ) <= 36 ?
+				$assignment['TITLE'] :
+				'<span title="' . AttrEscape( $assignment['TITLE'] ) . '">' . mb_substr( $assignment['TITLE'], 0, 33 ) . '...</span>';
+
+			$column_title = $title;
 
 			if ( empty( $_REQUEST['type_id'] ) )
 			{
@@ -386,17 +408,17 @@ else
 			}
 
 			if ( ! $_REQUEST['type_id']
-				&& $types_RET[$assignment['ASSIGNMENT_TYPE_ID']][1]['COLOR'] )
+			     && $types_RET[$assignment['ASSIGNMENT_TYPE_ID']][1]['COLOR'] )
 			{
 				$column_title = '<span style="background-color: ' .
-					$types_RET[$assignment['ASSIGNMENT_TYPE_ID']][1]['COLOR'] . ';">&nbsp;</span>&nbsp;' .
-					$column_title;
+				                $types_RET[$assignment['ASSIGNMENT_TYPE_ID']][1]['COLOR'] . ';">&nbsp;</span>&nbsp;' .
+				                $column_title;
 			}
 
 			$LO_columns['G' . $id] = $column_title;
 		}
 	}
-	elseif ( ! empty( $_REQUEST['assignment_id'] ) )
+    elseif ( ! empty( $_REQUEST['assignment_id'] ) )
 	{
 		$extra['SELECT'] = ",'" . $_REQUEST['assignment_id'] . "' AS POINTS,
 			'" . $_REQUEST['assignment_id'] . "' AS PERCENT_GRADE,
@@ -437,6 +459,13 @@ else
 				sum(" . db_case( [ 'gg.POINTS', "'-1'", "'0'", "''", db_case( [ 'ga.DEFAULT_POINTS', "'-1'", "'0'", 'ga.DEFAULT_POINTS' ] ), 'gg.POINTS' ] ) . ") AS PARTIAL_POINTS,
 				sum(" . db_case( [ 'gg.POINTS', "'-1'", "'0'", "''", db_case( [ 'ga.DEFAULT_POINTS', "'-1'", "'0'", 'ga.POINTS' ] ), 'ga.POINTS' ] ) . ") AS PARTIAL_TOTAL,gt.FINAL_GRADE_PERCENT";
 
+			if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
+			{
+				// @since 11.0 Add Weight Assignments option
+				$extra['SELECT_ONLY'] .= ",sum(" . db_case( [ 'ga.WEIGHT', "''", "'0'", "ga.WEIGHT" ] ) . ") AS PARTIAL_WEIGHT,
+					sum((gg.POINTS/ga.POINTS)*ga.WEIGHT) AS PARTIAL_WEIGHTED_GRADE";
+			}
+
 			$extra['FROM'] = " JOIN gradebook_assignments ga ON (((ga.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID OR ga.COURSE_ID=cp.COURSE_ID) AND ga.STAFF_ID=cp.TEACHER_ID)
 				AND ga.MARKING_PERIOD_ID='" . UserMP() . "')
 			LEFT OUTER JOIN gradebook_grades gg ON (gg.STUDENT_ID=s.STUDENT_ID
@@ -450,7 +479,14 @@ else
 				OR CURRENT_DATE>(SELECT END_DATE
 					FROM school_marking_periods
 					WHERE MARKING_PERIOD_ID=ga.MARKING_PERIOD_ID))" .
-			( $_REQUEST['type_id'] ? " AND ga.ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' );
+			                  ( $_REQUEST['type_id'] ? " AND ga.ASSIGNMENT_TYPE_ID='" . (int) $_REQUEST['type_id'] . "'" : '' );
+
+			if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
+			{
+				// @since 11.0 Add Weight Assignments option
+				// Exclude Extra Credit assignments.
+				$extra['WHERE'] .= " AND ga.POINTS>0";
+			}
 
 			if ( empty( $_REQUEST['include_all'] ) )
 			{
@@ -469,7 +505,7 @@ else
 
 			unset( $extra );
 			$extra['SELECT'] = $sql_start_end_epoch .
-				",'' AS POINTS,'' AS PERCENT_GRADE,'' AS LETTER_GRADE";
+			                   ",'' AS POINTS,'' AS PERCENT_GRADE,'' AS LETTER_GRADE";
 
 			$extra['functions'] = [
 				'POINTS' => '_makeExtraAssnCols',
@@ -495,7 +531,7 @@ else
 		if ( ProgramConfig( 'grades', 'GRADES_DOES_LETTER_PERCENT' ) <= 0 )
 		{
 			if ( empty( $_REQUEST['assignment_id'] )
-				|| empty( $gradebook_config['LETTER_GRADE_ALL'] ) )
+			     || empty( $gradebook_config['LETTER_GRADE_ALL'] ) )
 			{
 				$LO_columns['LETTER_GRADE'] = _( 'Letter' );
 			}
@@ -509,47 +545,47 @@ $stu_RET = GetStuList( $extra );
 //echo '<pre>'; var_dump($stu_RET); echo '</pre>';
 
 $type_onchange_URL = URLEscape( "Modules.php?modname=" . $_REQUEST['modname'] .
-	'&include_inactive=' . $_REQUEST['include_inactive'] .
-	'&include_all=' . $_REQUEST['include_all'] .
-	( $_REQUEST['assignment_id'] === 'all' ? '&assignment_id=all' : '' ) .
-	( UserStudentID() ? '&student_id=' . UserStudentID() : '' ) .
-	"&type_id=" );
+                                '&include_inactive=' . $_REQUEST['include_inactive'] .
+                                '&include_all=' . $_REQUEST['include_all'] .
+                                ( $_REQUEST['assignment_id'] === 'all' ? '&assignment_id=all' : '' ) .
+                                ( UserStudentID() ? '&student_id=' . UserStudentID() : '' ) .
+                                "&type_id=" );
 
-$type_select = '<select name="type_id" id="type_id" onchange="' .
-	AttrEscape( 'ajaxLink(' . json_encode( $type_onchange_URL ) . ' + this.value);' ) . '">';
+$type_select = '<select name="type_id" id="type_id" autocomplete="off" onchange="' .
+               AttrEscape( 'ajaxLink(' . json_encode( $type_onchange_URL ) . ' + this.value);' ) . '">';
 
 $type_select .= '<option value=""' . ( ! $_REQUEST['type_id'] ? ' selected' : '' ) . '>' .
-_( 'All' ) .
-	'</option>';
+                _( 'All' ) .
+                '</option>';
 
 foreach ( (array) $types_RET as $id => $type )
 {
 	$type_select .= '<option value="' . AttrEscape( $id ) . '"' . ( $_REQUEST['type_id'] == $id ? ' selected' : '' ) . '>' .
-		$type[1]['TITLE'] .
-		'</option>';
+	                $type[1]['TITLE'] .
+	                '</option>';
 }
 
 $type_select .= '</select><label for="type_id" class="a11y-hidden">' . _( 'Assignment Types' ) . '</label>';
 
 $assignment_onchange_URL = URLEscape( "Modules.php?modname=" . $_REQUEST['modname'] .
-	'&include_inactive=' . $_REQUEST['include_inactive'] .
-	'&include_all=' . $_REQUEST['include_all'] .
-	'&type_id=' . $_REQUEST['type_id'] .
-	"&assignment_id=" );
+                                      '&include_inactive=' . $_REQUEST['include_inactive'] .
+                                      '&include_all=' . $_REQUEST['include_all'] .
+                                      '&type_id=' . $_REQUEST['type_id'] .
+                                      "&assignment_id=" );
 
-$assignment_select = '<select name="assignment_id" id="assignment_id" onchange="' .
-	AttrEscape( 'ajaxLink(' . json_encode( $assignment_onchange_URL ) . ' + this.value);' ) . '">';
+$assignment_select = '<select name="assignment_id" id="assignment_id" autocomplete="off" onchange="' .
+                     AttrEscape( 'ajaxLink(' . json_encode( $assignment_onchange_URL ) . ' + this.value);' ) . '">';
 
 $assignment_select .= '<option value="">' . _( 'Totals' ) . '</option>';
 
 $assignment_select .= '<option value="all"' . (  ( $_REQUEST['assignment_id'] === 'all' && ! UserStudentID() ) ? ' selected' : '' ) . '>' .
-_( 'All' ) .
-	'</option>';
+                      _( 'All' ) .
+                      '</option>';
 
 if ( UserStudentID() && $_REQUEST['assignment_id'] === 'all' )
 {
 	$assignment_select .= '<option value="all" selected>' .
-		( isset( $stu_RET[1]['FULL_NAME'] ) ? $stu_RET[1]['FULL_NAME'] : '' ) . '</option>';
+	                      ( isset( $stu_RET[1]['FULL_NAME'] ) ? $stu_RET[1]['FULL_NAME'] : '' ) . '</option>';
 }
 
 $optgroup = '';
@@ -557,7 +593,7 @@ $optgroup = '';
 foreach ( (array) $assignments_RET as $id => $assignment )
 {
 	if ( empty( $_REQUEST['type_id'] )
-		&& $optgroup !== $types_RET[$assignment[1]['ASSIGNMENT_TYPE_ID']][1]['TITLE'] )
+	     && $optgroup !== $types_RET[$assignment[1]['ASSIGNMENT_TYPE_ID']][1]['TITLE'] )
 	{
 		if ( $optgroup )
 		{
@@ -566,12 +602,12 @@ foreach ( (array) $assignments_RET as $id => $assignment )
 
 		$optgroup = $types_RET[$assignment[1]['ASSIGNMENT_TYPE_ID']][1]['TITLE'];
 
-		$assignment_select .= '<optgroup label="' . AttrEscape( $optgroup ) . '">';
+		$assignment_select .= '<optgroup label="' . AttrEscape( strip_tags( $optgroup ) ) . '">';
 	}
 
 	$assignment_select .= '<option value="' . AttrEscape( $id ) . '"' .
-		( $_REQUEST['assignment_id'] == $id ? ' selected' : '' ) . '>' .
-		$assignment[1]['TITLE'] . '</option>';
+	                      ( $_REQUEST['assignment_id'] == $id ? ' selected' : '' ) . '>' .
+	                      $assignment[1]['TITLE'] . '</option>';
 }
 
 if ( $assignments_RET )
@@ -584,7 +620,15 @@ $assignment_select .= '</select>
 
 // echo '<form action="' . URLEscape( 'Modules.php?modname='.$_REQUEST['modname'].'&student_id='.UserStudentID().'' ) . '" method="POST">';
 
-echo '<form action="' . PreparePHP_SELF( [], [ 'values' ] ) . '" method="POST">';
+/**
+ * Adding `'&period=' . UserCoursePeriod()` to the Teacher form URL will prevent the following issue:
+ * If form is displayed for CP A, then Teacher opens a new browser tab and switches to CP B
+ * Then teacher submits the form, data would be saved for CP B...
+ *
+ * Must be used in combination with
+ * `if ( ! empty( $_REQUEST['period'] ) ) SetUserCoursePeriod( $_REQUEST['period'] );`
+ */
+echo '<form action="' . PreparePHP_SELF( [], [ 'values' ], [ 'period' => UserCoursePeriod() ] ) . '" method="POST">';
 
 $tabs = [ [
 	'title' => _( 'All' ),
@@ -602,13 +646,13 @@ foreach ( (array) $types_RET as $id => $type )
 
 	$tabs[] = [
 		'title' => $color . $type[1]['TITLE'] .
-			( ! empty( $gradebook_config['WEIGHT'] ) ?
-				'|' . number_format( 100 * $type[1]['FINAL_GRADE_PERCENT'], 0 ) . '%' :
-				'' ),
+		           ( ! empty( $gradebook_config['WEIGHT'] ) ?
+			           '|' . number_format( 100 * $type[1]['FINAL_GRADE_PERCENT'], 0 ) . '%' :
+			           '' ),
 		'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&type_id=' . $id .
-			( $_REQUEST['assignment_id'] == 'all' ? '&assignment_id=all' : '' ) .
-			( UserStudentID() ? '&student_id=' . UserStudentID() : '' ) .
-			'&include_inactive=' . $_REQUEST['include_inactive'] . '&include_all=' . $_REQUEST['include_all'],
+		          ( $_REQUEST['assignment_id'] == 'all' ? '&assignment_id=all' : '' ) .
+		          ( UserStudentID() ? '&student_id=' . UserStudentID() : '' ) .
+		          '&include_inactive=' . $_REQUEST['include_inactive'] . '&include_all=' . $_REQUEST['include_all'],
 	];
 }
 
@@ -635,13 +679,13 @@ if ( $_REQUEST['assignment_id'] && $_REQUEST['assignment_id'] != 'all' )
 	$due = $assignments_RET[$_REQUEST['assignment_id']][1]['DUE'];
 
 	DrawHeader( _( 'Assigned Date' ) . ': ' . ( $assigned_date ? ProperDate( $assigned_date ) : _( 'N/A' ) ) .
-		' &mdash; ' . _( 'Due Date' ) . ': ' . ( $due_date ? ProperDate( $due_date ) : _( 'N/A' ) ) .
-		( $due ? ' &mdash; <b>' . _( 'Assignment is Due' ) . '</b>' : '' ) );
+	            ' &mdash; ' . _( 'Due Date' ) . ': ' . ( $due_date ? ProperDate( $due_date ) : _( 'N/A' ) ) .
+	            ( $due ? ' &mdash; <b>' . _( 'Assignment is Due' ) . '</b>' : '' ) );
 }
 
 if ( empty( $_ROSARIO['allow_edit'] )
-	&& ( ! empty( $_REQUEST['student_id'] )
-		|| ! empty( $_REQUEST['assignment_id'] ) ) )
+     && ( ! empty( $_REQUEST['student_id'] )
+          || ! empty( $_REQUEST['assignment_id'] ) ) )
 {
 	DrawHeader( '<span style="color:red">' . _( 'You can not edit these grades.' ) . '</span>' );
 }
@@ -690,20 +734,20 @@ else
 // @since 4.6 Navigate form inputs vertically using tab key.
 // @link https://stackoverflow.com/questions/38575817/set-tabindex-in-vertical-order-of-columns
 ?>
-<script>
-	function fixVerticalTabindex(selector) {
-		var tabindex = 1;
-		$(selector).each(function(i, tbl) {
-			$(tbl).find('tr').first().find('td').each(function(clmn, el) {
-				$(tbl).find('tr td:nth-child(' + (clmn + 1) + ') input').each(function(j, input) {
-					$(input).attr('tabindex', tabindex++);
-				});
-			});
-		});
-	}
+    <script>
+        function fixVerticalTabindex(selector) {
+            var tabindex = 1;
+            $(selector).each(function(i, tbl) {
+                $(tbl).find('tr').first().find('td').each(function(clmn, el) {
+                    $(tbl).find('tr td:nth-child(' + (clmn + 1) + ') input').each(function(j, input) {
+                        $(input).attr('tabindex', tabindex++);
+                    });
+                });
+            });
+        }
 
-	fixVerticalTabindex('.list-wrapper .list tbody');
-</script>
+        fixVerticalTabindex('.list-wrapper .list tbody');
+    </script>
 <?php
 
 echo $_REQUEST['assignment_id'] ? '<br /><div class="center">' . SubmitButton() . '</div>' : '';
@@ -717,12 +761,12 @@ echo '</form>';
 function _makeExtraAssnCols( $assignment_id, $column )
 {
 	global $THIS_RET,
-	$assignments_RET,
-	$current_RET,
-	$points_RET,
-	$max_allowed,
-	$total,
-		$gradebook_config;
+	       $assignments_RET,
+	       $current_RET,
+	       $points_RET,
+	       $max_allowed,
+	       $total,
+	       $gradebook_config;
 
 	switch ( $column )
 	{
@@ -744,7 +788,7 @@ function _makeExtraAssnCols( $assignment_id, $column )
 						 * Division by zero is impossible.
 						 */
 						if ( $partial_points['PARTIAL_TOTAL'] != 0
-							|| empty( $gradebook_config['WEIGHT'] ) )
+						     || empty( $gradebook_config['WEIGHT'] ) )
 						{
 							$total += $partial_points['PARTIAL_POINTS'];
 							$total_points += $partial_points['PARTIAL_TOTAL'];
@@ -759,12 +803,12 @@ function _makeExtraAssnCols( $assignment_id, $column )
 			else
 			{
 				if ( ! empty( $_REQUEST['include_all'] )
-					|| ( ( isset( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] )
-						&& $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != '' )
-						|| ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
-						|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
-						&& ( ! $THIS_RET['END_EPOCH']
-							|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
+				     || ( ( isset( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] )
+				            && $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != '' )
+				          || ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
+				          || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
+				             && ( ! $THIS_RET['END_EPOCH']
+				                  || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
 				{
 					$total_points = $assignments_RET[$assignment_id][1]['POINTS'];
 
@@ -782,7 +826,7 @@ function _makeExtraAssnCols( $assignment_id, $column )
 					{
 						$points = '*';
 					}
-					elseif ( mb_strpos( (string) $points, '.' ) )
+                    elseif ( mb_strpos( (string) $points, '.' ) )
 					{
 						$points = rtrim( rtrim( $points, '0' ), '.' );
 					}
@@ -794,13 +838,13 @@ function _makeExtraAssnCols( $assignment_id, $column )
 					$id = GetInputID( $name );
 
 					return '<span' . ( $div ? ' class="span-grade-points"' : '' ) . '>' .
-					TextInput(
-						$points,
-						$name,
-						'',
-						' size=2 maxlength=7',
-						$div
-					) . '</span>
+					       TextInput(
+						       $points,
+						       $name,
+						       '',
+						       ' size=2 maxlength=7',
+						       $div
+					       ) . '</span>
 						<label for="' . $id . '">&nbsp;/&nbsp;' . $total_points . '</label>';
 				}
 			}
@@ -810,7 +854,7 @@ function _makeExtraAssnCols( $assignment_id, $column )
 		case 'PERCENT_GRADE':
 			if ( ! $assignment_id )
 			{
-				$total = $total_percent = 0;
+				$total = $total_percent = $total_weighted_grade = $total_weights = 0;
 
 				if ( ! empty( $points_RET[$THIS_RET['STUDENT_ID']] ) )
 				{
@@ -823,22 +867,41 @@ function _makeExtraAssnCols( $assignment_id, $column )
 						 * Division by zero is impossible.
 						 */
 						if ( $partial_points['PARTIAL_TOTAL'] != 0
-							|| empty( $gradebook_config['WEIGHT'] ) )
+						     || empty( $gradebook_config['WEIGHT'] ) )
 						{
 							$total += $partial_points['PARTIAL_POINTS'] *
-								( ! empty( $gradebook_config['WEIGHT'] ) ?
-									$partial_points['FINAL_GRADE_PERCENT'] / $partial_points['PARTIAL_TOTAL'] :
-									1 );
+							          ( ! empty( $gradebook_config['WEIGHT'] ) ?
+								          $partial_points['FINAL_GRADE_PERCENT'] / $partial_points['PARTIAL_TOTAL'] :
+								          1 );
 
 							$total_percent += ( ! empty( $gradebook_config['WEIGHT'] ) ?
 								$partial_points['FINAL_GRADE_PERCENT'] :
 								$partial_points['PARTIAL_TOTAL'] );
+
+							if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
+							{
+								// @since 11.0 Add Weight Assignments option
+								$total_weighted_grade += ( ! empty( $gradebook_config['WEIGHT'] ) ?
+									$partial_points['FINAL_GRADE_PERCENT'] * $partial_points['PARTIAL_WEIGHTED_GRADE'] :
+									$partial_points['PARTIAL_WEIGHTED_GRADE'] );
+
+								$total_weights += ( ! empty( $gradebook_config['WEIGHT'] ) ?
+									$partial_points['FINAL_GRADE_PERCENT'] * $partial_points['PARTIAL_WEIGHT'] :
+									$partial_points['PARTIAL_WEIGHT'] );
+							}
 						}
 					}
 
 					if ( $total_percent != 0 )
 					{
 						$total /= $total_percent;
+					}
+
+					if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] )
+					     && $total_weights > 0 )
+					{
+						// @since 11.0 Add Weight Assignments option
+						$total = $total_weighted_grade / $total_weights;
 					}
 				}
 
@@ -851,12 +914,12 @@ function _makeExtraAssnCols( $assignment_id, $column )
 			else
 			{
 				if ( ! empty( $_REQUEST['include_all'] )
-					|| ( ( isset( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] )
-							&& $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != '' )
-						|| ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
-						|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
-						&& ( ! $THIS_RET['END_EPOCH']
-							|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
+				     || ( ( isset( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] )
+				            && $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != '' )
+				          || ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
+				          || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
+				             && ( ! $THIS_RET['END_EPOCH']
+				                  || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
 				{
 					$total_points = $assignments_RET[$assignment_id][1]['POINTS'];
 					//FJ default points
@@ -872,7 +935,7 @@ function _makeExtraAssnCols( $assignment_id, $column )
 						if ( $points != '-1' )
 						{
 							$red_span = ( $assignments_RET[$assignment_id][1]['DUE'] || $points != '' )
-								&& ( $points > $total_points * $max_allowed );
+							            && ( $points > $total_points * $max_allowed );
 
 							$percent = _makeLetterGrade( $points / $total_points, 0, 0, '%' );
 
@@ -900,12 +963,12 @@ function _makeExtraAssnCols( $assignment_id, $column )
 			else
 			{
 				if ( ! empty( $_REQUEST['include_all'] )
-					|| ( ( isset( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] )
-							&& $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != '' )
-						|| ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
-						|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
-						&& ( ! $THIS_RET['END_EPOCH']
-							|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
+				     || ( ( isset( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] )
+				            && $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != '' )
+				          || ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
+				          || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
+				             && ( ! $THIS_RET['END_EPOCH']
+				                  || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
 				{
 					$total_points = $assignments_RET[$assignment_id][1]['POINTS'];
 					//FJ default points
@@ -943,12 +1006,12 @@ function _makeExtraAssnCols( $assignment_id, $column )
 			else
 			{
 				if ( ! empty( $_REQUEST['include_all'] )
-					|| ( ( isset( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] )
-							&& $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != '' )
-						|| ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
-						|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
-						&& ( ! $THIS_RET['END_EPOCH']
-							|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
+				     || ( ( isset( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] )
+				            && $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != '' )
+				          || ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
+				          || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
+				             && ( ! $THIS_RET['END_EPOCH']
+				                  || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
 				{
 					$return = TextInput(
 						issetVal( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['COMMENT'] ),
@@ -958,11 +1021,11 @@ function _makeExtraAssnCols( $assignment_id, $column )
 					);
 
 					if ( mb_strlen( (string) $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['COMMENT'] ) > 60
-						&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+					     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 					{
 						// Comments length > 60 chars, responsive table ColorBox.
 						$return = '<div id="divGradesComment' . $THIS_RET['STUDENT_ID'] . '" class="rt2colorBox">' .
-							$return . '</div>';
+						          $return . '</div>';
 					}
 
 					return $return;
@@ -980,10 +1043,10 @@ function _makeExtraAssnCols( $assignment_id, $column )
 function _makeExtraStuCols( $value, $column )
 {
 	global $THIS_RET,
-	$assignments_RET,
-	$assignment_count,
-	$count_assignments,
-		$max_allowed;
+	       $assignments_RET,
+	       $assignment_count,
+	       $count_assignments,
+	       $max_allowed;
 
 	//FJ default points
 
@@ -1010,7 +1073,7 @@ function _makeExtraStuCols( $value, $column )
 			{
 				$value = '*';
 			}
-			elseif ( mb_strpos( (string) $value, '.' ) )
+            elseif ( mb_strpos( (string) $value, '.' ) )
 			{
 				$value = rtrim( rtrim( $value, '0' ), '.' );
 			}
@@ -1022,13 +1085,13 @@ function _makeExtraStuCols( $value, $column )
 			$id = GetInputID( $name );
 
 			return '<span' . ( $div ? ' class="span-grade-points"' : '' ) . '>' .
-			TextInput(
-				$value,
-				$name,
-				'',
-				' size=2 maxlength=7',
-				$div
-			) . '</span>
+			       TextInput(
+				       $value,
+				       $name,
+				       '',
+				       ' size=2 maxlength=7',
+				       $div
+			       ) . '</span>
 				<label for="' . $id . '">&nbsp;/&nbsp;' . $THIS_RET['TOTAL_POINTS'] . '</label>';
 			break;
 
@@ -1038,7 +1101,7 @@ function _makeExtraStuCols( $value, $column )
 				if ( $THIS_RET['POINTS'] != '-1' )
 				{
 					$red_span = ( $THIS_RET['DUE'] || $THIS_RET['POINTS'] != '' )
-						&& ( $THIS_RET['POINTS'] > $THIS_RET['TOTAL_POINTS'] * $max_allowed );
+					            && ( $THIS_RET['POINTS'] > $THIS_RET['TOTAL_POINTS'] * $max_allowed );
 
 					$percent = _makeLetterGrade( $THIS_RET['POINTS'] / $THIS_RET['TOTAL_POINTS'], 0, 0, '%' );
 
@@ -1078,11 +1141,11 @@ function _makeExtraStuCols( $value, $column )
 			);
 
 			if ( mb_strlen( (string) $value ) > 60
-				&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+			     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 			{
 				// Comments length > 60 chars, responsive table ColorBox.
 				$return = '<div id="divGradesComment' . $THIS_RET['STUDENT_ID'] . '" class="rt2colorBox">' .
-					$return . '</div>';
+				          $return . '</div>';
 			}
 
 			return $return;
@@ -1098,12 +1161,12 @@ function _makeExtraStuCols( $value, $column )
 function _makeExtraCols( $assignment_id, $column )
 {
 	global $THIS_RET,
-	$assignments_RET,
-	$current_RET,
-	$old_student_id,
-	$student_count,
-	$count_students,
-		$max_allowed;
+	       $assignments_RET,
+	       $current_RET,
+	       $old_student_id,
+	       $student_count,
+	       $count_students,
+	       $max_allowed;
 
 	if ( $THIS_RET['STUDENT_ID'] != $old_student_id )
 	{
@@ -1117,11 +1180,11 @@ function _makeExtraCols( $assignment_id, $column )
 	$current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] = issetVal( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] );
 
 	if ( ! empty( $_REQUEST['include_all'] )
-		|| ( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != ''
-			|| ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
-			|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
-			&& ( ! $THIS_RET['END_EPOCH']
-				|| $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
+	     || ( $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'] != ''
+	          || ! $assignments_RET[$assignment_id][1]['DUE_EPOCH']
+	          || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] >= $THIS_RET['START_EPOCH']
+	             && ( ! $THIS_RET['END_EPOCH']
+	                  || $assignments_RET[$assignment_id][1]['DUE_EPOCH'] <= $THIS_RET['END_EPOCH'] ) ) )
 	{
 		//FJ default points
 		$points = $current_RET[$THIS_RET['STUDENT_ID']][$assignment_id][1]['POINTS'];
@@ -1137,7 +1200,7 @@ function _makeExtraCols( $assignment_id, $column )
 		{
 			$points = '*';
 		}
-		elseif ( mb_strpos( (string) $points, '.' ) )
+        elseif ( mb_strpos( (string) $points, '.' ) )
 		{
 			$points = rtrim( rtrim( $points, '0' ), '.' );
 		}
@@ -1151,39 +1214,39 @@ function _makeExtraCols( $assignment_id, $column )
 			if ( $points != '*' )
 			{
 				$percent_red_span = ( $assignments_RET[$assignment_id][1]['DUE'] || $points != '' )
-					&& ( $points > $total_points * $max_allowed );
+				                    && ( $points > $total_points * $max_allowed );
 
 				$percent = _makeLetterGrade( $points / $total_points, 0, 0, '%' );
 
 				// modif Francois: display letter grade according to Configuration
 				return '<span' . ( $div ? ' class="span-grade-points"' : '' ) . '>' .
-				TextInput(
-					$points,
-					$name,
-					'',
-					' size=2 maxlength=7',
-					$div
-				) . '</span>
+				       TextInput(
+					       $points,
+					       $name,
+					       '',
+					       ' size=2 maxlength=7',
+					       $div
+				       ) . '</span>
 				<label for="' . $id . '">&nbsp;/&nbsp;' . $total_points . '</label><span>' .
-				( ProgramConfig( 'grades', 'GRADES_DOES_LETTER_PERCENT' ) >= 0 ?
-					'&nbsp;&minus;&nbsp;' . _Percent( $percent, 2, $percent_red_span ) :
-					'' ) .
-				( ProgramConfig( 'grades', 'GRADES_DOES_LETTER_PERCENT' ) <= 0 ?
-					'&nbsp;&minus;&nbsp;<b>' . _makeLetterGrade( $points / $total_points ) . '</b>' :
-					'' ) .
-				'</span>';
+				       ( ProgramConfig( 'grades', 'GRADES_DOES_LETTER_PERCENT' ) >= 0 ?
+					       '&nbsp;&minus;&nbsp;' . _Percent( $percent, 2, $percent_red_span ) :
+					       '' ) .
+				       ( ProgramConfig( 'grades', 'GRADES_DOES_LETTER_PERCENT' ) <= 0 ?
+					       '&nbsp;&minus;&nbsp;<b>' . _makeLetterGrade( $points / $total_points ) . '</b>' :
+					       '' ) .
+				       '</span>';
 			}
 
 			//return '<table cellspacing=0 cellpadding=1><tr align=center><td>'.TextInput($points,'values['.$THIS_RET['STUDENT_ID'].']['.$assignment_id.'][POINTS]','',' size=2 maxlength=7 tabindex='.$tabindex).'<hr />'.$total_points.'</td><td>&nbsp;'._('N/A').'<br />&nbsp;'._('N/A').'</td></tr></table>';
 
 			return '<span' . ( $div ? ' class="span-grade-points"' : '' ) . '>' .
-			TextInput(
-				$points,
-				$name,
-				'',
-				' size=2 maxlength=7',
-				$div
-			) . '</span>
+			       TextInput(
+				       $points,
+				       $name,
+				       '',
+				       ' size=2 maxlength=7',
+				       $div
+			       ) . '</span>
 			<label for="' . $id . '">&nbsp;/&nbsp;' . $total_points . '</label>
 			<span>&nbsp;&minus;&nbsp;' . _( 'N/A' ) . '</span>';
 		}
@@ -1191,13 +1254,13 @@ function _makeExtraCols( $assignment_id, $column )
 		//return '<table class="cellspacing-0"><tr class="center"><td>'.TextInput($points,'values['.$THIS_RET['STUDENT_ID'].']['.$assignment_id.'][POINTS]','',' size=2 maxlength=7 tabindex='.$tabindex).'<hr />'.$total_points.'</td><td>&nbsp;E/C</td></tr></table>';
 
 		return '<span' . ( $div ? ' class="span-grade-points"' : '' ) . '>' .
-		TextInput(
-			$points,
-			$name,
-			'',
-			' size=2 maxlength=7',
-			$div
-		) . '</span>
+		       TextInput(
+			       $points,
+			       $name,
+			       '',
+			       ' size=2 maxlength=7',
+			       $div
+		       ) . '</span>
 		<label for="' . $id . '">&nbsp;/&nbsp;' . $total_points . '</label>
 		<span>&nbsp;&minus;&nbsp;' . _( 'E/C' ) . '</span>';
 	}
@@ -1252,4 +1315,33 @@ function _SQLUnixTimestamp( $column )
 	}
 
 	return "extract(EPOCH FROM " . $column . ")";
+}
+
+/**
+ * Make Assignment Title
+ * Truncate Assignment title to 36 chars
+ *
+ * Local function.
+ * GetStuList() DBGet() callback.
+ *
+ * @since 10.5.2
+ *
+ * @param  string $value  Title value.
+ * @param  string $column Column. Defaults to 'TITLE'.
+ *
+ * @return string         Assignment title truncated to 36 chars.
+ */
+function _makeTitle( $value, $column = 'TITLE' )
+{
+	if ( ! empty( $_REQUEST['LO_save'] ) )
+	{
+		// Export list.
+		return $value;
+	}
+
+	$title = mb_strlen( $value ) <= 36 ?
+		$value :
+		'<span title="' . AttrEscape( $value ) . '">' . mb_substr( $value, 0, 33 ) . '...</span>';
+
+	return $title;
 }

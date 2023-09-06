@@ -2,11 +2,11 @@
 require_once 'ProgramFunctions/TipMessage.fnc.php';
 
 if ( ! empty( $_REQUEST['values'] )
-	&& $_POST['values']
-	&& $_REQUEST['modfunc'] === 'save' )
+     && $_POST['values']
+     && $_REQUEST['modfunc'] === 'save' )
 {
 	if ( UserStudentID()
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		$account_id = DBGetOne( "SELECT ACCOUNT_ID
 			FROM food_service_student_accounts
@@ -19,7 +19,7 @@ if ( ! empty( $_REQUEST['values'] )
 			$values = "'" . UserSyear() . "','" . UserSchool() . "','" . $account_id . "',
 				(SELECT BALANCE FROM food_service_accounts WHERE ACCOUNT_ID='" . (int) $account_id . "'),
 				CURRENT_TIMESTAMP,'" . mb_strtoupper( $_REQUEST['values']['TYPE'] ) . "','" .
-				$_REQUEST['values']['TYPE'] . "','" . User( 'STAFF_ID' ) . "'";
+			          $_REQUEST['values']['TYPE'] . "','" . User( 'STAFF_ID' ) . "'";
 
 			$sql = "INSERT INTO food_service_transactions (" . $fields . ") values (" . $values . ")";
 
@@ -29,15 +29,17 @@ if ( ! empty( $_REQUEST['values'] )
 
 			$full_description = DBEscapeString( _( $_REQUEST['values']['OPTION'] ) ) . ' ' . $_REQUEST['values']['DESCRIPTION'];
 
-			$fields = 'ITEM_ID,TRANSACTION_ID,AMOUNT,DISCOUNT,SHORT_NAME,DESCRIPTION';
-
-			$values = "'0','" . $transaction_id . "','" .
-			( $_REQUEST['values']['TYPE'] === 'Debit' ? -$amount : $amount ) . "',NULL,'" .
-			mb_strtoupper( $_REQUEST['values']['OPTION'] ) . "','" . $full_description . "'";
-
-			$sql = "INSERT INTO food_service_transaction_items (" . $fields . ") VALUES(" . $values . ")";
-
-			DBQuery( $sql );
+			DBInsert(
+				'food_service_transaction_items',
+				[
+					'ITEM_ID' => '0',
+					'TRANSACTION_ID' => (int) $transaction_id,
+					'AMOUNT' => ( $_REQUEST['values']['TYPE'] === 'Debit' ? -$amount : $amount ),
+					'DISCOUNT' => '',
+					'SHORT_NAME' => mb_strtoupper( $_REQUEST['values']['OPTION'] ),
+					'DESCRIPTION' => $full_description,
+				]
+			);
 
 			DBQuery( "UPDATE food_service_accounts
 				SET TRANSACTION_ID='" . (int) $transaction_id . "',BALANCE=BALANCE+(SELECT sum(AMOUNT)
@@ -77,14 +79,18 @@ Search( 'student_id', $extra );
 echo ErrorMessage( $error );
 
 if ( UserStudentID()
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
 	$student = DBGet( "SELECT s.STUDENT_ID," . DisplayNameSQL( 's' ) . " AS FULL_NAME,
-	fsa.ACCOUNT_ID,fsa.STATUS,
-	(SELECT BALANCE FROM food_service_accounts WHERE ACCOUNT_ID=fsa.ACCOUNT_ID) AS BALANCE
-	FROM students s,food_service_student_accounts fsa
-	WHERE s.STUDENT_ID='" . UserStudentID() . "'
-	AND fsa.STUDENT_ID=s.STUDENT_ID" );
+		(SELECT BALANCE FROM food_service_accounts WHERE ACCOUNT_ID=(SELECT ACCOUNT_ID
+			FROM food_service_student_accounts
+			WHERE STUDENT_ID=s.STUDENT_ID)) AS BALANCE,
+		(SELECT ACCOUNT_ID FROM food_service_student_accounts WHERE STUDENT_ID=s.STUDENT_ID) AS ACCOUNT_ID,
+		(SELECT STATUS FROM food_service_student_accounts WHERE STUDENT_ID=s.STUDENT_ID) AS STATUS,
+		(SELECT DISCOUNT FROM food_service_student_accounts WHERE STUDENT_ID=s.STUDENT_ID) AS DISCOUNT,
+		(SELECT BARCODE FROM food_service_student_accounts WHERE STUDENT_ID=s.STUDENT_ID) AS BARCODE
+		FROM students s
+		WHERE s.STUDENT_ID='" . UserStudentID() . "'" );
 
 	$student = $student[1];
 
@@ -109,7 +115,8 @@ if ( UserStudentID()
 		AND (fst.STUDENT_ID IS NULL OR fst.STUDENT_ID='" . UserStudentID() . "')
 		AND fst.TIMESTAMP BETWEEN CURRENT_DATE
 		AND (CURRENT_DATE + INTERVAL " . ( $DatabaseType === 'mysql' ? '1 DAY' : "'1 DAY'" ) . ")
-		AND fsti.TRANSACTION_ID=fst.TRANSACTION_ID" );
+		AND fsti.TRANSACTION_ID=fst.TRANSACTION_ID
+		ORDER BY fst.TRANSACTION_ID,fsti.ITEM_ID" );
 
 		// TODO: code duplication!
 		/**
@@ -169,7 +176,7 @@ if ( UserStudentID()
 			];
 
 			$link['add']['html']['DESCRIPTION'] = SelectInput( '', 'values[OPTION]', '', $options, false ) . ' ' .
-				TextInput( '', 'values[DESCRIPTION]', '', 'size=20 maxlength=50' );
+			                                      TextInput( '', 'values[DESCRIPTION]', '', 'size=20 maxlength=50' );
 
 			$link['add']['html']['AMOUNT'] = TextInput(
 				'',

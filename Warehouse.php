@@ -18,7 +18,7 @@
  * @package RosarioSIS
  */
 
-define( 'ROSARIO_VERSION', '10.1' );
+define( 'ROSARIO_VERSION', '11.2' );
 
 /**
  * Include config.inc.php file.
@@ -150,7 +150,7 @@ if ( isset( $Timezone ) )
 			 * @link https://stackoverflow.com/questions/25086456/php-convert-string-timezone-format-to-offset-integer#25086526
 			 */
 			$date_time_zone = new DateTimeZone( $Timezone );
-			$date = new DateTime( null, $date_time_zone );
+			$date = new DateTime( '', $date_time_zone );
 			$offset = $date_time_zone->getOffset( $date );
 			$offset = ( $offset < 0 ? '-' : '+' ) . gmdate( 'H:i', abs( $offset ) );
 
@@ -162,6 +162,11 @@ if ( isset( $Timezone ) )
 			DBQuery( "SET TIMEZONE TO '" . $Timezone . "'" );
 		}
 	}
+}
+else
+{
+	// Fix PHP error if date.timezone ini setting is an invalid time zone identifier.
+	date_default_timezone_set( date_default_timezone_get() );
 }
 
 // Send email on PHP fatal error.
@@ -182,7 +187,7 @@ $cookie_samesite = 'Strict';
 
 // Cookie secure flag for https.
 $cookie_https_only = ( ! empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] !== 'off' ) ||
-	( isset( $_SERVER['SERVER_PORT'] ) && $_SERVER['SERVER_PORT'] == 443 );
+                     ( isset( $_SERVER['SERVER_PORT'] ) && $_SERVER['SERVER_PORT'] == 443 );
 
 if ( PHP_VERSION_ID < 70300 )
 {
@@ -211,22 +216,32 @@ session_cache_limiter( 'nocache' );
 
 session_start();
 
+if ( empty( $_SESSION['DefaultSyear'] ) )
+{
+	// @since 11.1 Copy $DefaultSyear global var to session (once) to prevent errors when edited
+	$_SESSION['DefaultSyear'] = $DefaultSyear;
+}
+
 if ( empty( $_SESSION['token'] ) )
 {
 	/**
 	 * Add CSRF token to protect unauthenticated requests
 	 *
 	 * @since 9.0
+	 * @since 11.0 Fix PHP fatal error if openssl PHP extension is missing
 	 * @link https://stackoverflow.com/questions/5207160/what-is-a-csrf-token-what-is-its-importance-and-how-does-it-work
 	 */
-	$_SESSION['token'] = bin2hex( openssl_random_pseudo_bytes( 16 ) );
+	$_SESSION['token'] = bin2hex( function_exists( 'openssl_random_pseudo_bytes' ) ?
+		openssl_random_pseudo_bytes( 16 ) :
+		( function_exists( 'random_bytes' ) ? random_bytes( 16 ) :
+			mb_substr( sha1( rand( 999999999, 9999999999 ), true ), 0, 16 ) ) );
 }
 
 if ( empty( $_SESSION['STAFF_ID'] )
-	&& empty( $_SESSION['STUDENT_ID'] )
-	&& ( basename( $_SERVER['SCRIPT_NAME'] ) === 'Modules.php'
-		|| basename( $_SERVER['SCRIPT_NAME'] ) === 'Bottom.php'
-		|| basename( $_SERVER['SCRIPT_NAME'] ) === 'Side.php' ) )
+     && empty( $_SESSION['STUDENT_ID'] )
+     && ( basename( $_SERVER['SCRIPT_NAME'] ) === 'Modules.php'
+          || basename( $_SERVER['SCRIPT_NAME'] ) === 'Bottom.php'
+          || basename( $_SERVER['SCRIPT_NAME'] ) === 'Side.php' ) )
 {
 	// Logout if no Staff or Student session ID.
 	/**
@@ -240,8 +255,8 @@ if ( empty( $_SESSION['STAFF_ID'] )
 	// Redirection is done in Javascript in case current request is AJAX.
 	?>
 	<script>window.location.href = "index.php?modfunc=logout" +
-		<?php echo json_encode( $redirect_to ); ?> +
-		"&token=" + <?php echo json_encode( $_SESSION['token'] ); ?>;</script>
+			<?php echo json_encode( $redirect_to ); ?> +
+                "&token=" + <?php echo json_encode( $_SESSION['token'] ); ?>;</script>
 	<?php
 	exit;
 }
@@ -306,7 +321,7 @@ if ( ! defined( 'ROSARIO_POST_MAX_SIZE_LIMIT' ) )
 }
 
 if ( $_POST
-	&& strlen( serialize( $_POST ) ) > ROSARIO_POST_MAX_SIZE_LIMIT )
+     && strlen( serialize( $_POST ) ) > ROSARIO_POST_MAX_SIZE_LIMIT )
 {
 	$post_max_size_limit = function( $value ) {
 		if ( strlen( $value ) > ( ROSARIO_POST_MAX_SIZE_LIMIT / 4 ) )
@@ -326,8 +341,8 @@ if ( $_POST
 
 	// Do not translate.
 	$error[] = 'You are submitting too much data: over the ' .
-		( ROSARIO_POST_MAX_SIZE_LIMIT / 1024 / 1024 ) .
-		'M limit. Try reducing the data you are submitting.';
+	           ( ROSARIO_POST_MAX_SIZE_LIMIT / 1024 / 1024 ) .
+	           'M limit. Try reducing the data you are submitting.';
 
 	HackingLog();
 }
@@ -347,7 +362,7 @@ array_rwalk( $_REQUEST, 'strip_tags' );
  */
 
 if ( ! empty( $_REQUEST['locale'] )
-	&& in_array( $_REQUEST['locale'], $RosarioLocales ) )
+     && in_array( $_REQUEST['locale'], $RosarioLocales ) )
 {
 	$_SESSION['locale'] = $_REQUEST['locale'];
 }
@@ -476,7 +491,7 @@ _LoadAddons( $RosarioPlugins, 'plugins/' );
 function _LoadAddons( $addons, $folder )
 {
 	global $RosarioModules,
-		$RosarioPlugins;
+	       $RosarioPlugins;
 
 	/**
 	 * Check if non core activated modules exist.
@@ -492,7 +507,7 @@ function _LoadAddons( $addons, $folder )
 		}
 
 		if ( $folder === 'modules/'
-			&& ! file_exists( $folder . $addon . '/Menu.php' ) )
+		     && ! file_exists( $folder . $addon . '/Menu.php' ) )
 		{
 			// If module does not exist, deactivate it.
 			$RosarioModules[$addon] = false;
@@ -568,46 +583,46 @@ function Warehouse( $mode )
 	switch ( $mode )
 	{
 		// Header HTML.
-		case 'header':
-			ETagCache( 'start' );
+	case 'header':
+		ETagCache( 'start' );
 
-			if ( isAJAX() )
-			{
-				// If jQuery not available, log out.
+		if ( isAJAX() )
+		{
+			// If jQuery not available, log out.
 
-				if ( $_ROSARIO['page'] === 'modules' ): ?>
-<script>if (!window.$) window.location.href = 'index.php?modfunc=logout&token=' + <?php echo json_encode( $_SESSION['token'] ); ?>;</script>
-				<?php endif;
+			if ( $_ROSARIO['page'] === 'modules' ): ?>
+				<script>if (!window.$) window.location.href = 'index.php?modfunc=logout&token=' + <?php echo json_encode( $_SESSION['token'] ); ?>;</script>
+			<?php endif;
 
-				// AJAX: we only need to generate #body content.
-				break;
-			}
+			// AJAX: we only need to generate #body content.
+			break;
+		}
 
-			$lang_2_chars = mb_substr( $_SESSION['locale'], 0, 2 );
+		$lang_2_chars = mb_substr( $_SESSION['locale'], 0, 2 );
 
-			// Right to left direction.
-			$RTL_languages = [ 'ar', 'he', 'dv', 'fa', 'ur' ];
+		// Right to left direction.
+		$RTL_languages = [ 'ar', 'he', 'dv', 'fa', 'ur', 'ps' ];
 
-			$dir_RTL = in_array( $lang_2_chars, $RTL_languages ) ? ' dir="RTL"' : '';
-			?>
-<!doctype html>
-<html lang="<?php echo $lang_2_chars; ?>"<?php echo $dir_RTL; ?>>
-<head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width" />
-	<title><?php echo ParseMLField( Config( 'TITLE' ) ); ?></title>
-	<link rel="icon" href="favicon.ico" sizes="32x32" />
-	<link rel="icon" href="apple-touch-icon.png" sizes="128x128" />
-	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="mobile-web-app-capable" content="yes" />
-	<link rel="stylesheet" href="assets/themes/<?php echo Preferences( 'THEME' ); ?>/stylesheet.css?v=<?php echo ROSARIO_VERSION; ?>" />
-	<style>.highlight,.highlight-hover:hover{background-color:<?php echo Preferences( 'HIGHLIGHT' ); ?> !important;}</style>
-	<?php
+		$dir_RTL = in_array( $lang_2_chars, $RTL_languages ) ? ' dir="RTL"' : '';
+		?>
+		<!doctype html>
+		<html lang="<?php echo $lang_2_chars; ?>"<?php echo $dir_RTL; ?>>
+		<head>
+			<meta charset="UTF-8">
+			<meta name="viewport" content="width=device-width">
+			<title><?php echo ParseMLField( Config( 'TITLE' ) ); ?></title>
+			<link rel="icon" href="favicon.ico" sizes="32x32">
+			<link rel="icon" href="apple-touch-icon.png" sizes="128x128">
+			<meta name="apple-mobile-web-app-capable" content="yes">
+			<meta name="mobile-web-app-capable" content="yes">
+			<link rel="stylesheet" href="assets/themes/<?php echo Preferences( 'THEME' ); ?>/stylesheet.css?v=<?php echo ROSARIO_VERSION; ?>">
+			<style>.highlight,.highlight-hover:hover{background-color:<?php echo Preferences( 'HIGHLIGHT' ); ?> !important;}</style>
+			<?php
 
 			if ( $_ROSARIO['page'] === 'modules'
-				|| $_ROSARIO['page'] === 'first-login'
-				|| $_ROSARIO['page'] === 'create-account'
-				|| $_ROSARIO['page'] === 'password-reset' )
+			     || $_ROSARIO['page'] === 'first-login'
+			     || $_ROSARIO['page'] === 'create-account'
+			     || $_ROSARIO['page'] === 'password-reset' )
 			{
 				// @since 6.0 Warehouse Header Javascripts.
 				WarehouseHeaderJS();
@@ -623,120 +638,120 @@ function Warehouse( $mode )
 			 * @since 4.5.1 Move Header head action hook outisde page condition.
 			 */
 			do_action( 'Warehouse.php|header_head' );
+			?>
+			<noscript>
+				<meta http-equiv="REFRESH" content="0; url=<?php echo URLEscape( 'index.php?modfunc=logout&amp;reason=javascript&amp;token=' . $_SESSION['token'] ); ?>">
+			</noscript>
+		</head>
+		<body class="<?php echo AttrEscape( $_ROSARIO['page'] ); ?>">
+		<?php
+		if ( $_ROSARIO['page'] === 'modules' ):
+		// If popup window, verify it is an actual popup.
+		if ( isPopup() ):
 		?>
-	<noscript>
-		<meta http-equiv="REFRESH" content="0;url=<?php echo URLEscape( 'index.php?modfunc=logout&amp;reason=javascript&amp;token=' . $_SESSION['token'] ); ?>" />
-	</noscript>
-</head>
-<body class="<?php echo AttrEscape( $_ROSARIO['page'] ); ?>">
-<?php
-			if ( $_ROSARIO['page'] === 'modules' ):
-				// If popup window, verify it is an actual popup.
-				if ( isPopup() ):
-				?>
-				<script>if(window == top  && (!window.opener)) window.location.href = "Modules.php?modname=misc/Portal.php";</script>
-					<?php // @since 10.0 Close popup if no UserSchool in session, happens on login redirect.
-					if ( ! UserSchool() ) : ?>
-					<script>window.close();</script>
-					<?php endif;
-				else: ?>
-<div id="wrap">
-	<footer id="footer" class="mod">
-		<?php require_once 'Bottom.php'; // Include Bottom menu. ?>
-	</footer>
-	<aside id="menu" class="mod">
-		<?php require_once 'Side.php'; // Include Side menu. ?>
-	</aside>
+			<script>if(window == top  && (!window.opener)) window.location.href = "Modules.php?modname=misc/Portal.php";</script>
+		<?php // @since 10.0 Close popup if no UserSchool in session, happens on login redirect.
+		if ( ! UserSchool() ) : ?>
+			<script>window.close();</script>
+		<?php endif;
+		else: ?>
+		<div id="wrap">
+			<footer id="footer" class="mod">
+				<?php require_once 'Bottom.php'; // Include Bottom menu. ?>
+			</footer>
+			<aside id="menu" class="mod">
+				<?php require_once 'Side.php'; // Include Side menu. ?>
+			</aside>
 
-<?php
-				endif;
+			<?php
+			endif;
 			endif;
 
 			?>
-	<div id="body" tabindex="0" role="main" class="mod">
-<?php
-			/**
-			 * Hook.
-			 *
-			 * Add your extra module/plugin HTML to body here.
-			 *
-			 * @since 4.4
-			 */
-			do_action( 'Warehouse.php|header' );
+			<div id="body" tabindex="0" role="main" class="mod">
+				<?php
+				/**
+				 * Hook.
+				 *
+				 * Add your extra module/plugin HTML to body here.
+				 *
+				 * @since 4.4
+				 */
+				do_action( 'Warehouse.php|header' );
 
-		break;
+				break;
 
-		// Footer HTML.
-		case 'footer':
-			?>
-<br />
-<?php
-
-			if ( isset( $_ROSARIO['page'] )
-				&& $_ROSARIO['page'] === 'modules' ): ?>
-<script>
-	var modname = "<?php echo issetVal( $_ROSARIO['ProgramLoaded'], '' ); ?>";
-	if (typeof menuStudentID !== 'undefined'
-		&& (menuStudentID != "<?php echo UserStudentID(); ?>"
-			|| menuStaffID != "<?php echo UserStaffID(); ?>"
-			|| menuSchool != "<?php echo UserSchool(); ?>"
-			|| menuMP != "<?php echo UserMP(); ?>"
-			|| menuCoursePeriod != "<?php echo UserCoursePeriod(); ?>")) {
-		ajaxLink( 'Side.php?sidefunc=update' );
-	}
-</script>
-<?php
-			/**
-			 * Hook.
-			 *
-			 * Add your extra module/plugin JS (dependencies) to HTML footer here.
-			 *
-			 * @since 3.8
-			 * @since 4.4 Hook always runs (no conditions).
-			 */
-			do_action( 'Warehouse.php|footer' );
-
-			// If not AJAX request.
-			if ( ! isAJAX() ):
-			?>
-	</div><!-- #body -->
-	<div class="ajax-error"></div>
-<?php
-
-				if ( ! isPopup() ):
+				// Footer HTML.
+				case 'footer':
 				?>
-	</div><!-- #wrap -->
-				<?php endif;
+				<br>
+				<?php
 
-			?>
-</body></html>
-			<?php endif;
+				if ( isset( $_ROSARIO['page'] )
+				     && $_ROSARIO['page'] === 'modules' ): ?>
+				<script>
+                    var modname = "<?php echo issetVal( $_ROSARIO['ProgramLoaded'], '' ); ?>";
+                    if (typeof menuStudentID !== 'undefined'
+                        && (menuStudentID != "<?php echo UserStudentID(); ?>"
+                            || menuStaffID != "<?php echo UserStaffID(); ?>"
+                            || menuSchool != "<?php echo UserSchool(); ?>"
+                            || menuMP != "<?php echo UserMP(); ?>"
+                            || menuCoursePeriod != "<?php echo UserCoursePeriod(); ?>")) {
+                        ajaxLink( 'Side.php?sidefunc=update' );
+                    }
+				</script>
+				<?php
+				/**
+				 * Hook.
+				 *
+				 * Add your extra module/plugin JS (dependencies) to HTML footer here.
+				 *
+				 * @since 3.8
+				 * @since 4.4 Hook always runs (no conditions).
+				 */
+				do_action( 'Warehouse.php|footer' );
+
+				// If not AJAX request.
+				if ( ! isAJAX() ):
+				?>
+			</div><!-- #body -->
+			<div class="ajax-error"></div>
+			<?php
 
 			if ( ! isPopup() ):
+			?>
+		</div><!-- #wrap -->
+		<?php endif;
 
-				// require_once 'ProgramFunctions/Help.fnc.php';
+		?>
+		</body></html>
+	<?php endif;
 
-				// Check if module has help (not default).
-				//$has_help_text = GetHelpTextRaw( $_REQUEST['modname'] );
+		if ( ! isPopup() ):
 
-				/*if ( $has_help_text )
-				{
-					var_dump($_REQUEST['modname']);
-					echo 'Has Help!!!';
-				}*/
+			// require_once 'ProgramFunctions/Help.fnc.php';
 
-			endif;
+			// Check if module has help (not default).
+			//$has_help_text = GetHelpTextRaw( $_REQUEST['modname'] );
 
-			elseif ( ! isAJAX() ): // Other pages (not modules).
+			/*if ( $has_help_text )
+			{
+				var_dump($_REQUEST['modname']);
+				echo 'Has Help!!!';
+			}*/
 
-				?>
+		endif;
+
+	elseif ( ! isAJAX() ): // Other pages (not modules).
+
+		?>
 		</div><!-- #body -->
-	</body></html>
-			<?php endif;
+		</body></html>
+	<?php endif;
 
-			ETagCache( 'stop' );
+		ETagCache( 'stop' );
 
-			break;
+		break;
 	}
 
 	// End switch.
@@ -803,26 +818,26 @@ function isPopup( $modname = '', $modfunc = '' )
 	 */
 
 	if ( in_array(
-		$modname,
-		[
-			'misc/ChooseRequest.php',
-			'misc/ChooseCourse.php',
-			'misc/ViewContact.php',
-		]
-	)
-		|| ( $modname === 'School_Setup/Calendar.php'
-			&& $modfunc === 'detail' )
-		|| ( in_array(
-			$modname,
-			[
-				'Scheduling/MassDrops.php',
-				'Scheduling/Schedule.php',
-				'Scheduling/MassSchedule.php',
-				'Scheduling/MassRequests.php',
-				'Scheduling/Courses.php',
-			]
-		)
-			&& $modfunc === 'choose_course' ) )
+		     $modname,
+		     [
+			     'misc/ChooseRequest.php',
+			     'misc/ChooseCourse.php',
+			     'misc/ViewContact.php',
+		     ]
+	     )
+	     || ( $modname === 'School_Setup/Calendar.php'
+	          && $modfunc === 'detail' )
+	     || ( in_array(
+		          $modname,
+		          [
+			          'Scheduling/MassDrops.php',
+			          'Scheduling/Schedule.php',
+			          'Scheduling/MassSchedule.php',
+			          'Scheduling/MassRequests.php',
+			          'Scheduling/Courses.php',
+		          ]
+	          )
+	          && $modfunc === 'choose_course' ) )
 	{
 		$is_popup = true;
 	}
@@ -848,7 +863,7 @@ function isAJAX()
 	}
 
 	$is_ajax = isset( $_SERVER['HTTP_X_REQUESTED_WITH'] )
-		&& $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
+	           && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest';
 
 	return $is_ajax;
 }
@@ -879,13 +894,13 @@ function ETagCache( $mode = '' )
 	}
 
 	if ( $mode === 'start'
-		&& ! $ob_started )
+	     && ! $ob_started )
 	{
 		// Start buffer (to generate ETag).
 		$ob_started = ob_start();
 	}
 	elseif ( $mode === 'stop'
-		&& $ob_started )
+	         && $ob_started )
 	{
 		// Stop & get buffer buffer (to generate ETag).
 		$etag_buffer = ob_get_clean();
@@ -901,9 +916,15 @@ function ETagCache( $mode = '' )
 		// If-None-Match header sent by client.
 
 		if ( isset( $_SERVER['HTTP_IF_NONE_MATCH'] )
-			&& $_SERVER['HTTP_IF_NONE_MATCH'] === $etag )
+		     && $_SERVER['HTTP_IF_NONE_MATCH'] === $etag )
 		{
-			header( "Cache-Control: private, must-revalidate" );
+			/**
+			 * private means can be stored only in a private cache (e.g. local caches in browsers)
+			 * no-cache does not mean "do not cache" but requires the cache to revalidate it before reuse
+			 *
+			 * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control
+			 */
+			header( "Cache-Control: private, no-cache" );
 
 			// Page cached: send 304 + empty content.
 			header( $_SERVER['SERVER_PROTOCOL'] . ' 304 Not Modified' );
@@ -916,7 +937,7 @@ function ETagCache( $mode = '' )
 
 			if ( ! headers_sent() )
 			{
-				header( "Cache-Control: private, must-revalidate" );
+				header( "Cache-Control: private, no-cache" );
 
 				// Send ETag + content (buffer).
 				header( 'ETag: ' . $etag );

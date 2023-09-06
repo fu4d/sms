@@ -16,35 +16,38 @@
 function RegistrationFormConfigSave( $values )
 {
 	// Multiple Checkbox Input.
-	$values['parent'][0]['info'] = empty( $values['parent'][0]['info'] ) ? '' :
-		'||' . implode( '||', $values['parent'][0]['info'] ) . '||';
+	$formatMultipleCheckbox = function( $checked_array )
+	{
+		if ( ! is_array( $checked_array ) )
+		{
+			return '';
+		}
 
-	$values['parent'][0]['fields'] = empty( $values['parent'][0]['fields'] ) ? '' :
-		'||' . implode( '||', $values['parent'][0]['fields'] ) . '||';
+		return implode( '||', $checked_array ) ?
+			'||' . implode( '||', $checked_array ) : '';
+	};
+
+	$values['parent'][0]['info'] = $formatMultipleCheckbox( issetVal( $values['parent'][0]['info'] ) );
+
+	$values['parent'][0]['fields'] = $formatMultipleCheckbox( issetVal( $values['parent'][0]['fields'] ) );
 
 	if ( ! empty( $values['parent'][1] ) )
 	{
-		$values['parent'][1]['info'] = empty( $values['parent'][1]['info'] ) ? '' :
-			'||' . implode( '||', $values['parent'][1]['info'] ) . '||';
+		$values['parent'][1]['info'] = $formatMultipleCheckbox( issetVal( $values['parent'][1]['info'] ) );
 
-		$values['parent'][1]['fields'] = empty( $values['parent'][1]['fields'] ) ? '' :
-			'||' . implode( '||', $values['parent'][1]['fields'] ) . '||';
+		$values['parent'][1]['fields'] = $formatMultipleCheckbox( issetVal( $values['parent'][1]['fields'] ) );
 	}
 
-	$values['address']['fields'] = empty( $values['address']['fields'] ) ? '' :
-			'||' . implode( '||', $values['address']['fields'] ) . '||';
+	$values['address']['fields'] = $formatMultipleCheckbox( issetVal( $values['address']['fields'] ) );
 
 	foreach ( (array) $values['contact'] as $i => $contact )
 	{
-		$values['contact'][$i]['info'] = empty( $values['contact'][$i]['info'] ) ? '' :
-			'||' . implode( '||', $values['contact'][$i]['info'] ) . '||';
+		$values['contact'][$i]['info'] = $formatMultipleCheckbox( issetVal( $values['contact'][$i]['info'] ) );
 
-		$values['contact'][$i]['fields'] = empty( $values['contact'][$i]['fields'] ) ? '' :
-			'||' . implode( '||', $values['contact'][$i]['fields'] ) . '||';
+		$values['contact'][$i]['fields'] = $formatMultipleCheckbox( issetVal( $values['contact'][$i]['fields'] ) );
 	}
 
-	$values['student']['fields'] = empty( $values['student']['fields'] ) ? '' :
-			'||' . implode( '||', $values['student']['fields'] ) . '||';
+	$values['student']['fields'] = $formatMultipleCheckbox( issetVal( $values['student']['fields'] ) );
 
 	Config( 'REGISTRATION_FORM', serialize( $values ) );
 
@@ -91,17 +94,20 @@ function RegistrationAdminFormOutput( $config )
 
 	echo '<table><tr class="st">';
 
-	foreach ( $config['contact'] as $id => $config_contact )
+	if ( is_array( $config['contact'] ) )
 	{
-		echo '<td>';
-
-		RegistrationAdminContact( 'contact[' . $id . ']', $config_contact );
-
-		echo '</td>';
-
-		if ( $id % 2 !== 0 )
+		foreach ( $config['contact'] as $id => $config_contact )
 		{
-			echo '</tr><tr class="st">';
+			echo '<td>';
+
+			RegistrationAdminContact( 'contact[' . $id . ']', $config_contact );
+
+			echo '</td>';
+
+			if ( $id % 2 !== 0 )
+			{
+				echo '</tr><tr class="st">';
+			}
 		}
 	}
 
@@ -465,7 +471,7 @@ function RegistrationAdminAddressFields( $name, $fields )
 	// Categories according to Residence / Mailing settings.
 	$fields_options_RET = DBGet( "SELECT ID,TITLE,SORT_ORDER
 		FROM address_field_categories
-		WHERE RESIDENCE='Y' OR MAILING='Y'
+		WHERE RESIDENCE='Y' OR MAILING='Y' OR (MAILING IS NULL AND RESIDENCE IS NULL AND BUS IS NULL)
 		ORDER BY SORT_ORDER IS NULL,SORT_ORDER" );
 
 	$fields_options = [];

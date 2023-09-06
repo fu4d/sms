@@ -3,7 +3,7 @@
 require_once 'ProgramFunctions/TipMessage.fnc.php';
 
 $_REQUEST['table'] = issetVal( $_REQUEST['table'], '0' );
-$_REQUEST['period'] = issetVal( $_REQUEST['period'] );
+$_REQUEST['school_period'] = issetVal( $_REQUEST['school_period'] );
 
 // Set date.
 $date = RequestedDate( 'date', DBDate(), 'set' );
@@ -17,12 +17,12 @@ $categories_RET = DBGet( "SELECT ID,TITLE
 	ORDER BY SORT_ORDER IS NULL,SORT_ORDER,TITLE" );
 
 $category_select = '<select name="table" onChange="ajaxPostForm(this.form,true);"><option value="0"' .
-	( $_REQUEST['table'] == '0' ? ' selected' : '' ) . '>' . _( 'Attendance' ) . '</option>';
+                   ( $_REQUEST['table'] == '0' ? ' selected' : '' ) . '>' . _( 'Attendance' ) . '</option>';
 
 foreach ( (array) $categories_RET as $category )
 {
 	$category_select .= '<option value="' . AttrEscape( $category['ID'] ) . '"' .
-		( ( $_REQUEST['table'] == $category['ID'] ) ? ' selected' : '' ) . ">" . $category['TITLE'] . "</option>";
+	                    ( ( $_REQUEST['table'] == $category['ID'] ) ? ' selected' : '' ) . ">" . $category['TITLE'] . "</option>";
 }
 
 $category_select .= '</select>';
@@ -39,16 +39,16 @@ $periods_RET = DBGet( "SELECT sp.PERIOD_ID,sp.TITLE,COALESCE(sp.SHORT_NAME,sp.TI
 		AND position('," . $_REQUEST['table'] . ",' IN cp.DOES_ATTENDANCE)>0)
 	ORDER BY sp.SORT_ORDER IS NULL,sp.SORT_ORDER,sp.TITLE", [], [ 'PERIOD_ID' ] );
 
-$period_select = '<select name="period" id="period" onChange="ajaxPostForm(this.form,true);">
+$period_select = '<select name="school_period" id="school_period" onChange="ajaxPostForm(this.form,true);">
 	<option value="">' . _( 'All' ) .'</option>';
 
 foreach ( (array) $periods_RET as $id => $period )
 {
-	$period_select .= '<option value="' . AttrEscape( $id ) . '"' . ( ( $_REQUEST['period'] == $id ) ? ' selected' : '' ) . ">" . $period[1]['TITLE'] . '</option>';
+	$period_select .= '<option value="' . AttrEscape( $id ) . '"' . ( ( $_REQUEST['school_period'] == $id ) ? ' selected' : '' ) . ">" . $period[1]['TITLE'] . '</option>';
 }
 
 $period_select .= '</select>
-	<label for="period" class="a11y-hidden">' . _( 'Periods' ) . '</label>';
+	<label for="school_period" class="a11y-hidden">' . _( 'Period' ) . '</label>';
 
 echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname']  ) . '" method="GET">';
 DrawHeader( PrepareDate( $date, '_date', false, [ 'submit' => true ] ) . ' &mdash; ' . $period_select );
@@ -61,22 +61,24 @@ echo '</form>';
 if ( SchoolInfo( 'NUMBER_DAYS_ROTATION' ) !== null )
 {
 	$sql = "SELECT s.STAFF_ID," . DisplayNameSQL( 's' ) . " AS FULL_NAME,s.ROLLOVER_ID,
-	sp.TITLE,cpsp.PERIOD_ID,cp.TITLE AS CP_TITLE,
+	sp.TITLE,cpsp.PERIOD_ID,cp.TITLE AS CP_TITLE,c.TITLE AS COURSE_TITLE,
 	(SELECT 'Y'
 		FROM attendance_completed ac
 		WHERE ac.STAFF_ID=cp.TEACHER_ID
 		AND ac.SCHOOL_DATE=acc.SCHOOL_DATE
 		AND ac.PERIOD_ID=sp.PERIOD_ID
 		AND TABLE_NAME='" . (int) $_REQUEST['table'] . "') AS COMPLETED
-	FROM staff s,course_periods cp,school_periods sp,attendance_calendar acc,course_period_school_periods cpsp
+	FROM staff s,course_periods cp,school_periods sp,attendance_calendar acc,
+		course_period_school_periods cpsp,courses c
 	WHERE cp.COURSE_PERIOD_ID=cpsp.COURSE_PERIOD_ID
 	AND	sp.PERIOD_ID=cpsp.PERIOD_ID AND position('," . $_REQUEST['table'] . ",' IN cp.DOES_ATTENDANCE)>0
 	AND cp.TEACHER_ID=s.STAFF_ID
 	AND cp.MARKING_PERIOD_ID IN (" . GetAllMP( 'QTR', GetCurrentMP( 'QTR', $date ) ) . ")
 	AND cp.SYEAR='" . UserSyear() . "'
 	AND cp.SCHOOL_ID='" . UserSchool() . "'
+	AND c.COURSE_ID=cp.COURSE_ID
 	AND s.PROFILE='teacher'
-	" . ( $_REQUEST['period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['period'] . "'" : '' ) . "
+	" . ( $_REQUEST['school_period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['school_period'] . "'" : '' ) . "
 	AND acc.CALENDAR_ID=cp.CALENDAR_ID
 	AND acc.SCHOOL_DATE='" . $date . "'
 	AND acc.SYEAR='" . UserSyear() . "'
@@ -96,14 +98,14 @@ if ( SchoolInfo( 'NUMBER_DAYS_ROTATION' ) !== null )
 				AND SYEAR=acc.SYEAR)
 			AND CALENDAR_ID=cp.CALENDAR_ID)
 		" . ( $DatabaseType === 'mysql' ? "AS UNSIGNED)" : "AS INT)" ) .
-		" FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
+	       " FOR 1) IN cpsp.DAYS)>0 OR (sp.BLOCK IS NOT NULL AND sp.BLOCK=acc.BLOCK))
 	ORDER BY FULL_NAME";
 }
 else
 {
 	// @since 10.0 SQL use DAYOFWEEK() for MySQL or cast(extract(DOW)+1 AS int) for PostrgeSQL
 	$sql = "SELECT s.STAFF_ID," . DisplayNameSQL( 's' ) . " AS FULL_NAME,s.ROLLOVER_ID,
-		sp.TITLE,cpsp.PERIOD_ID,cp.TITLE AS CP_TITLE,
+		sp.TITLE,cpsp.PERIOD_ID,cp.TITLE AS CP_TITLE,c.TITLE AS COURSE_TITLE,
 		(SELECT 'Y'
 			FROM attendance_completed ac
 			WHERE ac.STAFF_ID=cp.TEACHER_ID
@@ -111,7 +113,7 @@ else
 			AND ac.PERIOD_ID=sp.PERIOD_ID
 			AND TABLE_NAME='" . (int) $_REQUEST['table'] . "') AS COMPLETED
 		FROM staff s,course_periods cp,school_periods sp,attendance_calendar acc,
-			course_period_school_periods cpsp
+			course_period_school_periods cpsp,courses c
 		WHERE cp.COURSE_PERIOD_ID=cpsp.COURSE_PERIOD_ID
 		AND	sp.PERIOD_ID=cpsp.PERIOD_ID
 		AND position('," . $_REQUEST['table'] . ",' IN cp.DOES_ATTENDANCE)>0
@@ -119,18 +121,19 @@ else
 		AND cp.MARKING_PERIOD_ID IN (" . GetAllMP( 'QTR', GetCurrentMP( 'QTR', $date ) ) . ")
 		AND cp.SYEAR='" . UserSyear() . "'
 		AND cp.SCHOOL_ID='" . UserSchool() . "'
+		AND c.COURSE_ID=cp.COURSE_ID
 		AND s.PROFILE='teacher'" .
-	( $_REQUEST['period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['period'] . "'" : '' ) .
-	" AND acc.CALENDAR_ID=cp.CALENDAR_ID
+	       ( $_REQUEST['school_period'] ? " AND cpsp.PERIOD_ID='" . (int) $_REQUEST['school_period'] . "'" : '' ) .
+	       " AND acc.CALENDAR_ID=cp.CALENDAR_ID
 		AND acc.SCHOOL_DATE='" . $date . "'
 		AND acc.SYEAR='" . UserSyear() . "'
 		AND (acc.MINUTES IS NOT NULL AND acc.MINUTES>0)
 		AND (sp.BLOCK IS NULL
 			AND position(substring('UMTWHFS' FROM " .
-			( $DatabaseType === 'mysql' ?
-				"DAYOFWEEK(acc.SCHOOL_DATE)" :
-				"cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
-			" FOR 1) IN cpsp.DAYS)>0
+	       ( $DatabaseType === 'mysql' ?
+		       "DAYOFWEEK(acc.SCHOOL_DATE)" :
+		       "cast(extract(DOW FROM acc.SCHOOL_DATE)+1 AS int)" ) .
+	       " FOR 1) IN cpsp.DAYS)>0
 			OR sp.BLOCK IS NOT NULL
 			AND acc.BLOCK IS NOT NULL
 			AND sp.BLOCK=acc.BLOCK)
@@ -139,8 +142,7 @@ else
 
 $RET = DBGet( $sql, [ 'FULL_NAME' => 'makePhotoTipMessage' ], [ 'STAFF_ID' ] );
 
-if ( ! isset( $_REQUEST['period'] )
-	|| ! $_REQUEST['period'] )
+if ( empty( $_REQUEST['school_period'] ) )
 {
 	$i = 0;
 
@@ -154,19 +156,24 @@ if ( ! isset( $_REQUEST['period'] )
 
 		foreach ( (array) $periods as $period )
 		{
+			if ( ! isset( $staff_RET[$i][$period['PERIOD_ID']] ) )
+			{
+				$staff_RET[$i][$period['PERIOD_ID']] = '';
+			}
+
 			if ( isset( $_REQUEST['_ROSARIO_PDF'] ) )
 			{
-				$staff_RET[$i][$period['PERIOD_ID']] = ( $period['COMPLETED'] === 'Y' ?
-					_( 'Yes' ) : _( 'No' ) );
+				$staff_RET[$i][$period['PERIOD_ID']] .= ( $period['COMPLETED'] === 'Y' ?
+					_( 'Yes' ) . ' ' : _( 'No' ) . ' ' );
 
 				continue;
 			}
 
-			$staff_RET[$i][$period['PERIOD_ID']] = MakeTipMessage(
-				$period['CP_TITLE'],
-				_( 'Course Title' ),
-				button( $period['COMPLETED'] === 'Y' ? 'check' : 'x' )
-			);
+			$staff_RET[$i][$period['PERIOD_ID']] .= MakeTipMessage(
+				                                        $period['CP_TITLE'],
+				                                        $period['COURSE_TITLE'],
+				                                        button( $period['COMPLETED'] === 'Y' ? 'check' : 'x' )
+			                                        ) . ' ';
 		}
 	}
 
@@ -189,7 +196,7 @@ if ( ! isset( $_REQUEST['period'] )
 }
 else
 {
-	$period_title = $periods_RET[$_REQUEST['period']][1]['TITLE'];
+	$period_title = $periods_RET[$_REQUEST['school_period']][1]['TITLE'];
 
 	// FJ display icon for completed column.
 

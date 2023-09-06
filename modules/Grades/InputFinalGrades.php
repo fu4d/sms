@@ -4,6 +4,12 @@ require_once 'modules/Grades/includes/ClassRank.inc.php';
 require_once 'modules/Grades/includes/Grades.fnc.php';
 require_once 'ProgramFunctions/TipMessage.fnc.php';
 
+if ( ! empty( $_REQUEST['period'] ) )
+{
+	// @since 10.9 Set current User Course Period before Secondary Teacher logic.
+	SetUserCoursePeriod( $_REQUEST['period'] );
+}
+
 if ( ! empty( $_SESSION['is_secondary_teacher'] ) )
 {
 	// @since 6.9 Add Secondary Teacher: set User to main teacher.
@@ -14,16 +20,17 @@ $_REQUEST['include_inactive'] = issetVal( $_REQUEST['include_inactive'], '' );
 
 DrawHeader( ProgramTitle() );
 
-$sem = GetParentMP( 'SEM', UserMP() );
-$fy = GetParentMP( 'FY', $sem );
-$pros = GetChildrenMP( 'PRO', UserMP() );
+// Get all the MP's associated with the current MP
+$all_mp_ids = explode( "','", trim( GetAllMP( 'PRO', UserMP() ), "'" ) );
 
-// If the UserMP has been changed, the REQUESTed MP may not work.
+if ( ! empty( $_REQUEST['mp'] )
+     && ! in_array( $_REQUEST['mp'], $all_mp_ids ) )
+{
+	// Requested MP not found, reset.
+	RedirectURL( 'mp' );
+}
 
-if ( empty( $_REQUEST['mp'] )
-	|| mb_strpos(
-		$str = "'" . UserMP() . "','" . $sem . "','" . $fy . "'," . $pros,
-		"'" . $_REQUEST['mp'] . "'" ) === false )
+if ( empty( $_REQUEST['mp'] ) )
 {
 	$_REQUEST['mp'] = UserMP();
 }
@@ -103,8 +110,8 @@ $categories_RET = DBGet( "SELECT rc.ID,rc.TITLE,rc.COLOR,1,rc.SORT_ORDER
 	ORDER BY 4,SORT_ORDER", [], [ 'ID' ] );
 
 if ( ! isset( $_REQUEST['tab_id'] )
-	|| $_REQUEST['tab_id'] == ''
-	|| ! $categories_RET[$_REQUEST['tab_id']] )
+     || $_REQUEST['tab_id'] == ''
+     || ! $categories_RET[$_REQUEST['tab_id']] )
 {
 	$_REQUEST['tab_id'] = key( $categories_RET ) . '';
 }
@@ -121,8 +128,8 @@ foreach ( (array) $comment_codes_RET as $scale_id => $codes )
 	foreach ( (array) $codes as $code )
 	{
 		$commentsA_select[$scale_id][$code['TITLE']] = $code['SHORT_NAME'] ?
-		[ $code['TITLE'], $code['SHORT_NAME'] ] :
-		$code['TITLE'];
+			[ $code['TITLE'], $code['SHORT_NAME'] ] :
+			$code['TITLE'];
 	}
 }
 
@@ -233,8 +240,15 @@ if ( $_REQUEST['modfunc'] === 'gradebook' )
 			// Note: The 'active assignment' determination is not fully correct.  It would be easy to be fully correct here but the same determination
 			// as in Grades.php is used to avoid apparent inconsistencies in the grade calculations.  See also the note at top of Grades.php.
 			$extra['SELECT_ONLY'] = "s.STUDENT_ID, gt.ASSIGNMENT_TYPE_ID,sum(" .
-			db_case( [ 'gg.POINTS', "'-1'", "'0'", 'gg.POINTS' ] ) . ") AS PARTIAL_POINTS,sum(" .
-			db_case( [ 'gg.POINTS', "'-1'", "'0'", 'ga.POINTS' ] ) . ") AS PARTIAL_TOTAL,gt.FINAL_GRADE_PERCENT";
+			                        db_case( [ 'gg.POINTS', "'-1'", "'0'", 'gg.POINTS' ] ) . ") AS PARTIAL_POINTS,sum(" .
+			                        db_case( [ 'gg.POINTS', "'-1'", "'0'", 'ga.POINTS' ] ) . ") AS PARTIAL_TOTAL,gt.FINAL_GRADE_PERCENT";
+
+			if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
+			{
+				// @since 11.0 Add Weight Assignments option
+				$extra['SELECT_ONLY'] .= ",sum(" . db_case( [ 'ga.WEIGHT', "''", "'0'", "ga.WEIGHT" ] ) . ") AS PARTIAL_WEIGHT,
+					sum((gg.POINTS/ga.POINTS)*ga.WEIGHT) AS PARTIAL_WEIGHTED_GRADE";
+			}
 
 			$extra['FROM'] = " JOIN gradebook_assignments ga ON
 				(((ga.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID
@@ -264,6 +278,13 @@ if ( $_REQUEST['modfunc'] === 'gradebook' )
 				AND (ga.DUE_DATE>=ssm.START_DATE
 					AND (ssm.END_DATE IS NULL OR ga.DUE_DATE<=ssm.END_DATE))))";
 
+			if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
+			{
+				// @since 11.0 Add Weight Assignments option
+				// Exclude Extra Credit assignments.
+				$extra['WHERE'] .= " AND ga.POINTS>0";
+			}
+
 			if ( GetMP( $_REQUEST['mp'], 'MP' ) === 'PRO' )
 			{
 				// FJ: limit Assignments to the ones due during the Progress Period.
@@ -292,7 +313,7 @@ if ( $_REQUEST['modfunc'] === 'gradebook' )
 			{
 				foreach ( (array) $points_RET as $student_id => $student )
 				{
-					$total = $total_percent = 0;
+					$total = $total_percent = $total_weighted_grade = $total_weights = 0;
 
 					foreach ( (array) $student as $partial_points )
 					{
@@ -303,23 +324,42 @@ if ( $_REQUEST['modfunc'] === 'gradebook' )
 						 * Division by zero is impossible.
 						 */
 						if ( $partial_points['PARTIAL_TOTAL'] != 0
-							|| empty( $gradebook_config['WEIGHT'] ) )
+						     || empty( $gradebook_config['WEIGHT'] ) )
 						{
 							$total += $partial_points['PARTIAL_POINTS'] * ( ! empty( $gradebook_config['WEIGHT'] ) ?
-								$partial_points['FINAL_GRADE_PERCENT'] / $partial_points['PARTIAL_TOTAL'] :
-								1
-							);
+									$partial_points['FINAL_GRADE_PERCENT'] / $partial_points['PARTIAL_TOTAL'] :
+									1
+								);
 
 							$total_percent += ( ! empty( $gradebook_config['WEIGHT'] ) ?
 								$partial_points['FINAL_GRADE_PERCENT'] :
 								$partial_points['PARTIAL_TOTAL']
 							);
+
+							if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] ) )
+							{
+								// @since 11.0 Add Weight Assignments option
+								$total_weighted_grade += ( ! empty( $gradebook_config['WEIGHT'] ) ?
+									$partial_points['FINAL_GRADE_PERCENT'] * $partial_points['PARTIAL_WEIGHTED_GRADE'] :
+									$partial_points['PARTIAL_WEIGHTED_GRADE'] );
+
+								$total_weights += ( ! empty( $gradebook_config['WEIGHT'] ) ?
+									$partial_points['FINAL_GRADE_PERCENT'] * $partial_points['PARTIAL_WEIGHT'] :
+									$partial_points['PARTIAL_WEIGHT'] );
+							}
 						}
 					}
 
 					if ( $total_percent != 0 )
 					{
 						$total /= $total_percent;
+					}
+
+					if ( ! empty( $gradebook_config['WEIGHT_ASSIGNMENTS'] )
+					     && $total_weights > 0 )
+					{
+						// @since 11.0 Add Weight Assignments option
+						$total = $total_weighted_grade / $total_weights;
 					}
 
 					$import_RET[$student_id] = [
@@ -521,7 +561,7 @@ if ( $_REQUEST['modfunc'] === 'clearall' )
 }
 
 if ( ! empty( $_REQUEST['values'] )
-	&& $_POST['values'] )
+     && $_POST['values'] )
 {
 	require_once 'ProgramFunctions/_makeLetterGrade.fnc.php';
 	require_once 'ProgramFunctions/_makePercentGrade.fnc.php';
@@ -535,12 +575,12 @@ if ( ! empty( $_REQUEST['values'] )
 
 	foreach ( (array) $_REQUEST['values'] as $student_id => $columns )
 	{
-		$sql = $sep = '';
-
 		if ( ! empty( $current_RET[$student_id] ) )
 		{
+			$update_columns = [];
+
 			if ( isset( $columns['percent'] )
-				&& $columns['percent'] != '' )
+			     && $columns['percent'] != '' )
 			{
 				// FJ bugfix SQL error invalid input syntax for type numeric.
 				$percent = trim( $columns['percent'], '%' );
@@ -560,7 +600,7 @@ if ( ! empty( $_REQUEST['values'] )
 				}
 
 				if ( $columns['grade']
-					|| $percent != '' )
+				     || $percent != '' )
 				{
 					$grade = ( $columns['grade'] ?
 						$columns['grade'] :
@@ -574,7 +614,7 @@ if ( ! empty( $_REQUEST['values'] )
 					// FJ add precision to year weighted GPA if not year course period.
 
 					if ( GetMP( $_REQUEST['mp'], 'MP' ) === 'FY'
-						&& $course_period_mp !== 'FY' )
+					     && $course_period_mp !== 'FY' )
 					{
 						$weighted = $percent / 100 * $grades_RET[$grade][1]['GP_SCALE'];
 					}
@@ -588,16 +628,17 @@ if ( ! empty( $_REQUEST['values'] )
 					$grade = $letter = $weighted = $unweighted = $scale = $gp_passing = '';
 				}
 
-				$sql .= "GRADE_PERCENT='" . $percent . "'";
-				$sql .= ",REPORT_CARD_GRADE_ID='" . (int) $grade . "',GRADE_LETTER='" . $letter .
-					"',WEIGHTED_GP='" . $weighted . "',UNWEIGHTED_GP='" . $unweighted .
-					"',GP_SCALE='" . $scale . "'";
-
-				// bjj can we use $percent all the time?  TODO: rework this so updates to credits occur when grade is changed
-				$sql .= ",COURSE_TITLE='" . DBEscapeString( $course_RET[1]['COURSE_NAME'] ) . "'";
-				$sql .= ",CREDIT_ATTEMPTED='" . $course_RET[1]['CREDITS'] . "'";
-				$sql .= ",CREDIT_EARNED='" . ( (float) $weighted && $weighted >= $gp_passing ? $course_RET[1]['CREDITS'] : '0' ) . "'";
-				$sep = ',';
+				$update_columns = [
+					'GRADE_PERCENT' => $percent,
+					'REPORT_CARD_GRADE_ID' => $grade,
+					'GRADE_LETTER' => $letter,
+					'WEIGHTED_GP' => $weighted,
+					'UNWEIGHTED_GP' => $unweighted,
+					'GP_SCALE' => $scale,
+					'COURSE_TITLE' => DBEscapeString( $course_RET[1]['COURSE_NAME'] ),
+					'CREDIT_ATTEMPTED' => $course_RET[1]['CREDITS'],
+					'CREDIT_EARNED' => ( (float) $weighted && $weighted >= $gp_passing ? $course_RET[1]['CREDITS'] : '0' ),
+				];
 			}
 			elseif ( ! empty( $columns['grade'] ) )
 			{
@@ -609,7 +650,7 @@ if ( ! empty( $_REQUEST['values'] )
 				// FJ add precision to year weighted GPA if not year course period.
 
 				if ( GetMP( $_REQUEST['mp'], 'MP' ) === 'FY'
-					&& $course_period_mp !== 'FY' )
+				     && $course_period_mp !== 'FY' )
 				{
 					$weighted = $percent / 100 * $grades_RET[$grade][1]['GP_SCALE'];
 				}
@@ -620,28 +661,34 @@ if ( ! empty( $_REQUEST['values'] )
 
 				$gp_passing = $grades_RET[$grade][1]['GP_PASSING_VALUE'];
 
-				$sql .= "GRADE_PERCENT='" . $percent . "'";
-				$sql .= ",REPORT_CARD_GRADE_ID='" . (int) $grade . "',GRADE_LETTER='" . $letter .
-					"',WEIGHTED_GP='" . $weighted . "',UNWEIGHTED_GP='" . $unweighted .
-					"',GP_SCALE='" . $scale . "'";
-				$sql .= ",COURSE_TITLE='" . DBEscapeString( $course_RET[1]['COURSE_NAME'] ) . "'";
-				$sql .= ",CREDIT_ATTEMPTED='" . $course_RET[1]['CREDITS'] . "'";
-				$sql .= ",CREDIT_EARNED='" . ( (float) $weighted && $weighted >= $gp_passing ? $course_RET[1]['CREDITS'] : '0' ) . "'";
-				$sep = ',';
+				$update_columns = [
+					'GRADE_PERCENT' => $percent,
+					'REPORT_CARD_GRADE_ID' => $grade,
+					'GRADE_LETTER' => $letter,
+					'WEIGHTED_GP' => $weighted,
+					'UNWEIGHTED_GP' => $unweighted,
+					'GP_SCALE' => $scale,
+					'COURSE_TITLE' => DBEscapeString( $course_RET[1]['COURSE_NAME'] ),
+					'CREDIT_ATTEMPTED' => $course_RET[1]['CREDITS'],
+					'CREDIT_EARNED' => ( (float) $weighted && $weighted >= $gp_passing ? $course_RET[1]['CREDITS'] : '0' ),
+				];
 			}
 			elseif ( isset( $columns['percent'] )
-				|| isset( $columns['grade'] ) )
+			         || isset( $columns['grade'] ) )
 			{
 				$percent = $grade = '';
-				$sql .= "GRADE_PERCENT=NULL";
-				// FJ bugfix SQL bug 'NULL' instead of NULL.
-				//$sql .= ",REPORT_CARD_GRADE_ID=NULL,GRADE_LETTER=NULL,WEIGHTED_GP='NULL',UNWEIGHTED_GP='NULL',GP_SCALE='NULL'";
-				$sql .= ",REPORT_CARD_GRADE_ID=NULL,GRADE_LETTER=NULL,WEIGHTED_GP=NULL,
-					UNWEIGHTED_GP=NULL,GP_SCALE=NULL";
-				$sql .= ",COURSE_TITLE='" . DBEscapeString( $course_RET[1]['COURSE_NAME'] ) . "'";
-				$sql .= ",CREDIT_ATTEMPTED='" . $course_RET[1]['CREDITS'] . "'";
-				$sql .= ",CREDIT_EARNED='0'";
-				$sep = ',';
+
+				$update_columns = [
+					'GRADE_PERCENT' => '',
+					'REPORT_CARD_GRADE_ID' => '',
+					'GRADE_LETTER' => '',
+					'WEIGHTED_GP' => '',
+					'UNWEIGHTED_GP' => '',
+					'GP_SCALE' => '',
+					'COURSE_TITLE' => DBEscapeString( $course_RET[1]['COURSE_NAME'] ),
+					'CREDIT_ATTEMPTED' => $course_RET[1]['CREDITS'],
+					'CREDIT_EARNED' => '0',
+				];
 			}
 			else
 			{
@@ -651,26 +698,30 @@ if ( ! empty( $_REQUEST['values'] )
 
 			if ( isset( $columns['comment'] ) )
 			{
-				$sql .= $sep . "COMMENT='" . $columns['comment'] . "'";
+				$update_columns['COMMENT'] = $columns['comment'];
 			}
 
-			if ( $sql )
+			if ( $update_columns )
 			{
 				// Reset Class Rank based on current CP Does Class Rank parameter.
-				$sql .= ",CLASS_RANK='" . $course_RET[1]['CLASS_RANK'] . "'";
+				$update_columns['CLASS_RANK'] = $course_RET[1]['CLASS_RANK'];
 
-				$sql = "UPDATE student_report_card_grades
-					SET " . $sql . "
-					WHERE STUDENT_ID='" . (int) $student_id . "'
-					AND COURSE_PERIOD_ID='" . (int) $course_period_id . "'
-					AND MARKING_PERIOD_ID='" . (int) $_REQUEST['mp'] . "'";
+				DBUpdate(
+					'student_report_card_grades',
+					$update_columns,
+					[
+						'STUDENT_ID' => (int) $student_id,
+						'COURSE_PERIOD_ID' => (int) $course_period_id,
+						'MARKING_PERIOD_ID' => (int) $_REQUEST['mp'],
+					]
+				);
 			}
 		}
-		elseif ( $columns['percent'] != ''
-			|| $columns['grade']
-			|| $columns['comment'] )
+		elseif ( ( isset( $columns['percent'] ) && $columns['percent'] != '' )
+		         || $columns['grade']
+		         || $columns['comment'] )
 		{
-			if ( $columns['percent'] != '' )
+			if ( isset( $columns['percent'] ) && $columns['percent'] != '' )
 			{
 				// FJ bugfix SQL error invalid input syntax for type numeric.
 				$percent = trim( $columns['percent'], '%' );
@@ -737,31 +788,32 @@ if ( ! empty( $_REQUEST['values'] )
 				$percent = $grade = $letter = $weighted = $unweighted = $scale = $gp_passing = '';
 			}
 
-			//FJ fix bug SQL ID=NULL
-			//FJ add CLASS_RANK
-			//FJ add Credit Hours
-			$sql = "INSERT INTO student_report_card_grades (SYEAR,SCHOOL_ID,STUDENT_ID,
-			COURSE_PERIOD_ID,MARKING_PERIOD_ID,REPORT_CARD_GRADE_ID,GRADE_PERCENT,COMMENT,
-			GRADE_LETTER,WEIGHTED_GP,UNWEIGHTED_GP,GP_SCALE,COURSE_TITLE,CREDIT_ATTEMPTED,
-			CREDIT_EARNED,CLASS_RANK,CREDIT_HOURS)
-			VALUES('" .
-			UserSyear() . "','" . UserSchool() . "','" . $student_id . "','" .
-			$course_period_id . "','" . $_REQUEST['mp'] . "','" . $grade . "','" . $percent . "','" .
-			$columns['comment'] . "','" . $grades_RET[$grade][1]['TITLE'] . "','" . $weighted . "','" .
-			$unweighted . "','" . $scale . "','" . DBEscapeString( $course_RET[1]['COURSE_NAME'] ) . "','" .
-			$course_RET[1]['CREDITS'] . "','" .
-			( (float) $weighted && $weighted >= $gp_passing ? $course_RET[1]['CREDITS'] : '0' ) . "','" .
-			$course_RET[1]['CLASS_RANK'] . "'," .
-			( is_null( $course_RET[1]['CREDIT_HOURS'] ) ? 'NULL' : $course_RET[1]['CREDIT_HOURS'] ) . ")";
+			DBInsert(
+				'student_report_card_grades',
+				[
+					'SYEAR' => UserSyear(),
+					'SCHOOL_ID' => UserSchool(),
+					'STUDENT_ID' => (int) $student_id,
+					'COURSE_PERIOD_ID' => (int) $course_period_id,
+					'MARKING_PERIOD_ID' => (int) $_REQUEST['mp'],
+					'REPORT_CARD_GRADE_ID' => $grade,
+					'GRADE_PERCENT' => $percent,
+					'COMMENT' => $columns['comment'],
+					'GRADE_LETTER' => DBEscapeString( $grades_RET[$grade][1]['TITLE'] ),
+					'WEIGHTED_GP' => $weighted,
+					'UNWEIGHTED_GP' => $unweighted,
+					'GP_SCALE' => $scale,
+					'COURSE_TITLE' => DBEscapeString( $course_RET[1]['COURSE_NAME'] ),
+					'CREDIT_ATTEMPTED' => $course_RET[1]['CREDITS'],
+					'CREDIT_EARNED' => ( (float) $weighted && $weighted >= $gp_passing ? $course_RET[1]['CREDITS'] : '0' ),
+					'CLASS_RANK' => $course_RET[1]['CLASS_RANK'],
+					'CREDIT_HOURS' => $course_RET[1]['CREDIT_HOURS'],
+				]
+			);
 		}
 		else
 		{
 			$percent = $grade = '';
-		}
-
-		if ( $sql )
-		{
-			DBQuery( $sql );
 		}
 
 		//DBQuery("DELETE FROM student_report_card_grades WHERE SYEAR='".UserSyear()."' AND SCHOOL_ID='".UserSchool()."' AND COURSE_PERIOD_ID='".$course_period_id."' AND MARKING_PERIOD_ID='".$_REQUEST['mp']."'");
@@ -790,12 +842,16 @@ if ( ! empty( $_REQUEST['values'] )
 				{
 					if ( $comment )
 					{
-						DBQuery( "UPDATE student_report_card_comments
-							SET COMMENT='" . $comment . "'
-							WHERE STUDENT_ID='" . (int) $student_id . "'
-							AND COURSE_PERIOD_ID='" . (int) $course_period_id . "'
-							AND MARKING_PERIOD_ID='" . (int) $_REQUEST['mp'] . "'
-							AND REPORT_CARD_COMMENT_ID='" . (int) $id . "'" );
+						DBUpdate(
+							'student_report_card_comments',
+							[ 'COMMENT' => $comment ],
+							[
+								'STUDENT_ID' => (int) $student_id,
+								'COURSE_PERIOD_ID' => (int) $course_period_id,
+								'MARKING_PERIOD_ID' => (int) $_REQUEST['mp'],
+								'REPORT_CARD_COMMENT_ID' => (int) $id,
+							]
+						);
 					}
 					else
 					{
@@ -808,9 +864,18 @@ if ( ! empty( $_REQUEST['values'] )
 				}
 				elseif ( $comment )
 				{
-					DBQuery( "INSERT INTO student_report_card_comments
-					(SYEAR, SCHOOL_ID, STUDENT_ID, COURSE_PERIOD_ID, MARKING_PERIOD_ID, REPORT_CARD_COMMENT_ID, COMMENT)
-					values('" . UserSyear() . "','" . UserSchool() . "','" . $student_id . "','" . $course_period_id . "','" . $_REQUEST['mp'] . "','" . (int) $id . "','" . $comment . "')" );
+					DBInsert(
+						'student_report_card_comments',
+						[
+							'SYEAR' => UserSyear(),
+							'SCHOOL_ID' => UserSchool(),
+							'STUDENT_ID' => (int) $student_id,
+							'COURSE_PERIOD_ID' => (int) $course_period_id,
+							'MARKING_PERIOD_ID' => (int) $_REQUEST['mp'],
+							'REPORT_CARD_COMMENT_ID' => (int) $id,
+							'COMMENT' => $comment,
+						]
+					);
 				}
 			}
 		}
@@ -919,12 +984,16 @@ if ( ! empty( $_REQUEST['values'] )
 				{
 					if ( $comment['REPORT_CARD_COMMENT_ID'] != $current_commentsB_RET[$student_id][$i]['REPORT_CARD_COMMENT_ID'] )
 					{
-						DBQuery( "UPDATE student_report_card_comments
-						SET REPORT_CARD_COMMENT_ID='" . (int) $comment['REPORT_CARD_COMMENT_ID'] . "'
-						WHERE STUDENT_ID='" . (int) $student_id . "'
-						AND COURSE_PERIOD_ID='" . (int) $course_period_id . "'
-						AND MARKING_PERIOD_ID='" . (int) $_REQUEST['mp'] . "'
-						AND REPORT_CARD_COMMENT_ID='" . (int) $current_commentsB_RET[$student_id][$i]['REPORT_CARD_COMMENT_ID'] . "'" );
+						DBUpdate(
+							'student_report_card_comments',
+							[ 'REPORT_CARD_COMMENT_ID' => (int) $comment['REPORT_CARD_COMMENT_ID'] ],
+							[
+								'STUDENT_ID' => (int) $student_id,
+								'COURSE_PERIOD_ID' => (int) $course_period_id,
+								'MARKING_PERIOD_ID' => (int) $_REQUEST['mp'],
+								'REPORT_CARD_COMMENT_ID' => (int) $current_commentsB_RET[$student_id][$i]['REPORT_CARD_COMMENT_ID'],
+							]
+						);
 					}
 				}
 				else
@@ -938,9 +1007,17 @@ if ( ! empty( $_REQUEST['values'] )
 			}
 			elseif ( $comment['REPORT_CARD_COMMENT_ID'] )
 			{
-				DBQuery( "INSERT INTO student_report_card_comments
-					(SYEAR, SCHOOL_ID, STUDENT_ID, COURSE_PERIOD_ID, MARKING_PERIOD_ID, REPORT_CARD_COMMENT_ID)
-					values('" . UserSyear() . "','" . UserSchool() . "','" . $student_id . "','" . $course_period_id . "','" . $_REQUEST['mp'] . "','" . $comment['REPORT_CARD_COMMENT_ID'] . "')" );
+				DBInsert(
+					'student_report_card_comments',
+					[
+						'SYEAR' => UserSyear(),
+						'SCHOOL_ID' => UserSchool(),
+						'STUDENT_ID' => (int) $student_id,
+						'COURSE_PERIOD_ID' => (int) $course_period_id,
+						'MARKING_PERIOD_ID' => (int) $_REQUEST['mp'],
+						'REPORT_CARD_COMMENT_ID' => (int) $comment['REPORT_CARD_COMMENT_ID'],
+					]
+				);
 			}
 		}
 	}
@@ -952,8 +1029,14 @@ if ( ! empty( $_REQUEST['values'] )
 	{
 		if ( ! $current_completed )
 		{
-			DBQuery( "INSERT INTO grades_completed (STAFF_ID,MARKING_PERIOD_ID,COURSE_PERIOD_ID)
-				values('" . User( 'STAFF_ID' ) . "','" . $_REQUEST['mp'] . "','" . $course_period_id . "')" );
+			DBInsert(
+				'grades_completed',
+				[
+					'STAFF_ID' => User( 'STAFF_ID' ),
+					'MARKING_PERIOD_ID' => (int) $_REQUEST['mp'],
+					'COURSE_PERIOD_ID' => (int) $course_period_id,
+				]
+			);
 		}
 	}
 	elseif ( $current_completed )
@@ -1019,69 +1102,28 @@ if ( ! empty( $_REQUEST['values'] )
 }
 
 $mps_onchange_URL = URLEscape( "Modules.php?modname=" . $_REQUEST['modname'] .
-	'&include_inactive=' . $_REQUEST['include_inactive'] . "&mp=" );
+                               '&include_inactive=' . $_REQUEST['include_inactive'] . "&mp=" );
 
 $mps_select = '<select name="mp_select" id="mp_select" onchange="' .
-	AttrEscape( 'ajaxLink(' . json_encode( $mps_onchange_URL ) . ' + this.value);' ) . '">';
+              AttrEscape( 'ajaxLink(' . json_encode( $mps_onchange_URL ) . ' + this.value);' ) . '">';
 
 $allow_edit = false;
 
-if ( $pros != '' )
+foreach ( (array) $all_mp_ids as $mp_id )
 {
-	foreach ( explode( ',', str_replace( "'", '', $pros ) ) as $pro )
+	if ( $_REQUEST['mp'] == $mp_id
+	     && GetMP( $mp_id, 'POST_START_DATE' )
+	     && DBDate() >= GetMP( $mp_id, 'POST_START_DATE' )
+	     && DBDate() <= GetMP( $mp_id, 'POST_END_DATE' ) )
 	{
-		if ( $_REQUEST['mp'] == $pro
-			&& GetMP( $pro, 'POST_START_DATE' )
-			&& DBDate() >= GetMP( $pro, 'POST_START_DATE' )
-			&& DBDate() <= GetMP( $pro, 'POST_END_DATE' ) )
-		{
-			$allow_edit = true;
-		}
-
-		if ( GetMP( $pro, 'DOES_GRADES' ) == 'Y' )
-		{
-			$mps_select .= '<option value="' . AttrEscape( $pro ) . '"' . ( ( $pro == $_REQUEST['mp'] ) ? ' selected' : '' ) . ">" . GetMP( $pro ) . "</option>";
-		}
+		$allow_edit = true;
 	}
-}
 
-if ( $_REQUEST['mp'] == UserMP()
-	&& GetMP( UserMP(), 'POST_START_DATE' )
-	&& DBDate() >= GetMP( UserMP(), 'POST_START_DATE' )
-	&& DBDate() <= GetMP( UserMP(), 'POST_END_DATE' ) )
-{
-	$allow_edit = true;
-}
-
-$mps_select .= '<option value="' . AttrEscape( UserMP() ) . '"' . ( UserMP() == $_REQUEST['mp'] ? ' selected' : '' ) . '>' .
-	GetMP( UserMP() ) . '</option>';
-
-if ( $_REQUEST['mp'] == $sem
-	&& GetMP( $sem, 'POST_START_DATE' )
-	&& DBDate() >= GetMP( $sem, 'POST_START_DATE' )
-	&& DBDate() <= GetMP( $sem, 'POST_END_DATE' ) )
-{
-	$allow_edit = true;
-}
-
-if ( GetMP( $sem, 'DOES_GRADES' ) == 'Y' )
-{
-	$mps_select .= '<option value="' . AttrEscape( $sem ) . '"' . ( $sem == $_REQUEST['mp'] ? ' selected' : '' ) . '>' .
-		GetMP( $sem ) . '</option>';
-}
-
-if ( $_REQUEST['mp'] == $fy
-	&& GetMP( $fy, 'POST_START_DATE' )
-	&& DBDate() >= GetMP( $fy, 'POST_START_DATE' )
-	&& DBDate() <= GetMP( $fy, 'POST_END_DATE' ) )
-{
-	$allow_edit = true;
-}
-
-if ( GetMP( $fy, 'DOES_GRADES' ) == 'Y' )
-{
-	$mps_select .= '<option value="' . AttrEscape( $fy ) . '"' . ( $fy == $_REQUEST['mp'] ? ' selected' : '' ) . '>' .
-		GetMP( $fy ) . '</option>';
+	if ( GetMP( $mp_id, 'DOES_GRADES' ) == 'Y' || $mp_id == UserMP() )
+	{
+		$mps_select .= '<option value="' . AttrEscape( $mp_id ) . '"' .
+		               ( $mp_id == $_REQUEST['mp'] ? ' selected' : '' ) . '>' . GetMP( $mp_id ) . '</option>';
+	}
 }
 
 $mps_select .= '</select><label for="mp_select" class="a11y-hidden">' . _( 'Marking Period' ) . '</label>';
@@ -1089,7 +1131,7 @@ $mps_select .= '</select><label for="mp_select" class="a11y-hidden">' . _( 'Mark
 // If running as a teacher program then rosario[allow_edit] will already be set according to admin permissions.
 
 if ( User( 'PROFILE' ) === 'teacher'
-	&& mb_strpos( $_REQUEST['modname'], 'TeacherPrograms' ) === false )
+     && mb_strpos( $_REQUEST['modname'], 'TeacherPrograms' ) === false )
 {
 	$is_after_grade_post_start_date = DBGetOne( "SELECT 1
 		FROM school_marking_periods
@@ -1097,8 +1139,8 @@ if ( User( 'PROFILE' ) === 'teacher'
 		AND (POST_START_DATE IS NULL OR POST_START_DATE<=CURRENT_DATE)" );
 
 	$_ROSARIO['allow_edit'] = ( ProgramConfig( 'grades', 'GRADES_TEACHER_ALLOW_EDIT' )
-		&& $is_after_grade_post_start_date )
-	|| $allow_edit;
+	                            && $is_after_grade_post_start_date )
+	                          || $allow_edit;
 }
 
 $extra['SELECT'] = ",ssm.STUDENT_ID AS REPORT_CARD_GRADE";
@@ -1141,17 +1183,25 @@ $extra['DATE'] = GetMP( $_REQUEST['mp'], 'END_DATE' );
 
 $stu_RET = GetStuList( $extra );
 
+/**
+ * Adding `'&period=' . UserCoursePeriod()` to the Teacher form URL will prevent the following issue:
+ * If form is displayed for CP A, then Teacher opens a new browser tab and switches to CP B
+ * Then teacher submits the form, data would be saved for CP B...
+ *
+ * Must be used in combination with
+ * `if ( ! empty( $_REQUEST['period'] ) ) SetUserCoursePeriod( $_REQUEST['period'] );`
+ */
 echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-	( ! empty( $categories_RET ) && GetMP( $_REQUEST['mp'], 'DOES_COMMENTS' ) == 'Y' ?
-		'&tab_id=' . $_REQUEST['tab_id'] : '' ) .
-	'&mp=' . $_REQUEST['mp']  ) . '" method="POST">';
+                                   ( ! empty( $categories_RET ) && GetMP( $_REQUEST['mp'], 'DOES_COMMENTS' ) == 'Y' ?
+	                                   '&tab_id=' . $_REQUEST['tab_id'] : '' ) .
+                                   '&mp=' . $_REQUEST['mp'] . '&period=' . $course_period_id  ) . '" method="POST">';
 
 if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 {
 	$tipmessage = '';
 
 	if ( ! empty( $commentsB_RET )
-		&& GetMP( $_REQUEST['mp'], 'DOES_COMMENTS' ) == 'Y' )
+	     && GetMP( $_REQUEST['mp'], 'DOES_COMMENTS' ) == 'Y' )
 	{
 		$tipmsg = '';
 
@@ -1169,7 +1219,7 @@ if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 
 	// Add All Courses & Course-specific comments scales tipmessage.
 	elseif ( ! empty( $commentsA_RET )
-		&& GetMP( $_REQUEST['mp'], 'DOES_COMMENTS' ) == 'Y' )
+	         && GetMP( $_REQUEST['mp'], 'DOES_COMMENTS' ) == 'Y' )
 	{
 		// Course-specific.
 		$where = " AND CATEGORY_ID='" . (int) $_REQUEST['tab_id'] . "'";
@@ -1184,7 +1234,7 @@ if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 			FROM report_card_comments
 			WHERE SCHOOL_ID='" . UserSchool() . "'
 			AND SYEAR='" . UserSyear() . "'" .
-			$where . "
+		                           $where . "
 			ORDER BY SORT_ORDER IS NULL,SORT_ORDER", [], [ 'SCALE_ID' ] );
 
 		foreach ( (array) $commentsAbis_RET as $scale_id => $commentsAbis )
@@ -1193,9 +1243,12 @@ if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 
 			$tiplabel = [];
 
-			foreach ( (array) $comment_codes_RET[$scale_id] as $comment )
+			if ( isset( $comment_codes_RET[$scale_id] ) )
 			{
-				$tipmsg .= $comment['TITLE'] . ': ' . $comment['COMMENT'] . '<br />';
+				foreach ( (array) $comment_codes_RET[$scale_id] as $comment )
+				{
+					$tipmsg .= $comment['TITLE'] . ': ' . $comment['COMMENT'] . '<br />';
+				}
 			}
 
 			foreach ( (array) $commentsAbis as $commentAbis )
@@ -1204,10 +1257,10 @@ if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 			}
 
 			$tipmessage .= ' &nbsp; ' . makeTipMessage(
-				$tipmsg,
-				_( 'Comment Codes' ),
-				button( 'comment', implode( ' / ', $tiplabel ) )
-			);
+					$tipmsg,
+					_( 'Comment Codes' ),
+					button( 'comment', implode( ' / ', $tiplabel ) )
+				);
 		}
 	}
 
@@ -1222,10 +1275,10 @@ if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	if ( GetMP( $_REQUEST['mp'], 'POST_START_DATE' ) )
 	{
 		$grade_posting_dates_text = ' ' . sprintf(
-			_( 'Grade Posting dates: %s - %s' ),
-			ProperDate( GetMP( $_REQUEST['mp'], 'POST_START_DATE' ) ),
-			ProperDate( GetMP( $_REQUEST['mp'], 'POST_END_DATE' ) )
-		);
+				_( 'Grade Posting dates: %s - %s' ),
+				ProperDate( GetMP( $_REQUEST['mp'], 'POST_START_DATE' ) ),
+				ProperDate( GetMP( $_REQUEST['mp'], 'POST_END_DATE' ) )
+			);
 	}
 
 	//FJ add translation
@@ -1236,8 +1289,8 @@ if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	if ( AllowEdit() )
 	{
 		$gb_header .= '<a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&include_inactive=' . $_REQUEST['include_inactive'] .
-			'&modfunc=gradebook&mp=' . $_REQUEST['mp'] ) . '">' . _( 'Get Gradebook Grades.' ) . '</a>';
+		                                       '&include_inactive=' . $_REQUEST['include_inactive'] .
+		                                       '&modfunc=gradebook&mp=' . $_REQUEST['mp'] ) . '">' . _( 'Get Gradebook Grades.' ) . '</a>';
 
 		$prev_mp = DBGet( "SELECT MARKING_PERIOD_ID,TITLE,START_DATE
 			FROM school_marking_periods
@@ -1258,23 +1311,23 @@ if ( ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 		if ( $prev_mp && ! $mp_is_quarter )
 		{
 			$gb_header .= ' | <a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-				'&include_inactive=' . $_REQUEST['include_inactive'] .
-				'&modfunc=grades&tab_id=' . $_REQUEST['tab_id'] . '&mp=' . $_REQUEST['mp'] .
-				'&prev_mp=' . $prev_mp['MARKING_PERIOD_ID'] ) . '">' .
-				sprintf( _( 'Get %s Grades' ), $prev_mp['TITLE'] ) . '</a>';
+			                                          '&include_inactive=' . $_REQUEST['include_inactive'] .
+			                                          '&modfunc=grades&tab_id=' . $_REQUEST['tab_id'] . '&mp=' . $_REQUEST['mp'] .
+			                                          '&prev_mp=' . $prev_mp['MARKING_PERIOD_ID'] ) . '">' .
+			              sprintf( _( 'Get %s Grades' ), $prev_mp['TITLE'] ) . '</a>';
 
 			$gb_header .= ' | <a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-				'&include_inactive=' . $_REQUEST['include_inactive'] .
-				'&modfunc=comments&tab_id=' . $_REQUEST['tab_id'] . '&mp=' . $_REQUEST['mp'] .
-				'&prev_mp=' . $prev_mp['MARKING_PERIOD_ID'] ) . '">' .
-				sprintf( _( 'Get %s Comments' ), $prev_mp['TITLE'] ) . '</a>';
+			                                          '&include_inactive=' . $_REQUEST['include_inactive'] .
+			                                          '&modfunc=comments&tab_id=' . $_REQUEST['tab_id'] . '&mp=' . $_REQUEST['mp'] .
+			                                          '&prev_mp=' . $prev_mp['MARKING_PERIOD_ID'] ) . '">' .
+			              sprintf( _( 'Get %s Comments' ), $prev_mp['TITLE'] ) . '</a>';
 		}
 
 		$gb_header .= ' | ';
 		$gb_header .= '<a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&include_inactive=' . $_REQUEST['include_inactive'] .
-			'&modfunc=clearall&tab_id=' . $_REQUEST['tab_id'] . '&mp=' . $_REQUEST['mp'] ) . '">' .
-			_( 'Clear All' ) . '</a>';
+		                                       '&include_inactive=' . $_REQUEST['include_inactive'] .
+		                                       '&modfunc=clearall&tab_id=' . $_REQUEST['tab_id'] . '&mp=' . $_REQUEST['mp'] ) . '">' .
+		              _( 'Clear All' ) . '</a>';
 	}
 
 	DrawHeader( $gb_header );
@@ -1330,9 +1383,9 @@ if ( ! ProgramConfig( 'grades', 'GRADES_HIDE_NON_ATTENDANCE_COMMENT' ) )
 foreach ( (array) $categories_RET as $id => $category )
 {
 	$tabs[] = [
-		'title' => $category[1]['TITLE'],
-		'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&mp=' . $_REQUEST['mp'] . '&tab_id=' . $id,
-	] + ( $category[1]['COLOR'] ? [ 'color' => $category[1]['COLOR'] ] : [] );
+		          'title' => $category[1]['TITLE'],
+		          'link' => 'Modules.php?modname=' . $_REQUEST['modname'] . '&mp=' . $_REQUEST['mp'] . '&tab_id=' . $id,
+	          ] + ( $category[1]['COLOR'] ? [ 'color' => $category[1]['COLOR'] ] : [] );
 }
 
 $LO_options = [ 'save' => false, 'search' => false ];
@@ -1369,20 +1422,20 @@ ListOutput( $stu_RET, $LO_columns, 'Student', 'Students', $link, [], $LO_options
 // @since 4.6 Navigate form inputs vertically using tab key.
 // @link https://stackoverflow.com/questions/38575817/set-tabindex-in-vertical-order-of-columns
 ?>
-<script>
-function fixVerticalTabindex(selector) {
-	var tabindex = 1;
-	$(selector).each(function(i, tbl) {
-		$(tbl).find('tr').first().find('td').each(function(clmn, el) {
-			$(tbl).find('tr td:nth-child(' + (clmn + 1) + ') input,tr td:nth-child(' + (clmn + 1) + ') select').each(function(j, input) {
-				$(input).attr('tabindex', tabindex++);
-			});
-		});
-	});
-}
+	<script>
+        function fixVerticalTabindex(selector) {
+            var tabindex = 1;
+            $(selector).each(function(i, tbl) {
+                $(tbl).find('tr').first().find('td').each(function(clmn, el) {
+                    $(tbl).find('tr td:nth-child(' + (clmn + 1) + ') input,tr td:nth-child(' + (clmn + 1) + ') select').each(function(j, input) {
+                        $(input).attr('tabindex', tabindex++);
+                    });
+                });
+            });
+        }
 
-fixVerticalTabindex('.list-wrapper .list tbody');
-</script>
+        fixVerticalTabindex('.list-wrapper .list tbody');
+	</script>
 <?php
 
 echo '<br /><div class="center">' . SubmitButton() . '</div>';
@@ -1447,27 +1500,27 @@ function _makeLetterPercent( $student_id, $column )
 		else
 		{
 			if ( AllowEdit()
-				&& $div
-				&& $select_percent != ''
-				&& $select_grade )
+			     && $div
+			     && $select_percent != ''
+			     && $select_grade )
 			{
 				$id = $student_id;
 
 				$select_html = '<span class="nobr">' . SelectInput(
-					$select_grade,
-					'values[' . $student_id . '][grade]',
-					'',
-					$grades_select,
-					false,
-					'',
-					false
-				) . ' ' . TextInput(
-					$select_percent != '' ? $select_percent . '%' : '',
-					'values[' . $student_id . '][percent]',
-					'',
-					'size="5"',
-					false
-				) . '</span>';
+						$select_grade,
+						'values[' . $student_id . '][grade]',
+						'',
+						$grades_select,
+						false,
+						'',
+						false
+					) . ' ' . TextInput(
+					               $select_percent != '' ? $select_percent . '%' : '',
+					               'values[' . $student_id . '][percent]',
+					               '',
+					               'size="5"',
+					               false
+				               ) . '</span>';
 
 				$return = InputDivOnclick(
 					$id,
@@ -1482,20 +1535,20 @@ function _makeLetterPercent( $student_id, $column )
 			else
 			{
 				$return = '<span class="nobr">' . SelectInput(
-					$select_grade,
-					'values[' . $student_id . '][grade]',
-					'',
-					$grades_select,
-					false,
-					'',
-					false
-				) . ' ' . TextInput(
-					$select_percent != '' ? $select_percent . '%' : ( $select_grade ? '%' : '' ),
-					'values[' . $student_id . '][percent]',
-					'',
-					'size="5"',
-					false
-				) . '</span>';
+						$select_grade,
+						'values[' . $student_id . '][grade]',
+						'',
+						$grades_select,
+						false,
+						'',
+						false
+					) . ' ' . TextInput(
+					          $select_percent != '' ? $select_percent . '%' : ( $select_grade ? '%' : '' ),
+					          'values[' . $student_id . '][percent]',
+					          '',
+					          'size="5"',
+					          false
+				          ) . '</span>';
 			}
 		}
 	}
@@ -1555,7 +1608,7 @@ function _makeComment( $value, $column )
 		{
 			// Comments length > 60 chars, responsive table ColorBox.
 			$return = '<div id="divInputFinalGradesComment' . $THIS_RET['STUDENT_ID']. '" class="rt2colorBox">' .
-				$return . '</div>';
+			          $return . '</div>';
 		}
 	}
 	else
@@ -1583,8 +1636,8 @@ function _makeCommentsA( $value, $column )
 	else
 	{
 		if ( empty( $current_commentsA_RET[$THIS_RET['STUDENT_ID']][$value][1]['COMMENT'] )
-			&& ! $import_commentsA_RET
-			&& AllowEdit() )
+		     && ! $import_commentsA_RET
+		     && AllowEdit() )
 		{
 			$select = Preferences( 'COMMENT_' . $THIS_RET['CAC' . $value], 'Gradebook' );
 			$div = false;
@@ -1602,7 +1655,7 @@ function _makeCommentsA( $value, $column )
 			$select,
 			'values[' . $THIS_RET['STUDENT_ID'] . '][commentsA][' . $value . ']',
 			'',
-			$commentsA_select[$THIS_RET['CAC' . $value]],
+			issetVal( $commentsA_select[$THIS_RET['CAC' . $value]], [] ),
 			_( 'N/A' ),
 			'',
 			$div
@@ -1624,11 +1677,11 @@ function _makeCommentsA( $value, $column )
 function _makeCommentsB( $value, $column )
 {
 	global $THIS_RET,
-	$current_commentsB_RET,
-	$import_commentsB_RET,
-	$commentsB_RET,
-	$max_current_commentsB,
-	$commentsB_select;
+	       $current_commentsB_RET,
+	       $import_commentsB_RET,
+	       $commentsB_RET,
+	       $max_current_commentsB,
+	       $commentsB_select;
 
 	$select = null;
 
@@ -1665,7 +1718,7 @@ function _makeCommentsB( $value, $column )
 			);
 		}
 		elseif ( ! empty( $import_commentsB_RET[$THIS_RET['STUDENT_ID']][$value] )
-			|| isset( $current_commentsB_RET[$THIS_RET['STUDENT_ID']][$value] ) )
+		         || isset( $current_commentsB_RET[$THIS_RET['STUDENT_ID']][$value] ) )
 		{
 			$return = SelectInput(
 				$select,

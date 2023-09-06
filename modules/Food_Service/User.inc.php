@@ -5,7 +5,7 @@ require_once 'ProgramFunctions/TipMessage.fnc.php';
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( UserStaffID()
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		if ( ! empty( $_REQUEST['food_service'] ) )
 		{
@@ -28,7 +28,7 @@ if ( $_REQUEST['modfunc'] === 'update' )
 }
 
 if ( ! $_REQUEST['modfunc']
-	&& UserStaffID() )
+     && UserStaffID() )
 {
 	$staff = DBGet( "SELECT s.STAFF_ID," . DisplayNameSQL( 's' ) . " ,
 	(SELECT s.STAFF_ID FROM food_service_staff_accounts WHERE STAFF_ID=s.STAFF_ID) AS ACCOUNT_ID,
@@ -51,17 +51,17 @@ if ( ! $_REQUEST['modfunc']
 	if ( ! $staff['ACCOUNT_ID'] )
 	{
 		echo '<br />' . MakeTipMessage(
-			_( 'This user does not have a Meal Account.' ),
-			_( 'Warning' ),
-			button( 'warning' )
-		);
+				_( 'This user does not have a Meal Account.' ),
+				_( 'Warning' ),
+				button( 'warning' )
+			);
 	}
 
 	echo '</td>';
 
 	echo '</tr></table>';
 	echo '</td></tr></table>';
-	echo '<hr />';
+	echo '<hr>';
 
 	echo '<table class="width-100p fixed-col">';
 	echo '<tr><td class="valign-top">';

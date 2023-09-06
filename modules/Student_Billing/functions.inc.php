@@ -23,20 +23,20 @@ function _makeFeesRemove( $value, $column )
 		$return = button(
 			'remove',
 			_( 'Waive' ),
-			'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-				'&modfunc=waive&id=' . $THIS_RET['ID'] ) . '"'
-		) . ' ';
+			URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
+				'&modfunc=waive&id=' . $THIS_RET['ID'] )
+		) . '<br class="rbr"> ';
 	}
 	elseif ( ! empty( $waived_fees_RET[ $THIS_RET['ID'] ] ) )
 	{
-		$return = '<span style="color:#00A642">' . _( 'Waived' ) . '</span> ';
+		$return = '<span style="color:#00A642">' . _( 'Waived' ) . '</span><br class="rbr"> ';
 	}
 
 	return $return . button(
 		'remove',
 		_( 'Delete' ),
-		'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&modfunc=remove&id=' . $THIS_RET['ID'] ) . '"'
+		URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
+			'&modfunc=remove&id=' . $THIS_RET['ID'] )
 	);
 }
 
@@ -67,14 +67,14 @@ function _makePaymentsRemove( $value, $column )
 			$return = button(
 				'remove',
 				_( 'Refund' ),
-				'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-					'&modfunc=refund&id=' . $THIS_RET['ID'] ) . '"'
-			) . ' ';
+				URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
+					'&modfunc=refund&id=' . $THIS_RET['ID'] )
+			) . '<br class="rbr"> ';
 		}
 	}
 	elseif ( ! empty( $refunded_payments_RET[ $THIS_RET['ID'] ] ) )
 	{
-		$return = '<span style="color:#00A642">' . _( 'Refunded' ) . '</span> ';
+		$return = '<span style="color:#00A642">' . _( 'Refunded' ) . '</span><br class="rbr"> ';
 	}
 
 	if ( AllowEdit( 'Student_Billing/StudentPayments.php&modfunc=remove' ) )
@@ -83,8 +83,8 @@ function _makePaymentsRemove( $value, $column )
 		$return .= button(
 			'remove',
 			_( 'Delete' ),
-			'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-				'&modfunc=remove&id=' . $THIS_RET['ID'] ) . '"'
+			URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
+				'&modfunc=remove&id=' . $THIS_RET['ID'] )
 		);
 	}
 
@@ -217,13 +217,13 @@ function _makePaymentsCommentsInput( $value, $name )
 		FROM billing_fees bf
 		WHERE STUDENT_ID='" . UserStudentID() . "'
 		AND SYEAR='" . UserSyear() . "'
-		AND (WAIVED_FEE_ID IS NULL OR WAIVED_FEE_ID='')
+		AND WAIVED_FEE_ID IS NULL
 		AND NOT EXISTS(SELECT 1
 			FROM billing_payments
 			WHERE STUDENT_ID='" . UserStudentID() . "'
 			AND SYEAR='" . UserSyear() . "'
 			AND AMOUNT=bf.AMOUNT
-			AND (COMMENTS=bf.TITLE OR COMMENTS LIKE '%' || bf.TITLE OR COMMENTS LIKE bf.TITLE || '%')
+			AND (COMMENTS=bf.TITLE OR COMMENTS LIKE CONCAT('%',bf.TITLE) OR COMMENTS LIKE CONCAT(bf.TITLE,'%'))
 			AND PAYMENT_DATE>=bf.ASSIGNED_DATE)
 		AND NOT EXISTS(SELECT 1
 			FROM billing_fees
@@ -270,7 +270,7 @@ function _makePaymentsCommentsInput( $value, $name )
 		'',
 		$fees_options,
 		'N/A',
-		'onchange="billingPaymentsFeeReconcile(this.value);" style="width: 250px;"'
+		'onchange="billingPaymentsFeeReconcile(this.value);" style="width: 158px;"'
 	);
 
 	return $text_input . ' ' . $js . $select_input;
@@ -325,6 +325,7 @@ function _lunchInput( $value, $column )
  * Make Fees File Attached Input
  *
  * @since 8.1
+ * @since 10.4 Add File Attached Input for existing Fees
  *
  * @param  string $value File path value.
  * @param  string $name  Column name, 'FILE_ATTACHED'.
@@ -337,31 +338,48 @@ function _makeFeesFileInput( $value, $column )
 
 	if ( empty( $THIS_RET['ID'] ) )
 	{
-		return FileInput(
-			'FILE_ATTACHED'
+		return InputDivOnclick(
+			'FILE_ATTACHED',
+			FileInput( 'FILE_ATTACHED' ),
+			button( 'add' ),
+			''
 		);
 	}
 
 	if ( empty( $value )
 		|| ! file_exists( $value ) )
 	{
-		return '';
+		if ( isset( $_REQUEST['_ROSARIO_PDF'] )
+			|| ! AllowEdit() )
+		{
+			return '';
+		}
+
+		// Add hidden FILE_ATTACHED input so it gets saved even if no other columns to save.
+		return '<input type="hidden" name="values[' . $THIS_RET['ID'] . '][FILE_ATTACHED]" value="" />' .
+			InputDivOnclick(
+				'FILE_ATTACHED_' . $THIS_RET['ID'],
+				FileInput( 'FILE_ATTACHED_' . $THIS_RET['ID'] ),
+				button( 'add' ),
+				''
+			);
+	}
+
+	if ( ! empty( $_REQUEST['LO_save'] ) )
+	{
+		// Export list.
+		return $value;
 	}
 
 	$file_path = $value;
 
-	$file_name = mb_substr( mb_strrchr( $file_path, '/' ), 1 );
+	$file_name = basename( $file_path );
 
 	$file_size = HumanFilesize( filesize( $file_path ) );
 
-	// Truncate file name if > 36 chars.
-	$file_name_display = mb_strlen( $file_name ) <= 36 ?
-		$file_name :
-		mb_substr( $file_name, 0, 30 ) . '..' . mb_strrchr( $file_name, '.' );
-
 	$file = button(
 		'download',
-		$file_name_display,
+		'',
 		'"' . URLEscape( $file_path ) . '" target="_blank" title="' . AttrEscape( $file_name . ' (' . $file_size . ')' ) . '"',
 		'bigger'
 	);
@@ -382,4 +400,54 @@ function _makeFeesFileInput( $value, $column )
 function _makePaymentsFileInput( $value, $column )
 {
 	return _makeFeesFileInput( $value, $column );
+}
+
+/**
+ * Save Fees File
+ *
+ * @since 10.4
+ * @since 10.8.2 Add datetime to filename to make it harder to predict
+ *
+ * @param  int|string $id Fee ID or 'new'.
+ *
+ * @return string     File path or empty.
+ */
+function _saveFeesFile( $id )
+{
+	global $error,
+		$FileUploadsPath;
+
+	$input = $id === 'new' ? 'FILE_ATTACHED' : 'FILE_ATTACHED_' . $id;
+
+	if ( ! isset( $_FILES[ $input ] ) )
+	{
+		return '';
+	}
+
+	$file_attached = FileUpload(
+		$input,
+		$FileUploadsPath . UserSyear() . '/student_' . UserStudentID() . '/',
+		FileExtensionWhiteList(),
+		0,
+		$error,
+		'',
+		FileNameTimestamp( $_FILES[ $input ]['name'] )
+	);
+
+	// Fix SQL error when quote in uploaded file name.
+	return DBEscapeString( $file_attached );
+}
+
+/**
+ * Save Payments File
+ *
+ * @since 10.4
+ *
+ * @param  int|string $id Payment ID or 'new'.
+ *
+ * @return string     File path or empty.
+ */
+function _savePaymentsFile( $id )
+{
+	return _saveFeesFile( $id );
 }

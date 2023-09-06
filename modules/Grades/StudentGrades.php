@@ -3,9 +3,9 @@
 require_once 'ProgramFunctions/_makeLetterGrade.fnc.php';
 
 $do_stats = ProgramConfig( 'grades', 'GRADES_DO_STATS_STUDENTS_PARENTS' ) == 'Y'
-	|| (  ( User( 'PROFILE' ) === 'teacher'
-	|| User( 'PROFILE' ) === 'admin' )
-	&& ProgramConfig( 'grades', 'GRADES_DO_STATS_ADMIN_TEACHERS' ) == 'Y' );
+            || (  ( User( 'PROFILE' ) === 'teacher'
+                    || User( 'PROFILE' ) === 'admin' )
+                  && ProgramConfig( 'grades', 'GRADES_DO_STATS_ADMIN_TEACHERS' ) == 'Y' );
 
 $_REQUEST['include_inactive'] = issetVal( $_REQUEST['include_inactive'], '' );
 $_REQUEST['do_stats'] = issetVal( $_REQUEST['do_stats'], '' );
@@ -14,30 +14,41 @@ $_ROSARIO['allow_edit'] = false;
 
 DrawHeader( ProgramTitle() . ' - ' . GetMP( UserMP() ) );
 
-Search( 'student_id' );
+// @since 10.9.1 Show Gradebook Grades of Inactive Students (School status)
+// Maintain "Include Inactive Students" user choice in URL.
+$extra['link']['FULL_NAME']['link'] = 'Modules.php?modname=' . $_REQUEST['modname'] .
+                                      '&include_inactive=' . $_REQUEST['include_inactive'];
+
+Search( 'student_id', $extra );
 
 if ( UserStudentID()
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
 	//FJ multiple school periods for a course period
 	/*$courses_RET = DBGet( "SELECT c.TITLE AS COURSE_TITLE,cp.TITLE,cp.COURSE_PERIOD_ID,cp.COURSE_ID,cp.TEACHER_ID AS STAFF_ID FROM schedule s,course_periods cp,courses c WHERE s.SYEAR='".UserSyear()."' AND cp.COURSE_PERIOD_ID=s.COURSE_PERIOD_ID AND s.MARKING_PERIOD_ID IN (".GetAllMP('QTR',UserMP()).") AND ('".DBDate()."'>=s.START_DATE AND (s.END_DATE IS NULL OR '".DBDate()."'<=s.END_DATE)) AND s.STUDENT_ID='".UserStudentID()."' AND cp.GRADE_SCALE_ID IS NOT NULL".(User( 'PROFILE' ) === 'teacher'?' AND cp.TEACHER_ID=\''.User('STAFF_ID').'\'':'')." AND c.COURSE_ID=cp.COURSE_ID ORDER BY (SELECT SORT_ORDER FROM school_periods WHERE PERIOD_ID=cp.PERIOD_ID)",array(),array('COURSE_PERIOD_ID'));*/
+
+	// @since 10.9.1 SQL Show Gradebook Grades of Inactive Students (Course status, maybe dropped as of today) (Only if has grades)
 	$courses_RET = DBGet( "SELECT c.TITLE AS COURSE_TITLE,cp.TITLE,cp.COURSE_PERIOD_ID,cp.COURSE_ID,cp.TEACHER_ID AS STAFF_ID
 	FROM schedule s,course_periods cp,courses c
 	WHERE s.SYEAR='" . UserSyear() . "'
 	AND cp.COURSE_PERIOD_ID=s.COURSE_PERIOD_ID
 	AND s.MARKING_PERIOD_ID IN (" . GetAllMP( 'QTR', UserMP() ) . ")
-	AND ('" . DBDate() . "'>=s.START_DATE
-	AND (s.END_DATE IS NULL OR '" . DBDate() . "'<=s.END_DATE))
+	AND '" . DBDate() . "'>=s.START_DATE
+	AND ((s.END_DATE IS NULL OR '" . DBDate() . "'<=s.END_DATE)
+		OR EXISTS(SELECT 1 FROM gradebook_grades gg
+		WHERE gg.STUDENT_ID=s.STUDENT_ID
+		AND gg.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID
+		LIMIT 1))
 	AND s.STUDENT_ID='" . UserStudentID() . "'
 	AND cp.GRADE_SCALE_ID IS NOT NULL" .
-		( User( 'PROFILE' ) === 'teacher' ? ' AND cp.TEACHER_ID=\'' . User( 'STAFF_ID' ) . '\'' : '' ) . "
+	                      ( User( 'PROFILE' ) === 'teacher' ? ' AND cp.TEACHER_ID=\'' . User( 'STAFF_ID' ) . '\'' : '' ) . "
 	AND c.COURSE_ID=cp.COURSE_ID
 	ORDER BY cp.SHORT_NAME, cp.TITLE", [], [ 'COURSE_PERIOD_ID' ] );
 //echo '<pre>'; var_dump($courses_RET); echo '</pre>';
 
 	if ( isset( $_REQUEST['id'] )
-		&& $_REQUEST['id'] !== 'all'
-		&& empty( $courses_RET[$_REQUEST['id']] ) )
+	     && $_REQUEST['id'] !== 'all'
+	     && empty( $courses_RET[$_REQUEST['id']] ) )
 	{
 		// Unset ID & redirect URL.
 		RedirectURL( 'id' );
@@ -46,8 +57,8 @@ if ( UserStudentID()
 	if ( empty( $_REQUEST['id'] ) )
 	{
 		DrawHeader( _( 'Totals' ), '<a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-			'&id=all' . ( $do_stats ? '&do_stats=' . $_REQUEST['do_stats'] : '' ) ) . '">' .
-			_( 'Expand All' ) . '</a>' );
+		                                                    '&id=all' . ( $do_stats ? '&do_stats=' . $_REQUEST['do_stats'] : '' ) ) . '">' .
+		                           _( 'Expand All' ) . '</a>' );
 
 		if ( $do_stats )
 		{
@@ -107,14 +118,8 @@ if ( UserStudentID()
 				FROM students s
 				JOIN schedule ss ON (ss.STUDENT_ID=s.STUDENT_ID AND ss.SYEAR='" . UserSyear() . "'";
 
-				if ( $_REQUEST['include_inactive'] == 'Y' )
-				{
-					$sql .= " AND ss.START_DATE=(SELECT START_DATE FROM schedule WHERE STUDENT_ID=s.STUDENT_ID AND SYEAR=ss.SYEAR AND COURSE_PERIOD_ID=ss.COURSE_PERIOD_ID ORDER BY START_DATE DESC LIMIT 1)";
-				}
-				else
-				{
-					$sql .= " AND ss.MARKING_PERIOD_ID IN (" . GetAllMP( 'QTR', UserMP() ) . ") AND (CURRENT_DATE>=ss.START_DATE AND (CURRENT_DATE<=ss.END_DATE OR ss.END_DATE IS NULL))";
-				}
+				// @since 10.9.1 SQL Show Gradebook Grades of Inactive Students (Course status, maybe dropped as of today)
+				$sql .= " AND ss.MARKING_PERIOD_ID IN (" . GetAllMP( 'QTR', UserMP() ) . ") AND CURRENT_DATE>=ss.START_DATE";
 
 				$sql .= ") JOIN course_periods cp ON (cp.COURSE_PERIOD_ID=ss.COURSE_PERIOD_ID AND cp.COURSE_PERIOD_ID='" . (int) $course_period_id . "')
 				JOIN student_enrollment ssm ON (ssm.STUDENT_ID=s.STUDENT_ID AND ssm.SYEAR=ss.SYEAR AND ssm.SCHOOL_ID='" . UserSchool() . "'";
@@ -134,8 +139,8 @@ if ( UserStudentID()
 				AND (gg.POINTS IS NOT NULL
 					OR (ga.ASSIGNED_DATE IS NULL OR CURRENT_DATE>=ga.ASSIGNED_DATE)
 					AND (ga.DUE_DATE IS NULL OR CURRENT_DATE>=(ga.DUE_DATE + INTERVAL " .
-					( $DatabaseType === 'mysql' ? (int) $gradebook_config[$staff_id]['LATENCY'] . ' DAY' :
-						"'" . (int) $gradebook_config[$staff_id]['LATENCY'] . " DAY'" ) . "))
+				        ( $DatabaseType === 'mysql' ? (int) $gradebook_config[$staff_id]['LATENCY'] . ' DAY' :
+					        "'" . (int) $gradebook_config[$staff_id]['LATENCY'] . " DAY'" ) . "))
 					OR CURRENT_DATE>(SELECT END_DATE FROM school_marking_periods WHERE MARKING_PERIOD_ID=ga.MARKING_PERIOD_ID))";
 
 				$sql .= " AND (gg.POINTS IS NOT NULL OR ga.DUE_DATE IS NULL OR ((ga.DUE_DATE>=ss.START_DATE AND (ss.END_DATE IS NULL OR ga.DUE_DATE<=ss.END_DATE)) AND (ga.DUE_DATE>=ssm.START_DATE AND (ssm.END_DATE IS NULL OR ga.DUE_DATE<=ssm.END_DATE))))" . ( $do_stats && $_REQUEST['do_stats'] ? '' : " AND s.STUDENT_ID='" . UserStudentID() . "'" );
@@ -143,7 +148,7 @@ if ( UserStudentID()
 				$sql .= " GROUP BY gt.ASSIGNMENT_TYPE_ID,gt.FINAL_GRADE_PERCENT,s.STUDENT_ID";
 
 				if ( $do_stats
-					&& $_REQUEST['do_stats'] )
+				     && $_REQUEST['do_stats'] )
 				{
 					$all_RET = DBGet( $sql, [], [ 'STUDENT_ID' ] );
 
@@ -237,7 +242,7 @@ if ( UserStudentID()
 						//$bargraph1 = bargraph1($percent===false?true:$percent,$min_percent,$avg_percent,$max_percent,1);
 						$bargraph1 = bargraph1(
 							$percent === false ?
-							true : _makeLetterGrade( $percent, $course_period_id, $staff_id, '%' ),
+								true : _makeLetterGrade( $percent, $course_period_id, $staff_id, '%' ),
 							_makeLetterGrade( $min_percent, $course_period_id, $staff_id, '%' ),
 							_makeLetterGrade( $avg_percent, $course_period_id, $staff_id, '%' ),
 							_makeLetterGrade( $max_percent, $course_period_id, $staff_id, '%' ),
@@ -253,21 +258,21 @@ if ( UserStudentID()
 					}
 
 					$LO_ret[] = [
-						'ID' => $course_period_id,
-						'TITLE' => $course['COURSE_TITLE'],
-						'TEACHER' => mb_substr( $course_title, mb_strrpos( str_replace( ' - ', ' ^ ', $course_title ), '^' ) + 2 ),
-						'PERCENT' => ( $percent !== false ?
-							(float) number_format( 100 * $percent, 2, '.', '' ) . '%' :
-							_( 'N/A' ) ),
-						'GRADE' => $percent !== false ?
-						'<b>' . _makeLetterGrade( $percent, $course_period_id, $staff_id ) . '</b>' :
-						_( 'N/A' ),
-						'UNGRADED' => $ungraded,
-					]
-					 	+ ( $do_stats && $_REQUEST['do_stats'] ?
-						[ 'BAR1' => $bargraph1, 'BAR2' => $bargraph2 ] :
-						[]
-					);
+						            'ID' => $course_period_id,
+						            'TITLE' => $course['COURSE_TITLE'],
+						            'TEACHER' => mb_substr( $course_title, mb_strrpos( str_replace( ' - ', ' ^ ', $course_title ), '^' ) + 2 ),
+						            'PERCENT' => ( $percent !== false ?
+							            (float) number_format( 100 * $percent, 2, '.', '' ) . '%' :
+							            _( 'N/A' ) ),
+						            'GRADE' => $percent !== false ?
+							            '<b>' . _makeLetterGrade( $percent, $course_period_id, $staff_id ) . '</b>' :
+							            _( 'N/A' ),
+						            'UNGRADED' => $ungraded,
+					            ]
+					            + ( $do_stats && $_REQUEST['do_stats'] ?
+							[ 'BAR1' => $bargraph1, 'BAR2' => $bargraph2 ] :
+							[]
+					            );
 				}
 
 				//else
@@ -279,7 +284,10 @@ if ( UserStudentID()
 			$link = [
 				'TITLE' => [
 					'link' => 'Modules.php?modname=' . $_REQUEST['modname'] .
-					( $do_stats ? '&do_stats=' . $_REQUEST['do_stats'] : '' ),
+					          ( $do_stats ? '&do_stats=' . $_REQUEST['do_stats'] : '' ) .
+					          // @since 10.9.1 Show Gradebook Grades of Inactive Students (School status)
+					          // Maintain "Include Inactive Students" user choice in URL.
+					          '&include_inactive=' . $_REQUEST['include_inactive'],
 					'variables' => [ 'id' => 'ID' ],
 				],
 			];
@@ -320,7 +328,10 @@ if ( UserStudentID()
 					mb_strrpos( str_replace( ' - ', ' ^ ', $req_course_title ), ' ^' )
 				),
 				'<a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-				( $do_stats ? '&do_stats=' . $_REQUEST['do_stats'] : '' ) ) . '">' .
+				                         ( $do_stats ? '&do_stats=' . $_REQUEST['do_stats'] : '' ) .
+				                         // @since 10.9.1 Show Gradebook Grades of Inactive Students (School status)
+				                         // Maintain "Include Inactive Students" user choice in URL.
+				                         '&include_inactive=' . $_REQUEST['include_inactive'] ) . '">' .
 				_( 'Back to Totals' ) . '</a>'
 			);
 		}
@@ -351,7 +362,7 @@ if ( UserStudentID()
 
 			//FJ assigments appear after assigned date and not due date
 			$assignments_RET = DBGet( "SELECT ga.ASSIGNMENT_ID,gg.POINTS,gg.COMMENT,ga.TITLE,
-				ga.DESCRIPTION,ga.ASSIGNED_DATE,ga.DUE_DATE,ga.POINTS AS POINTS_POSSIBLE,
+				ga.DESCRIPTION,ga.ASSIGNED_DATE,ga.DUE_DATE,ga.POINTS AS POINTS_POSSIBLE,ga.WEIGHT,
 				at.TITLE AS CATEGORY,at.COLOR AS ASSIGNMENT_TYPE_COLOR,ga.STAFF_ID,ga.FILE,
 				ga.COURSE_ID,'" . DBEscapeString( $course['COURSE_TITLE'] ) . "' AS COURSE_TITLE
 			FROM gradebook_assignments ga
@@ -362,18 +373,18 @@ if ( UserStudentID()
 			AND at.ASSIGNMENT_TYPE_ID=ga.ASSIGNMENT_TYPE_ID
 			AND ((ga.ASSIGNED_DATE IS NULL OR CURRENT_DATE>=ga.ASSIGNED_DATE)
 				AND (ga.DUE_DATE IS NULL OR CURRENT_DATE>=(ga.DUE_DATE + INTERVAL " .
-				( $DatabaseType === 'mysql' ? (int) $gradebook_config[$staff_id]['LATENCY'] . ' DAY' :
-					"'" . (int) $gradebook_config[$staff_id]['LATENCY'] . " DAY'" ) . "))
+			                          ( $DatabaseType === 'mysql' ? (int) $gradebook_config[$staff_id]['LATENCY'] . ' DAY' :
+				                          "'" . (int) $gradebook_config[$staff_id]['LATENCY'] . " DAY'" ) . "))
 				OR CURRENT_DATE>(SELECT END_DATE FROM school_marking_periods WHERE MARKING_PERIOD_ID=ga.MARKING_PERIOD_ID)
 				OR gg.POINTS IS NOT NULL)
 			AND (ga.POINTS!='0' OR gg.POINTS IS NOT NULL AND gg.POINTS!='-1')
-			ORDER BY ga.ASSIGNMENT_ID DESC", [ 'TITLE' => '_makeTipAssignment' ] );
+			ORDER BY at.TITLE,ga.ASSIGNMENT_ID DESC", [ 'TITLE' => '_makeTipAssignment', 'CATEGORY' => '_makeCategory' ] );
 			//echo '<pre>'; var_dump($assignments_RET); echo '</pre>';
 
 			if ( ! empty( $assignments_RET ) )
 			{
 				if ( $do_stats && $_REQUEST['do_stats'] )
-				//FJ bugfix broken statistics, MIN calculation when gg.POINTS is NULL
+					//FJ bugfix broken statistics, MIN calculation when gg.POINTS is NULL
 				{
 					$all_RET = DBGet( "SELECT ga.ASSIGNMENT_ID,
 					min(" . db_case( [ 'gg.POINTS', "'-1'", 'ga.POINTS', db_case( [ 'gg.POINTS', "''", '0', 'gg.POINTS' ] ) ] ) . ") AS MIN,
@@ -389,8 +400,8 @@ if ( UserStudentID()
 					AND gg.ASSIGNMENT_ID=ga.ASSIGNMENT_ID
 					AND at.ASSIGNMENT_TYPE_ID=ga.ASSIGNMENT_TYPE_ID
 					AND ((ga.ASSIGNED_DATE IS NULL OR CURRENT_DATE>=ga.ASSIGNED_DATE) AND (ga.DUE_DATE IS NULL OR CURRENT_DATE>=(ga.DUE_DATE + INTERVAL " .
-						( $DatabaseType === 'mysql' ? (int) $gradebook_config[$staff_id]['LATENCY'] . ' DAY' :
-						"'" . (int) $gradebook_config[$staff_id]['LATENCY'] . " DAY'" ) . "))
+					                  ( $DatabaseType === 'mysql' ? (int) $gradebook_config[$staff_id]['LATENCY'] . ' DAY' :
+						                  "'" . (int) $gradebook_config[$staff_id]['LATENCY'] . " DAY'" ) . "))
 						OR CURRENT_DATE>(SELECT END_DATE FROM school_marking_periods WHERE MARKING_PERIOD_ID=ga.MARKING_PERIOD_ID)
 						OR g.POINTS IS NOT NULL)
 					AND ga.POINTS!='0'
@@ -468,65 +479,63 @@ if ( UserStudentID()
 					}
 
 					$comment = $assignment['COMMENT'] . ( $assignment['POINTS'] == '' ?
-						( $assignment['COMMENT'] ? '<br />' : '' ) .
-						'<span style="color:red">' . _( 'No Grade' ) . '</span>' :
-						'' );
+							( $assignment['COMMENT'] ? '<br />' : '' ) .
+							'<span style="color:red">' . _( 'No Grade' ) . '</span>' :
+							'' );
 
 					if ( mb_strlen( $comment ) > 60
-						&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+					     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 					{
 						// Comments length > 60 chars, responsive table ColorBox.
 						$comment = '<div id="divStudentGradesComment' . $course_period_id . $i . '" class="rt2colorBox">' .
-							$comment . '</div>';
+						           $comment . '</div>';
 					}
 
 					$LO_ret[] = [
-						'TITLE' => $assignment['TITLE'],
-						'CATEGORY' => $assignment['CATEGORY'],
-						'POINTS' => ( $assignment['POINTS'] == '-1' ?
-							'*' :
-							( $assignment['POINTS'] == '' ?
-								'<span style="color:red">0</span>' :
-								rtrim( rtrim( $assignment['POINTS'], '0' ), '.' ) ) )
-						. ' / ' . $assignment['POINTS_POSSIBLE'],
-						'PERCENT' => ( $assignment['POINTS_POSSIBLE'] == '0' ?
-							_( 'E/C' ) :
-							( $assignment['POINTS'] == '-1' ?
-								'*' :
-								(float) number_format( 100 * $assignment['POINTS'] / $assignment['POINTS_POSSIBLE'], 2, '.', '' ) . '%' ) ),
-						'LETTER' => ( $assignment['POINTS_POSSIBLE'] == '0' ?
-							_( 'N/A' ) :
-							( $assignment['POINTS'] == '-1' ?
-								_( 'N/A' ) :
-								( $assignment['POINTS_POSSIBLE'] >= $gradebook_config[$staff_id]['LETTER_GRADE_MIN'] ?
-									'<b>' . _makeLetterGrade(
-										$assignment['POINTS'] / $assignment['POINTS_POSSIBLE'],
-										$course['COURSE_PERIOD_ID'],
-										$staff_id
-									) . '</b>' :
-									'' ) ) ),
-						'COMMENT' => $comment,
-					] +
-						( $do_stats && $_REQUEST['do_stats'] ?
-						[ 'BAR1' => $bargraph1, 'BAR2' => $bargraph2 ] :
-						[]
-					);
+						            'TITLE' => $assignment['TITLE'],
+						            'CATEGORY' => $assignment['CATEGORY'],
+						            'POINTS' => ( $assignment['POINTS'] == '-1' ?
+								            '*' :
+								            ( $assignment['POINTS'] == '' ?
+									            '<span style="color:red">0</span>' :
+									            rtrim( rtrim( $assignment['POINTS'], '0' ), '.' ) ) )
+						                        . ' / ' . $assignment['POINTS_POSSIBLE'],
+						            'PERCENT' => ( $assignment['POINTS_POSSIBLE'] == '0' ?
+							            _( 'E/C' ) :
+							            ( $assignment['POINTS'] == '-1' ?
+								            '*' :
+								            (float) number_format( 100 * $assignment['POINTS'] / $assignment['POINTS_POSSIBLE'], 2, '.', '' ) . '%' ) ),
+						            'LETTER' => ( $assignment['POINTS_POSSIBLE'] == '0' ?
+							            _( 'N/A' ) :
+							            ( $assignment['POINTS'] == '-1' ?
+								            _( 'N/A' ) :
+								            '<b>' . _makeLetterGrade(
+									            $assignment['POINTS'] / $assignment['POINTS_POSSIBLE'],
+									            $course['COURSE_PERIOD_ID'],
+									            $staff_id
+								            ) . '</b>' ) ),
+						            'COMMENT' => $comment,
+					            ] +
+					            ( $do_stats && $_REQUEST['do_stats'] ?
+						            [ 'BAR1' => $bargraph1, 'BAR2' => $bargraph2 ] :
+						            []
+					            );
 				}
 
 				if ( $_REQUEST['id'] == 'all' )
 				{
 					//echo '<br />';
 					DrawHeader( '<b>' . mb_substr(
-						$course['TITLE'],
-						0,
-						mb_strpos( str_replace( ' - ', ' ^ ', $course['TITLE'] ), '^' )
-					) .
-						'</b> - ' . mb_substr(
 							$course['TITLE'],
-							mb_strrpos( str_replace( ' - ', ' ^ ', $course['TITLE'] ), '^' ) + 2
-						),
+							0,
+							mb_strpos( str_replace( ' - ', ' ^ ', $course['TITLE'] ), '^' )
+						) .
+					            '</b> - ' . mb_substr(
+						            $course['TITLE'],
+						            mb_strrpos( str_replace( ' - ', ' ^ ', $course['TITLE'] ), '^' ) + 2
+					            ),
 						'<a href="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] .
-						( $do_stats ? '&do_stats=' . $_REQUEST['do_stats'] : '' ) ) . '">' .
+						                         ( $do_stats ? '&do_stats=' . $_REQUEST['do_stats'] : '' ) ) . '">' .
 						_( 'Back to Totals' ) . '</a>' );
 				}
 
@@ -557,6 +566,7 @@ if ( UserStudentID()
  *
  * @uses StudentAssignmentDrawHeaders()
  * @since 4.5 Move assignment details from Tip message to Colorbox popup
+ * @since 10.4 Truncate Assignment title to 36 chars
  *
  * @param  string $value     Assignment Title
  * @param  string $column    'TITLE'
@@ -566,21 +576,32 @@ function _makeTipAssignment( $value, $column )
 {
 	global $THIS_RET;
 
+	if ( ! empty( $_REQUEST['LO_save'] ) )
+	{
+		// Export list.
+		return $value;
+	}
+
 	if ( ! function_exists( 'StudentAssignmentDrawHeaders' ) )
 	{
 		// Include Student Assignments functions.
 		require_once 'modules/Grades/includes/StudentAssignments.fnc.php';
 	}
 
+	// Truncate title to 36 chars.
+	$title = mb_strlen( $value ) <= 36 ?
+		$value :
+		'<span title="' . AttrEscape( $value ) . '">' . mb_substr( $value, 0, 33 ) . '...</span>';
+
 	if (  ( $THIS_RET['DESCRIPTION']
-		|| $THIS_RET['ASSIGNED_DATE']
-		|| $THIS_RET['DUE_DATE'] )
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] )
-		&& empty( $_REQUEST['LO_save'] ) )
+	        || $THIS_RET['ASSIGNED_DATE']
+	        || $THIS_RET['DUE_DATE'] )
+	      && ! isset( $_REQUEST['_ROSARIO_PDF'] )
+	      && empty( $_REQUEST['LO_save'] ) )
 	{
 		$colorbox_id = 'ASSIGNMENT_' . $THIS_RET['ASSIGNMENT_ID'];
 
-		$colorbox = '<div style="display:none;"><div id="' . $colorbox_id . '">';
+		$colorbox = '<div class="hide"><div id="' . $colorbox_id . '" style="min-width: 50vw;">';
 
 		// Format Assignment columns for StudentAssignmentDrawHeaders function.
 		$assignment = $THIS_RET;
@@ -595,15 +616,39 @@ function _makeTipAssignment( $value, $column )
 
 		$colorbox .= '</div></div>';
 
-		$colorbox .= '<a class="colorboxinline" href="#' . $colorbox_id . '">' . $value . '</a>';
+		$colorbox .= '<a class="colorboxinline" href="#' . $colorbox_id . '">' . $title . '</a>';
 	}
 	else
 	{
-		$colorbox = $value;
+		$colorbox = $title;
 	}
 
 	return $colorbox;
 }
+
+/**
+ * Make Assignment Category
+ * Truncate Assignment Category to 36 chars
+ *
+ * Local function.
+ * GetStuList() DBGet() callback.
+ *
+ * @since 10.6
+ *
+ * @param  string $value  Category value.
+ * @param  string $column Column. Defaults to 'CATEGORY'.
+ *
+ * @return string         Assignment Category truncated to 36 chars.
+ */
+function _makeCategory( $value, $column = 'TITLE' )
+{
+	$title = mb_strlen( $value ) <= 36 ?
+		$value :
+		'<span title="' . AttrEscape( $value ) . '">' . mb_substr( $value, 0, 33 ) . '...</span>';
+
+	return $title;
+}
+
 
 //FJ fix error Missing argument 2 & 3 & 4 & 5
 //function bargraph1($x,$lo,$avg,$hi,$max)
@@ -650,14 +695,14 @@ function bargraph1( $x, $lo = 0, $avg = 0, $hi = 0, $max = 0 )
 			$correction = 2;
 
 			return '<div style="float:left; width:150px; border: #333 1px solid;">' .
-				( $w1 > 0 ? '<div style="width:' . ( $w1 - $correction ) . '%;float:left; background-color:#fff;">&nbsp;</div>' : '' ) .
-				( $w2 > 0 ? '<div style="width:' . ( $w2 - $correction ) . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
-				'<div style="width:2%; background-color:' . $c2 . '; cursor:pointer;float:left;" title="' . AttrEscape( $legendc2 ) . '" >&nbsp;</div>' .
-				( $w3 > 0 ? '<div style="width:' . ( $w3 - $correction ) . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
-				'<div style="width:2%; background-color:' . $c4 . '; cursor:pointer;float:left;" title="' . AttrEscape( $legendc4 ) . '">&nbsp;</div>' .
-				( $w4 > 0 ? '<div style="width:' . ( $w4 - $correction ) . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
-				( $w5 > 0 ? '<div style="width:' . ( $w5 - $correction ) . '%;float:left;background-color:#fff;">&nbsp;</div>' : '' ) .
-				'</div>';
+			       ( $w1 > 0 ? '<div style="width:' . ( $w1 - $correction ) . '%;float:left; background-color:#fff;">&nbsp;</div>' : '' ) .
+			       ( $w2 > 0 ? '<div style="width:' . max( $w2 - $correction, 1 ) . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
+			       '<div style="width:2%; background-color:' . $c2 . '; cursor:pointer;float:left;" title="' . AttrEscape( $legendc2 ) . '" >&nbsp;</div>' .
+			       ( $w3 > 0 ? '<div style="width:' . ( $w3 - $correction ) . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
+			       '<div style="width:2%; background-color:' . $c4 . '; cursor:pointer;float:left;" title="' . AttrEscape( $legendc4 ) . '">&nbsp;</div>' .
+			       ( $w4 > 0 ? '<div style="width:' . ( $w4 - $correction ) . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
+			       ( $w5 > 0 ? '<div style="width:' . ( $w5 - $correction ) . '%;float:left;background-color:#fff;">&nbsp;</div>' : '' ) .
+			       '</div>';
 		}
 		else
 		{
@@ -667,12 +712,12 @@ function bargraph1( $x, $lo = 0, $avg = 0, $hi = 0, $max = 0 )
 			$correction = 2;
 
 			return '<div style="float:left; width:150px; border: #333 1px solid;">' .
-				( $w1 > 0 ? '<div style="width:' . ( $w1 - $correction ) . '%;float:left; background-color:#fff;">&nbsp;</div>' : '' ) .
-				( $w2 > 0 ? '<div style="width:' . $w2 . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
-				'<div style="width:2%; background-color:#00a000; float:left;">&nbsp;</div>' .
-				( $w4 > 0 ? '<div style="width:' . $w4 . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
-				( $w5 > 0 ? '<div style="width:' . ( $w5 - $correction ) . '%;float:left;background-color:#fff;">&nbsp;</div>' : '' ) .
-				'</div>';
+			       ( $w1 > 0 ? '<div style="width:' . ( $w1 - $correction ) . '%;float:left; background-color:#fff;">&nbsp;</div>' : '' ) .
+			       ( $w2 > 0 ? '<div style="width:' . $w2 . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
+			       '<div style="width:2%; background-color:#00a000; float:left;">&nbsp;</div>' .
+			       ( $w4 > 0 ? '<div style="width:' . $w4 . '%; background-color:#00a000;float:left;">&nbsp;</div>' : '' ) .
+			       ( $w5 > 0 ? '<div style="width:' . ( $w5 - $correction ) . '%;float:left;background-color:#fff;">&nbsp;</div>' : '' ) .
+			       '</div>';
 		}
 	}
 	else

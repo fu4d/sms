@@ -12,6 +12,16 @@ $start_date = RequestedDate( 'start', date( 'Y-m' ) . '-01' );
 // Set end date.
 $end_date = RequestedDate( 'end', DBDate() );
 
+$_REQUEST['category'] = issetVal( $_REQUEST['category'], '' );
+
+// Sanitize category (type or ID).
+if ( ! empty( $_REQUEST['category'] )
+	&& ! in_array( $_REQUEST['category'], [ 'common', 'incomes', 'expenses'] )
+	&& (string) (int) $_REQUEST['category'] !== $_REQUEST['category'] )
+{
+	$_REQUEST['category'] = '';
+}
+
 if ( User( 'PROFILE' ) === 'admin' )
 {
 	DrawHeader( _programMenu( 'transactions' ) );
@@ -22,15 +32,17 @@ echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname']
 $header_checkboxes = '<label><input type="checkbox" value="true" name="accounting" id="accounting" ' .
 ( ! isset( $_REQUEST['accounting'] )
 	|| $_REQUEST['accounting'] == 'true' ? 'checked ' : '' ) . '/> ' .
-_( 'Income' ) . ' & ' . _( 'Expense' ) . '</label>&nbsp; ';
+_( 'Income' ) . ' & ' . _( 'Expense' ) . '</label>';
 
-$header_checkboxes .= '<label><input type="checkbox" value="true" name="staff_payroll" id="staff_payroll" ' .
+$header_checkboxes .= ' &mdash; <label>' . _( 'Category' ) . ' ' . _categorySelect( $_REQUEST['category'] ) . '</label> ';
+
+$header_checkboxes .= '<br /><label><input type="checkbox" value="true" name="staff_payroll" id="staff_payroll" ' .
 ( ! empty( $_REQUEST['staff_payroll'] ) ? 'checked ' : '' ) . '/> ' .
-_( 'Staff Payroll' ) . '</label>&nbsp; ';
+_( 'Staff Payroll' ) . '</label>';
 
 if ( $RosarioModules['Student_Billing'] )
 {
-	$header_checkboxes .= '<label><input type="checkbox" value="true" name="student_billing" id="student_billing" ' .
+	$header_checkboxes .= '<br /><label><input type="checkbox" value="true" name="student_billing" id="student_billing" ' .
 	( ! empty( $_REQUEST['student_billing'] ) ? 'checked ' : '' ) . '/> ' .
 	_( 'Student Billing' ) . '</label>';
 }
@@ -39,7 +51,7 @@ DrawHeader( $header_checkboxes, '' );
 
 DrawHeader( _( 'Report Timeframe' ) . ': ' .
 	PrepareDate( $start_date, '_start', false ) . ' &nbsp; ' . _( 'to' ) . ' &nbsp; ' .
-	PrepareDate( $end_date, '_end', false ) . ' ' . SubmitButton( _( 'Go' ) ) );
+	PrepareDate( $end_date, '_end', false ) . ' ' . Buttons( _( 'Go' ) ) );
 
 echo '</form>';
 
@@ -69,20 +81,40 @@ if ( ! isset( $_REQUEST['accounting'] )
 		$name_col_sql = "'' AS FULL_NAME,";
 	}
 
+	$where_category_sql = '';
+
+	if ( is_numeric( $_REQUEST['category'] ) )
+	{
+		$where_category_sql = " AND CATEGORY_ID='" . (int) $_REQUEST['category'] . "'";
+
+		if ( ! $_REQUEST['category'] )
+		{
+			// "0", N/A => Category ID is NULL.
+			$where_category_sql = " AND CATEGORY_ID IS NULL";
+		}
+	}
+	elseif ( $_REQUEST['category'] )
+	{
+		$where_category_sql = " AND CATEGORY_ID IN (SELECT ID
+			FROM accounting_categories
+			WHERE SCHOOL_ID='" . Userschool() . "'
+			AND TYPE='" . $_REQUEST['category'] . "')";
+	}
+
 	$RET = DBGet( "SELECT " . $name_col_sql . "f.AMOUNT AS CREDIT,'' AS DEBIT,CONCAT(f.TITLE,' ',COALESCE(f.COMMENTS,'')) AS EXPLANATION,f.ASSIGNED_DATE AS DATE,f.ID AS ID
 	FROM accounting_incomes f
 	WHERE f.SYEAR='" . UserSyear() . "'
 	AND f.SCHOOL_ID='" . UserSchool() . "'
 	AND f.ASSIGNED_DATE BETWEEN '" . $start_date . "'
-	AND '" . $end_date . "'", $extra['functions'] );
+	AND '" . $end_date . "'" . $where_category_sql, $extra['functions'] );
 
-	$payments_SQL = "SELECT " . $name_col_sql . "'' AS CREDIT,p.AMOUNT AS DEBIT,COALESCE(p.COMMENTS,'') AS EXPLANATION,p.PAYMENT_DATE AS DATE,p.ID AS ID
+	$payments_SQL = "SELECT " . $name_col_sql . "'' AS CREDIT,p.AMOUNT AS DEBIT,CONCAT(p.TITLE,' ',COALESCE(p.COMMENTS,'')) AS EXPLANATION,p.PAYMENT_DATE AS DATE,p.ID AS ID
 	FROM accounting_payments p
 	WHERE p.SYEAR='" . UserSyear() . "'
 	AND p.SCHOOL_ID='" . UserSchool() . "'
 	AND p.PAYMENT_DATE BETWEEN '" . $start_date . "'
 	AND '" . $end_date . "'
-	AND STAFF_ID IS NULL";
+	AND STAFF_ID IS NULL" . $where_category_sql;
 
 	$payments_RET = DBGet( $payments_SQL, $extra['functions'] );
 
@@ -104,7 +136,7 @@ if ( ! empty( $_REQUEST['staff_payroll'] ) )
 	$salaries_extra = $extra;
 	$name_col_sql = '';
 
-	if ( isset( $_REQUEST['staff_payroll'], $_REQUEST['student_billing'] ) )
+	if ( ! empty( $_REQUEST['student_billing'] ) )
 	{
 		$name_col_sql = ",'' AS STUDENT_NAME";
 	}
@@ -166,18 +198,25 @@ if ( ! empty( $_REQUEST['student_billing'] )
 	&& $RosarioModules['Student_Billing'] )
 {
 	$fees_extra = $extra;
-	$name_col_sql = '';
 
-	if ( isset( $_REQUEST['staff_payroll'], $_REQUEST['student_billing'] ) )
+	// Fix PostgreSQL error ORDER BY "full_name" is ambiguous
+	$name_col_sql = DisplayNameSQL( 's' ) . " AS FULL_NAME,";
+
+	$fees_extra['ORDER_BY'] = 'FULL_NAME';
+
+	if ( ! empty( $_REQUEST['staff_payroll'] ) )
 	{
-		$name_col_sql = "," . DisplayNameSQL() . " AS STUDENT_NAME, '' AS FULL_NAME";
+		// FULL_NAME column already used for Staff Payroll, use STUDENT_NAME instead.
+		$name_col_sql = DisplayNameSQL( 's' ) . " AS STUDENT_NAME, '' AS FULL_NAME,";
+
+		$fees_extra['ORDER_BY'] = 'STUDENT_NAME';
 	}
 
-	$fees_extra['SELECT'] = issetVal( $fees_extra['SELECT'], '' );
+	$fees_extra['SELECT_ONLY'] = issetVal( $fees_extra['SELECT_ONLY'], '' );
 	$fees_extra['FROM'] = issetVal( $fees_extra['FROM'], '' );
 	$fees_extra['WHERE'] = issetVal( $fees_extra['WHERE'], '' );
 
-	$fees_extra['SELECT'] .= $name_col_sql . ",f.AMOUNT AS DEBIT,'' AS CREDIT,CONCAT(f.TITLE,' ',COALESCE(f.COMMENTS,'')) AS EXPLANATION,f.ASSIGNED_DATE AS DATE,f.ID AS ID";
+	$fees_extra['SELECT_ONLY'] .= $name_col_sql . "f.AMOUNT AS DEBIT,'' AS CREDIT,CONCAT(f.TITLE,' ',COALESCE(f.COMMENTS,'')) AS EXPLANATION,f.ASSIGNED_DATE AS DATE,f.ID AS ID";
 
 	$fees_extra['FROM'] .= ',billing_fees f';
 
@@ -194,15 +233,23 @@ if ( ! empty( $_REQUEST['student_billing'] )
 
 	$student_payments_extra = $extra;
 
-	$student_payments_extra['SELECT'] = issetVal( $student_payments_extra['SELECT'], '' );
+	$student_payments_extra['SELECT_ONLY'] = issetVal( $student_payments_extra['SELECT_ONLY'], '' );
 	$student_payments_extra['FROM'] = issetVal( $student_payments_extra['FROM'], '' );
 	$student_payments_extra['WHERE'] = issetVal( $student_payments_extra['WHERE'], '' );
 
-	$student_payments_extra['SELECT'] .= $name_col_sql . ",'' AS DEBIT,p.AMOUNT AS CREDIT,COALESCE(p.COMMENTS,' ') AS EXPLANATION,p.PAYMENT_DATE AS DATE,p.ID AS ID";
+	$student_payments_extra['SELECT_ONLY'] .= $name_col_sql . "'' AS DEBIT,p.AMOUNT AS CREDIT,COALESCE(p.COMMENTS,' ') AS EXPLANATION,p.PAYMENT_DATE AS DATE,p.ID AS ID";
 
 	$student_payments_extra['FROM'] .= ',billing_payments p';
 
 	$student_payments_extra['WHERE'] .= " AND p.STUDENT_ID=s.STUDENT_ID AND p.SYEAR=ssm.SYEAR AND p.SCHOOL_ID=ssm.SCHOOL_ID AND p.PAYMENT_DATE BETWEEN '" . $start_date . "' AND '" . $end_date . "'";
+
+	// Fix PostgreSQL error ORDER BY "full_name" is ambiguous
+	$student_payments_extra['ORDER_BY'] = 'FULL_NAME';
+
+	if ( ! empty( $_REQUEST['staff_payroll'] ) )
+	{
+		$student_payments_extra['ORDER_BY'] = 'STUDENT_NAME';
+	}
 
 	$student_payments_RET = GetStuList( $student_payments_extra );
 
@@ -215,6 +262,11 @@ if ( ! empty( $_REQUEST['student_billing'] )
 
 	$credit_col[] = _( 'Fee' );
 	$debit_col[] = _( 'Student Payment' );
+
+	if ( empty( $_REQUEST['staff_payroll'] ) )
+	{
+		$name_col = _( 'Student' );
+	}
 }
 
 $credit_col = implode( ' / ', $credit_col );
@@ -244,7 +296,7 @@ if ( isset( $_REQUEST['staff_payroll'], $_REQUEST['student_billing'] ) )
 	$link['add']['html']['STUDENT_NAME'] = '&nbsp;';
 }
 
-$link['add']['html'] = $link['add']['html'] + [
+$link['add']['html'] += [
 	'DEBIT' => '<b>' . Currency( $totals['DEBIT'] ) . '</b>',
 	'CREDIT' => '<b>' . Currency( $totals['CREDIT'] ) . '</b>',
 	'DATE' => '&nbsp;',
@@ -267,4 +319,76 @@ function _makeCurrency( $value, $column )
 	{
 		return Currency( $value );
 	}
+}
+
+/**
+ * Category Select Input
+ *
+ * @since 11.0
+ *
+ * Local function
+ *
+ * @param  string $category Category: lookup in category table.
+ *
+ * @return string Select Category input.
+ */
+function _categorySelect( $category )
+{
+	global $_ROSARIO;
+
+	// Temporary AllowEdit so menu can be viewed in read-only
+	if ( ! AllowEdit() )
+	{
+		$_ROSARIO['allow_edit'] = true;
+
+		$allow_edit_tmp = true;
+	}
+
+	// Build options menu
+	$category_RET = DBGet( "SELECT ID,TITLE,SHORT_NAME,TYPE
+		FROM accounting_categories
+		WHERE SCHOOL_ID='" . UserSchool() . "'
+		ORDER BY TYPE,SORT_ORDER" );
+
+	$category_options = [ '0' => _( 'None' ) ];
+
+	$previous_category = '';
+
+	$category_types = [
+		'common' => _( 'Incomes' ) . ' & ' . _( 'Expenses' ),
+		'incomes' => _( 'Incomes' ),
+		'expenses' => _( 'Expenses' ),
+	];
+
+	foreach ( (array) $category_RET as $category_a )
+	{
+		if ( $previous_category !== $category_a['TYPE'] )
+		{
+			$previous_category = $category_a['TYPE'];
+
+			$category_options[ $previous_category ] = $category_types[ $previous_category ];
+		}
+
+		$category_options[$category_a['ID']] = '&nbsp;&nbsp;&nbsp;' . $category_a['TITLE'];
+	}
+
+	$link = PreparePHP_SELF( [], [ 'category' ] ) . '&category=';
+
+	$menu = SelectInput(
+		$category,
+		'category',
+		'',
+		$category_options,
+		_( 'All' ),
+		'onchange="' . AttrEscape( 'ajaxLink(' . json_encode( $link ) . ' + this.value);' ) . '" autocomplete="off"',
+		false
+	);
+
+	// Temporary AllowEdit removed
+	if ( ! empty( $allow_edit_tmp ) )
+	{
+		$_ROSARIO['allow_edit'] = false;
+	}
+
+	return $menu;
 }

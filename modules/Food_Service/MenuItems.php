@@ -5,7 +5,7 @@ require_once 'ProgramFunctions/FileUpload.fnc.php';
 DrawHeader( ProgramTitle() );
 
 if ( $_REQUEST['modfunc'] === 'upload'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	// @since 8.9 Food Service icon upload.
 	$icon_path = ImageUpload(
@@ -27,9 +27,9 @@ if ( $_REQUEST['modfunc'] === 'upload'
 if ( $_REQUEST['modfunc'] === 'update' )
 {
 	if ( ! empty( $_REQUEST['values'] )
-		&& ! empty( $_POST['values'] )
-		&&  ! empty( $_REQUEST['tab_id'] )
-		&& AllowEdit() )
+	     && ! empty( $_POST['values'] )
+	     &&  ! empty( $_REQUEST['tab_id'] )
+	     && AllowEdit() )
 	{
 		foreach ( (array) $_REQUEST['values'] as $id => $columns )
 		{
@@ -38,7 +38,7 @@ if ( $_REQUEST['modfunc'] === 'update' )
 			if ( empty( $columns['SORT_ORDER'] ) || is_numeric( $columns['SORT_ORDER'] ) )
 			{
 				if ( $_REQUEST['tab_id'] === 'new'
-					&& ! empty( $columns['SHORT_NAME'] ) )
+				     && ! empty( $columns['SHORT_NAME'] ) )
 				{
 					// Fix SQL error when SHORT_NAME already in use.
 					$short_name_exists = DBGetOne( "SELECT 1 FROM food_service_items
@@ -51,109 +51,60 @@ if ( $_REQUEST['modfunc'] === 'update' )
 					}
 				}
 
+				$table = $_REQUEST['tab_id'] !== 'new' ? 'food_service_menu_items' : 'food_service_items';
+
 				if ( $id !== 'new' )
 				{
-					//FJ fix SQL bug PRICE_STAFF & PRICE not null
-					//FJ fix SQL bug PRICE_FREE & PRICE_REDUCED numeric
-
+					// Fix SQL bug PRICE_STAFF & PRICE not null
+					// Fix SQL bug PRICE_FREE & PRICE_REDUCED numeric
 					if ( $_REQUEST['tab_id'] !== 'new'
-						|| ( ( empty( $columns['PRICE_FREE'] ) || is_numeric( $columns['PRICE_FREE'] ) )
-							&& ( empty( $columns['PRICE_REDUCED'] ) || is_numeric( $columns['PRICE_REDUCED'] ) )
-							&& ( empty( $columns['PRICE_STAFF'] ) || is_numeric( $columns['PRICE_STAFF'] ) )
-							&& ( empty( $columns['PRICE'] ) || is_numeric( $columns['PRICE'] ) ) ) )
+					     || ( ( empty( $columns['PRICE_FREE'] ) || is_numeric( $columns['PRICE_FREE'] ) )
+					          && ( empty( $columns['PRICE_REDUCED'] ) || is_numeric( $columns['PRICE_REDUCED'] ) )
+					          && ( empty( $columns['PRICE_STAFF'] ) || is_numeric( $columns['PRICE_STAFF'] ) )
+					          && ( empty( $columns['PRICE'] ) || is_numeric( $columns['PRICE'] ) ) ) )
 					{
-						if ( $_REQUEST['tab_id'] !== 'new' )
-						{
-							$sql = "UPDATE food_service_menu_items SET ";
-						}
-						else
-						{
-							$sql = "UPDATE food_service_items SET ";
-						}
+						$where_columns = $_REQUEST['tab_id'] !== 'new' ?
+							[ 'MENU_ITEM_ID' => (int) $id ] : [ 'ITEM_ID' => (int) $id ];
 
-						$go = false;
-
-						foreach ( (array) $columns as $column => $value )
-						{
-							$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-							$go = true;
-						}
-
-						if ( $_REQUEST['tab_id'] !== 'new' )
-						{
-							$sql = mb_substr( $sql, 0, -1 ) . " WHERE MENU_ITEM_ID='" . (int) $id . "'";
-						}
-						else
-						{
-							$sql = mb_substr( $sql, 0, -1 ) . " WHERE ITEM_ID='" . (int) $id . "'";
-						}
-
-						if ( $go )
-						{
-							DBQuery( $sql );
-						}
+						DBUpdate(
+							$table,
+							$columns,
+							$where_columns
+						);
 					}
 					else
 					{
 						$error[] = _( 'Please enter valid Numeric data.' );
 					}
 				}
-				elseif ( $_REQUEST['tab_id'] !== 'new'
-					|| ( ! empty( $columns['DESCRIPTION'] )
-						&& ! empty( $columns['SHORT_NAME'] ) ) )
+				elseif ( ( $_REQUEST['tab_id'] !== 'new'
+				           && ! empty( $columns['ITEM_ID'] ) )
+				         || ( ! empty( $columns['DESCRIPTION'] )
+				              && ! empty( $columns['SHORT_NAME'] ) ) )
 				{
+					if ( $_REQUEST['tab_id'] === 'new'
+					     && ( ( ! empty( $columns['PRICE_FREE'] ) && ! is_numeric( $columns['PRICE_FREE'] ) )
+					          || ( ! empty( $columns['PRICE_REDUCED'] ) && ! is_numeric( $columns['PRICE_REDUCED'] ) )
+					          || ! is_numeric( $columns['PRICE_STAFF'] ) || ! is_numeric( $columns['PRICE'] ) ) )
+					{
+						// Fix SQL bug PRICE_STAFF & PRICE not null
+						// Fix SQL bug PRICE_FREE & PRICE_REDUCED numeric
+						$error[] = _( 'Please enter valid Numeric data.' );
+
+						continue;
+					}
+
+					$insert_columns = [ 'SCHOOL_ID' => UserSchool() ];
+
 					if ( $_REQUEST['tab_id'] !== 'new' )
 					{
-						$sql = 'INSERT INTO food_service_menu_items ';
-						$fields = 'MENU_ID,SCHOOL_ID,';
-						$values = "'" . $_REQUEST['tab_id'] . "','" . UserSchool() . "',";
-					}
-					else
-					{
-						$sql = 'INSERT INTO food_service_items ';
-						$fields = 'SCHOOL_ID,';
-						$values = "'" . UserSchool() . "',";
+						$insert_columns += [ 'MENU_ID' => (int) $_REQUEST['tab_id'] ];
 					}
 
-					$go = false;
-
-					foreach ( (array) $columns as $column => $value )
-					{
-						if ( ! empty( $value ) || $value == '0' )
-						{
-							$fields .= DBEscapeIdentifier( $column ) . ',';
-							$values .= "'" . $value . "',";
-							$go = true;
-						}
-					}
-
-					$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-
-					//FJ fix SQL bug MENU_ITEM not null
-
-					if ( $_REQUEST['tab_id'] !== 'new'
-						&& empty( $columns['ITEM_ID'] ) )
-					{
-						$go = false;
-					}
-
-					if ( $go )
-					{
-						//FJ fix SQL bug PRICE_STAFF & PRICE not null
-						//FJ fix SQL bug PRICE_FREE & PRICE_REDUCED numeric
-
-						if ( $_REQUEST['tab_id'] !== 'new'
-							|| (  ( empty( $columns['PRICE_FREE'] ) || is_numeric( $columns['PRICE_FREE'] ) )
-								&& ( empty( $columns['PRICE_REDUCED'] ) || is_numeric( $columns['PRICE_REDUCED'] ) )
-								&& is_numeric( $columns['PRICE_STAFF'] ) && is_numeric( $columns['PRICE'] ) ) )
-						{
-							DBQuery( $sql );
-						}
-						else
-						{
-							$error[] = _( 'Please enter valid Numeric data.' );
-						}
-					}
+					DBInsert(
+						$table,
+						$insert_columns + $columns
+					);
 				}
 			}
 			else
@@ -168,7 +119,7 @@ if ( $_REQUEST['modfunc'] === 'update' )
 }
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( $_REQUEST['tab_id'] !== 'new' )
 	{
@@ -224,7 +175,7 @@ if ( ! $_REQUEST['modfunc'] )
 	}
 	else
 	{
-		if ( $_SESSION['FSA_menu_id'] )
+		if ( ! empty( $_SESSION['FSA_menu_id'] ) )
 		{
 			if ( $menus_RET[$_SESSION['FSA_menu_id']] )
 			{
@@ -282,10 +233,12 @@ if ( ! $_REQUEST['modfunc'] )
 			$categories_select += [ $category['CATEGORY_ID'] => $category['TITLE'] ];
 		}
 
-		$sql = "SELECT *,(SELECT ICON FROM food_service_items WHERE ITEM_ID=fsmi.ITEM_ID) AS ICON
+		$sql = "SELECT MENU_ITEM_ID,ITEM_ID,CATEGORY_ID,DOES_COUNT,SORT_ORDER,
+		(SELECT ICON FROM food_service_items WHERE ITEM_ID=fsmi.ITEM_ID) AS ICON
 		FROM food_service_menu_items fsmi
-		WHERE MENU_ID='" . $_REQUEST['tab_id'] . "'
-		ORDER BY (SELECT SORT_ORDER FROM food_service_categories WHERE CATEGORY_ID=fsmi.CATEGORY_ID),SORT_ORDER IS NULL,SORT_ORDER";
+		WHERE fsmi.MENU_ID='" . (int) $_REQUEST['tab_id'] . "'
+		ORDER BY (SELECT SORT_ORDER FROM food_service_categories WHERE CATEGORY_ID=fsmi.CATEGORY_ID),
+		SORT_ORDER IS NULL,SORT_ORDER";
 
 		$functions = [
 			'ITEM_ID' => 'makeSelectInput',
@@ -327,7 +280,8 @@ if ( ! $_REQUEST['modfunc'] )
 	{
 		$icons_select = getFSIcons( $FS_IconsPath );
 
-		$sql = "SELECT *
+		$sql = "SELECT ITEM_ID,DESCRIPTION,SHORT_NAME,ICON,SORT_ORDER,
+		PRICE,PRICE_REDUCED,PRICE_FREE,PRICE_STAFF
 		FROM food_service_items fsmi
 		WHERE SCHOOL_ID='" . UserSchool() . "'
 		ORDER BY SORT_ORDER IS NULL,SORT_ORDER";
@@ -420,7 +374,7 @@ if ( ! $_REQUEST['modfunc'] )
 	echo ErrorMessage( $note, 'note' );
 
 	$extra = [ 'save' => false, 'search' => false,
-		'header' => WrapTabs( $tabs, 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab_id=' . $_REQUEST['tab_id'] ) ];
+	           'header' => WrapTabs( $tabs, 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab_id=' . $_REQUEST['tab_id'] ) ];
 
 	if ( $_REQUEST['tab_id'] !== 'new' )
 	{
@@ -435,13 +389,18 @@ if ( ! $_REQUEST['modfunc'] )
 
 
 	if ( AllowEdit()
-		&& $_REQUEST['tab_id'] === 'new'
-		&& is_writable( $FS_IconsPath ) )
+	     && $_REQUEST['tab_id'] === 'new'
+	     && is_writable( $FS_IconsPath ) )
 	{
 		// @since 8.9 Food Service icon upload.
 		echo '<br /><form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&tab_id=new&modfunc=upload' ) . '" method="POST" enctype="multipart/form-data">';
 
-		echo FileInput( 'upload', '', 'required accept=".jpg,.jpeg,.png,.gif"' );
+		echo FileInput(
+			'upload',
+			'',
+			// Fix photo use mime types, not file extensions so mobile browsers allow camera
+			'required accept="image/jpeg, image/png, image/gif"'
+		);
 
 		echo SubmitButton( _( 'Upload' ), '', '' );
 
@@ -493,10 +452,10 @@ function makeTextInput( $value, $name )
 	}
 
 	if ( $id !== 'new'
-		&& ( $name === 'DESCRIPTION'
-			|| $name === 'SHORT_NAME'
-			|| $name === 'PRICE'
-			|| $name === 'PRICE_STAFF' ) )
+	     && ( $name === 'DESCRIPTION'
+	          || $name === 'SHORT_NAME'
+	          || $name === 'PRICE'
+	          || $name === 'PRICE_STAFF' ) )
 	{
 		$extra .= ' required';
 	}

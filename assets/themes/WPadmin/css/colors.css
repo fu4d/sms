@@ -14,9 +14,15 @@ input[type="number"],
 input[type="search"],
 input[type="tel"],
 input[type="url"],
+input[type="time"],
 select {
 	border-color: #dfdfdf;
 	background: #fff;
+}
+
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+	border-color: #dfdfdf !important;
 }
 
 textarea:focus,
@@ -31,9 +37,27 @@ input[type="number"]:focus,
 input[type="search"]:focus,
 input[type="tel"]:focus,
 input[type="url"]:focus,
+input[type="time"]:focus,
 select:focus {
 	border-color: #aaa;
 	outline: none;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single,
+.select2-container--default.select2-container--focus .select2-selection--multiple,
+.select2-container--default.select2-container--open .select2-selection--single,
+.select2-container--default.select2-container--open .select2-selection--multiple {
+	border-color: #aaa !important;
+}
+
+/* Select2 */
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+	background-color: #21759b !important;
+}
+
+.select2-container--default .select2-selection__rendered {
+	color: #111 !important;
 }
 
 code {
@@ -215,7 +239,8 @@ a:focus {
 }
 
 input[type="checkbox"]:focus,
-input[type="radio"]:focus {
+input[type="radio"]:focus,
+summary:focus {
 	outline: 1px dotted #000;
 }
 

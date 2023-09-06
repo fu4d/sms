@@ -29,8 +29,8 @@ if ( $_REQUEST['modfunc'] === 'submit' )
 			"',(SELECT BALANCE
 			FROM food_service_staff_accounts
 			WHERE STAFF_ID='" . UserStaffID() . "'),CURRENT_TIMESTAMP,'" .
-			$menus_RET[$_REQUEST['menu_id']][1]['TITLE'] . "','" .
-			$menus_RET[$_REQUEST['menu_id']][1]['TITLE'] . ' - ' . DBDate() . "','" . User( 'STAFF_ID' ) . "'";
+			DBEscapeString( $menu_title ) . "','" .
+			DBEscapeString( $menu_title . ' - ' . DBDate() ) . "','" . User( 'STAFF_ID' ) . "'";
 
 		$sql = "INSERT INTO food_service_staff_transactions (" . $fields . ") values (" . $values . ")";
 
@@ -38,23 +38,27 @@ if ( $_REQUEST['modfunc'] === 'submit' )
 
 		$transaction_id = DBLastInsertID();
 
-		$items_RET = DBGet( "SELECT DESCRIPTION,SHORT_NAME,PRICE_STAFF
-			FROM food_service_items
-			WHERE SCHOOL_ID='" . UserSchool() . "'", [], [ 'SHORT_NAME' ] );
-
-		$item_id = 0;
+		$items_RET = DBGet( "SELECT fsmi.MENU_ITEM_ID,fsi.DESCRIPTION,fsi.SHORT_NAME,fsi.PRICE_STAFF
+			FROM food_service_items fsi,food_service_menu_items fsmi
+			WHERE fsi.SCHOOL_ID='" . UserSchool() . "'
+			AND fsmi.ITEM_ID=fsi.ITEM_ID
+			AND fsmi.MENU_ID='" . (int) $_REQUEST['menu_id'] . "'", [], [ 'SHORT_NAME' ] );
 
 		foreach ( (array) $_SESSION['FSA_sale'] as $item_sn )
 		{
 			$price = $items_RET[$item_sn][1]['PRICE_STAFF'];
 
-			$fields = 'ITEM_ID,TRANSACTION_ID,AMOUNT,SHORT_NAME,DESCRIPTION';
-
-			$values = "'" . $item_id++ . "','" . $transaction_id . "','-" . $price . "','" . $items_RET[$item_sn][1]['SHORT_NAME'] . "','" . $items_RET[$item_sn][1]['DESCRIPTION'] . "'";
-
-			$sql = "INSERT INTO food_service_staff_transaction_items (" . $fields . ") values (" . $values . ")";
-
-			DBQuery( $sql );
+			DBInsert(
+				'food_service_staff_transaction_items',
+				[
+					// @since 11.2 FS transaction item ID references food_service_menu_items(menu_item_id)
+					'ITEM_ID' => (int) $items_RET[$item_sn][1]['MENU_ITEM_ID'],
+					'TRANSACTION_ID' => (int) $transaction_id,
+					'AMOUNT' => '-' . $price,
+					'SHORT_NAME' => DBEscapeString( $items_RET[$item_sn][1]['SHORT_NAME'] ),
+					'DESCRIPTION' => DBEscapeString( $items_RET[$item_sn][1]['DESCRIPTION'] ),
+				]
+			);
 		}
 
 		$sql = "UPDATE food_service_staff_accounts
@@ -118,7 +122,7 @@ if ( UserStaffID()
 		FROM food_service_staff_transactions fst,food_service_staff_transaction_items fsti
 		WHERE fst.STAFF_ID='" . UserStaffID() . "'
 		AND fst.SYEAR='" . UserSyear() . "'
-		AND fst.SHORT_NAME='" . $menus_RET[$_REQUEST['menu_id']][1]['TITLE'] . "'
+		AND fst.SHORT_NAME='" . DBEscapeString( $menu_title ) . "'
 		AND fst.TIMESTAMP BETWEEN CURRENT_DATE
 		AND (CURRENT_DATE + INTERVAL " . ( $DatabaseType === 'mysql' ? '1 DAY' : "'1 DAY'" ) . ")
 		AND fsti.TRANSACTION_ID=fst.TRANSACTION_ID", $functions );
@@ -129,8 +133,8 @@ if ( UserStaffID()
 			'AMOUNT' => _( 'Amount' ),
 		];
 
-		$singular = sprintf( _( 'Earlier %s Sale' ), $menus_RET[$_REQUEST['menu_id']][1]['TITLE'] );
-		$plural = sprintf( _( 'Earlier %s Sales' ), $menus_RET[$_REQUEST['menu_id']][1]['TITLE'] );
+		$singular = sprintf( _( 'Earlier %s Sale' ), $menu_title );
+		$plural = sprintf( _( 'Earlier %s Sales' ), $menu_title );
 
 		ListOutput( $RET, $columns, $singular, $plural, [], false, [ 'save' => false, 'search' => false ] );
 

@@ -164,14 +164,14 @@ if ( ! $_REQUEST['modfunc'] || $_REQUEST['search_modfunc'] === 'list' )
 
 		$extra['extra_header_left'] .= '<tr class="st"><td class="valign-top">' .
 			SubstitutionsInput( $substitutions ) .
-		'<hr /></td></tr>';
+		'<hr></td></tr>';
 
 		$extra['extra_header_left'] .= '<tr class="st"><td>' . _( 'Test Mode' ) . ':<br />' .
 		TextInput(
 			'',
 			'test_email',
 			_( 'Email' ),
-			'type="email" pattern="[^ @]*@[^ @]*" placeholder="' . AttrEscape( _( 'Email' ) ) . '" size="24"',
+			'maxlength=255 type="email" placeholder="' . AttrEscape( _( 'Email' ) ) . '" size="24"',
 			false
 		) . '</td></tr>';
 
@@ -203,6 +203,9 @@ if ( ! $_REQUEST['modfunc'] || $_REQUEST['search_modfunc'] === 'list' )
 	$extra['profile'] = 'parent';
 
 	$extra['search_title'] = _( 'Find Parents who never logged in' );
+	$extra['new'] = true;
+	
+	Search('staff_id',$extra);
 
 	$extra['new'] = true;
 

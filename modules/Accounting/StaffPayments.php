@@ -26,69 +26,41 @@ if ( ! empty( $_REQUEST['values'] )
 	{
 		if ( $id !== 'new' )
 		{
-			$sql = "UPDATE accounting_payments SET ";
+			$columns['FILE_ATTACHED'] = _savePaymentsFile( $id );
 
-			foreach ( (array) $columns as $column => $value )
+			if ( ! $columns['FILE_ATTACHED'] )
 			{
-				$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
+				unset( $columns['FILE_ATTACHED'] );
 			}
 
-			$sql = mb_substr( $sql, 0, -1 ) . " WHERE ID='" . (int) $id . "'";
-
-			DBQuery( $sql );
+			DBUpdate(
+				'accounting_payments',
+				$columns,
+				[ 'STAFF_ID' => UserStaffID(), 'ID' => (int) $id ]
+			);
 		}
 		elseif ( $columns['AMOUNT'] != ''
 			&& $columns['PAYMENT_DATE'] )
 		{
-			$sql = "INSERT INTO accounting_payments ";
+			$insert_columns = [
+				'STAFF_ID' => UserStaffID(),
+				'SYEAR' => UserSyear(),
+				'SCHOOL_ID' => UserSchool(),
+			];
 
-			$fields = 'STAFF_ID,SYEAR,SCHOOL_ID,';
-			$values = "'" . UserStaffID() . "','" . UserSyear() . "','" . UserSchool() . "',";
+			$columns['AMOUNT'] = preg_replace( '/[^0-9.-]/', '', $columns['AMOUNT'] );
 
-			if ( isset( $_FILES['FILE_ATTACHED'] ) )
+			if ( ! is_numeric( $columns['AMOUNT'] ) )
 			{
-				$columns['FILE_ATTACHED'] = FileUpload(
-					'FILE_ATTACHED',
-					$FileUploadsPath . UserSyear() . '/staff_' . UserStaffID() . '/',
-					FileExtensionWhiteList(),
-					0,
-					$error
-				);
-
-				// Fix SQL error when quote in uploaded file name.
-				$columns['FILE_ATTACHED'] = DBEscapeString( $columns['FILE_ATTACHED'] );
+				$columns['AMOUNT'] = 0;
 			}
 
-			$go = 0;
+			$columns['FILE_ATTACHED'] = _savePaymentsFile( $id );
 
-			foreach ( (array) $columns as $column => $value )
-			{
-				if ( ! empty( $value ) || $value == '0' )
-				{
-					if ( $column == 'AMOUNT' )
-					{
-						$value = preg_replace( '/[^0-9.-]/', '', $value );
-
-						//FJ fix SQL bug invalid amount
-
-						if ( ! is_numeric( $value ) )
-						{
-							$value = 0;
-						}
-					}
-
-					$fields .= DBEscapeIdentifier( $column ) . ',';
-					$values .= "'" . $value . "',";
-					$go = true;
-				}
-			}
-
-			$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-
-			if ( $go )
-			{
-				DBQuery( $sql );
-			}
+			DBInsert(
+				'accounting_payments',
+				$insert_columns + $columns
+			);
 		}
 	}
 
@@ -137,7 +109,7 @@ if ( UserStaffID() && ! $_REQUEST['modfunc'] )
 		WHERE STAFF_ID='" . UserStaffID() . "'
 		AND SYEAR='" . UserSyear() . "'
 		AND SCHOOL_ID='" . UserSchool() . "'
-		ORDER BY ID", $functions );
+		ORDER BY PAYMENT_DATE,ID", $functions );
 
 	$i = 1;
 	$RET = [];

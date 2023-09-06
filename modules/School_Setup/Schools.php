@@ -239,7 +239,7 @@ if ( ! $_REQUEST['modfunc'] )
 	TextInput(
 		$schooldata['ZIPCODE'],
 		'values[ZIPCODE]',
-		_( 'Zip' ),
+		_( 'Zip Code' ),
 		'maxlength=10 size=5'
 	) . '</td></tr>';
 
@@ -339,7 +339,7 @@ if ( ! $_REQUEST['modfunc'] )
 
 	if ( ! empty( $fields_RET ) )
 	{
-		echo '<tr><td colspan="3"><hr /></td></tr>';
+		echo '<tr><td colspan="3"><hr></td></tr>';
 	}
 
 	$custom_RET = DBGet( "SELECT *
@@ -406,11 +406,14 @@ if ( ! $_REQUEST['modfunc'] )
 
 			case 'autos':
 
-				$sql_options = "SELECT DISTINCT s.CUSTOM_" . $field['ID'] . ",upper(s.CUSTOM_" . $field['ID'] . ") AS SORT_KEY
+				$col_name = DBEscapeIdentifier( 'CUSTOM_' . $field['ID'] );
+
+				$sql_options = "SELECT DISTINCT s." . $col_name . ",upper(s." . $col_name . ") AS SORT_KEY
 					FROM schools s
 					WHERE (s.SYEAR='" . UserSyear() . "' OR s.SYEAR='" . ( UserSyear() - 1 ) . "')
-					AND s.CUSTOM_" . $field['ID'] . " IS NOT NULL
-					AND s.CUSTOM_" . $field['ID'] . " != ''
+					AND s." . $col_name . " IS NOT NULL
+					AND s." . $col_name . "<>''
+					AND s." . $col_name . "<>'---'
 					ORDER BY SORT_KEY";
 
 				$options_RET = DBGet( $sql_options );

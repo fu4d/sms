@@ -35,10 +35,6 @@ if ( $_REQUEST['modfunc'] === 'save' )
 		AND PERIOD_ID IN (" . $periods_list . ")
 		AND STUDENT_ID IN (" . $students_list . ")", [], [ 'STUDENT_ID', 'SCHOOL_DATE', 'PERIOD_ID' ] );
 
-		$state_code = DBGetOne( "SELECT STATE_CODE
-			FROM attendance_codes
-			WHERE ID='" . (int) $_REQUEST['absence_code'] . "'" );
-
 		$go = false;
 
 		foreach ( (array) $_REQUEST['student'] as $student_id )
@@ -60,6 +56,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 					AND ac.CALENDAR_ID=cp.CALENDAR_ID
 					AND (ac.BLOCK=sp.BLOCK OR sp.BLOCK IS NULL)
 					AND s.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID
+					AND cp.COURSE_PERIOD_ID=cpsp.COURSE_PERIOD_ID
 					AND s.STUDENT_ID='" . (int) $student_id . "'
 					AND cpsp.PERIOD_ID IN (" . $periods_list . ")
 					AND position(',0,' IN cp.DOES_ATTENDANCE)>0
@@ -92,6 +89,7 @@ if ( $_REQUEST['modfunc'] === 'save' )
 						AND ac.CALENDAR_ID=cp.CALENDAR_ID
 						AND (ac.BLOCK=sp.BLOCK OR sp.BLOCK IS NULL)
 						AND s.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID
+						AND cp.COURSE_PERIOD_ID=cpsp.COURSE_PERIOD_ID
 						AND s.STUDENT_ID='" . (int) $student_id . "'
 						AND cpsp.PERIOD_ID IN (" . $periods_list . ")
 						AND position(',0,' IN cp.DOES_ATTENDANCE)>0
@@ -107,38 +105,49 @@ if ( $_REQUEST['modfunc'] === 'save' )
 
 				foreach ( (array) $_REQUEST['period'] as $period_id => $yes )
 				{
-					if ( ! $yes )
+					$course_period_id = issetVal( $course_periods_RET[$period_id][1]['COURSE_PERIOD_ID'] );
+
+					if ( ! $yes
+						|| ! $course_period_id )
 					{
 						continue;
 					}
 
-					$course_period_id = issetVal( $course_periods_RET[$period_id][1]['COURSE_PERIOD_ID'] );
-
-					if ( $course_period_id
-						&& ! ( $course_periods_RET[$period_id][1]['COURSE_PERIOD_ID'] == 'Y' && $state_code == 'H' ) )
+					if ( empty( $current_RET[$student_id][$date][$period_id] ) )
 					{
-						if ( empty( $current_RET[$student_id][$date][$period_id] ) )
-						{
-							$sql = "INSERT INTO attendance_period
-							(STUDENT_ID,SCHOOL_DATE,PERIOD_ID,MARKING_PERIOD_ID,COURSE_PERIOD_ID,ATTENDANCE_CODE,ATTENDANCE_REASON,ADMIN)
-							VALUES('" . $student_id . "','" . $date . "','" . $period_id . "','" .
-							$current_mp . "','" . $course_period_id . "','" . $_REQUEST['absence_code'] . "','" .
-							$_REQUEST['absence_reason'] . "','Y')";
-						}
-						else
-						{
-							$sql = "UPDATE attendance_period
-							SET ATTENDANCE_CODE='" . $_REQUEST['absence_code'] . "',ATTENDANCE_REASON='" .
-							$_REQUEST['absence_reason'] . "',ADMIN='Y',COURSE_PERIOD_ID='" . (int) $course_period_id . "'
-							WHERE STUDENT_ID='" . (int) $student_id . "'
-							AND SCHOOL_DATE='" . $date . "'
-							AND PERIOD_ID='" . (int) $period_id . "'";
-						}
-
-						$go = true;
-
-						DBQuery( $sql );
+						DBInsert(
+							'attendance_period',
+							[
+								'STUDENT_ID' => (int) $student_id,
+								'SCHOOL_DATE' => $date,
+								'PERIOD_ID' => (int) $period_id,
+								'MARKING_PERIOD_ID' => (int) $current_mp,
+								'COURSE_PERIOD_ID' => (int) $course_period_id,
+								'ATTENDANCE_CODE' => $_REQUEST['absence_code'],
+								'ATTENDANCE_REASON' => $_REQUEST['absence_reason'],
+								'ADMIN' => 'Y',
+							]
+						);
 					}
+					else
+					{
+						DBUpdate(
+							'attendance_period',
+							[
+								'ATTENDANCE_CODE' => $_REQUEST['absence_code'],
+								'ATTENDANCE_REASON' => $_REQUEST['absence_reason'],
+								'ADMIN' => 'Y',
+								'COURSE_PERIOD_ID' => (int) $course_period_id,
+							],
+							[
+								'STUDENT_ID' => (int) $student_id,
+								'SCHOOL_DATE' => $date,
+								'PERIOD_ID' => (int) $period_id,
+							]
+						);
+					}
+
+					$go = true;
 				}
 
 				UpdateAttendanceDaily(
@@ -205,7 +214,10 @@ if ( ! $_REQUEST['modfunc'] )
 			echo '<td><label><input type="CHECKBOX" value="Y" name="period[' . $period['PERIOD_ID'] . ']"> ' . $period['SHORT_NAME'] . '</label></td>';
 		}
 
-		echo '</tr></table>' . FormatInputTitle( _( 'Add Absence to Periods' ), '', false, '' ) . '</td></tr>';
+		echo '</tr></table>' .
+			'&nbsp;<label class="nobr"><input type="checkbox" value="Y" name="controller" onclick="checkAll(this.form,this.checked,\'period\');">&nbsp;' .
+			_( 'Check All' ) . '</label>' .
+			FormatInputTitle( _( 'Add Absence to Periods' ) ) . '</td></tr>';
 
 		echo '<tr><td><label><select name="absence_code">';
 

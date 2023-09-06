@@ -11,9 +11,9 @@ if ( empty( $_REQUEST['print_statements'] ) )
 }
 
 if ( ! empty( $_REQUEST['values'] )
-	&& $_POST['values']
-	&& AllowEdit()
-	&& UserStudentID() )
+     && $_POST['values']
+     && AllowEdit()
+     && UserStudentID() )
 {
 	// Add eventual Dates to $_REQUEST['values'].
 	AddRequestedDates( 'values', 'post' );
@@ -22,72 +22,57 @@ if ( ! empty( $_REQUEST['values'] )
 	{
 		if ( $id !== 'new' )
 		{
-			$sql = "UPDATE billing_fees SET ";
+			$columns['FILE_ATTACHED'] = _saveFeesFile( $id );
 
-			foreach ( (array) $columns as $column => $value )
+			if ( ! $columns['FILE_ATTACHED'] )
 			{
-				$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
+				unset( $columns['FILE_ATTACHED'] );
+
+				if ( empty( $columns ) )
+				{
+					// No file, and FILE_ATTACHED was the only column, skip.
+					continue;
+				}
 			}
 
-			$sql = mb_substr( $sql, 0, -1 ) . " WHERE STUDENT_ID='" . UserStudentID() . "' AND ID='" . (int) $id . "'";
-			DBQuery( $sql );
+			DBUpdate(
+				'billing_fees',
+				$columns,
+				[ 'STUDENT_ID' => UserStudentID(), 'ID' => (int) $id ]
+			);
 		}
 
 		// New: check for Title & Amount.
 		elseif ( $columns['TITLE']
-			&& $columns['AMOUNT'] != '' )
+		         && $columns['AMOUNT'] != '' )
 		{
-			$sql = "INSERT INTO billing_fees ";
+			$insert_columns = [
+				'STUDENT_ID' => UserStudentID(),
+				'SCHOOL_ID' => UserSchool(),
+				'SYEAR' => UserSyear(),
+				'ASSIGNED_DATE' => DBDate(),
+			];
 
-			$fields = 'STUDENT_ID,SCHOOL_ID,SYEAR,ASSIGNED_DATE,';
-			$values = "'" . UserStudentID() . "','" . UserSchool() . "','" . UserSyear() . "','" . DBDate() . "',";
+			$columns['FILE_ATTACHED'] = _saveFeesFile( $id );
 
-			if ( isset( $_FILES['FILE_ATTACHED'] ) )
-			{
-				$columns['FILE_ATTACHED'] = FileUpload(
-					'FILE_ATTACHED',
-					$FileUploadsPath . UserSyear() . '/student_' . UserStudentID() . '/',
-					FileExtensionWhiteList(),
-					0,
-					$error
-				);
+			$columns['AMOUNT'] = preg_replace( '/[^0-9.-]/', '', $columns['AMOUNT'] );
 
-				// Fix SQL error when quote in uploaded file name.
-				$columns['FILE_ATTACHED'] = DBEscapeString( $columns['FILE_ATTACHED'] );
-			}
+			// @since 11.2 Add CREATED_BY column to billing_fees & billing_payments tables
+			$columns['CREATED_BY'] = DBEscapeString( User( 'NAME' ) );
 
-			$go = 0;
-
-			foreach ( (array) $columns as $column => $value )
-			{
-				if ( ! empty( $value ) || $value == '0' )
-				{
-					if ( $column == 'AMOUNT' )
-					{
-						$value = preg_replace( '/[^0-9.-]/', '', $value );
-					}
-
-					$fields .= DBEscapeIdentifier( $column ) . ',';
-					$values .= "'" . $value . "',";
-					$go = true;
-				}
-			}
-
-			$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-
-			if ( $go )
-			{
-				DBQuery( $sql );
-			}
+			DBInsert(
+				'billing_fees',
+				$insert_columns + $columns
+			);
 		}
 	}
 
-	// Unset values & redirect URL.
-	RedirectURL( 'values' );
+	// Unset values, month_values, day_values, year_values & redirect URL.
+	RedirectURL( [ 'values', 'month_values', 'day_values', 'year_values' ] );
 }
 
 if ( $_REQUEST['modfunc'] === 'remove'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( DeletePrompt( _( 'Fee' ) ) )
 	{
@@ -96,7 +81,7 @@ if ( $_REQUEST['modfunc'] === 'remove'
 			WHERE ID='" . (int) $_REQUEST['id'] . "'" );
 
 		if ( ! empty( $file_attached )
-			&& file_exists( $file_attached ) )
+		     && file_exists( $file_attached ) )
 		{
 			// Delete File Attached.
 			unlink( $file_attached );
@@ -116,7 +101,7 @@ if ( $_REQUEST['modfunc'] === 'remove'
 }
 
 if ( $_REQUEST['modfunc'] === 'waive'
-	&& AllowEdit() )
+     && AllowEdit() )
 {
 	if ( DeletePrompt( _( 'Fee' ), _( 'Waive' ) ) )
 	{
@@ -124,16 +109,21 @@ if ( $_REQUEST['modfunc'] === 'waive'
 			FROM billing_fees
 			WHERE ID='" . (int) $_REQUEST['id'] . "'" );
 
-		DBQuery( "INSERT INTO billing_fees (SYEAR,SCHOOL_ID,TITLE,AMOUNT,WAIVED_FEE_ID,
-			STUDENT_ID,ASSIGNED_DATE,COMMENTS)
-			VALUES ('" . UserSyear() . "','" .
-			UserSchool() . "','" .
-			DBEscapeString( $fee_RET[1]['TITLE'] . " " . _( 'Waiver' ) ) . "','" .
-			( $fee_RET[1]['AMOUNT'] * -1 ) . "','" .
-			(int) $_REQUEST['id'] . "','" .
-			UserStudentID() . "','" .
-			DBDate() . "','" .
-			DBEscapeString( _( 'Waiver' ) ) . "')" );
+		DBInsert(
+			'billing_fees',
+			[
+				'SYEAR' => UserSyear(),
+				'SCHOOL_ID' => UserSchool(),
+				'TITLE' => DBEscapeString( $fee_RET[1]['TITLE'] . " " . _( 'Waiver' ) ),
+				'AMOUNT' => ( $fee_RET[1]['AMOUNT'] * -1 ),
+				'WAIVED_FEE_ID' => (int) $_REQUEST['id'],
+				'STUDENT_ID' => UserStudentID(),
+				'ASSIGNED_DATE' => DBDate(),
+				'COMMENTS' => DBEscapeString( _( 'Waiver' ) ),
+				// @since 11.2 Add CREATED_BY column to billing_fees & billing_payments tables
+				'CREATED_BY' => DBEscapeString( User( 'NAME' ) ),
+			]
+		);
 
 		// Unset modfunc & ID & redirect URL.
 		RedirectURL( [ 'modfunc', 'id' ] );
@@ -143,7 +133,7 @@ if ( $_REQUEST['modfunc'] === 'waive'
 echo ErrorMessage( $error );
 
 if ( UserStudentID()
-	&& ! $_REQUEST['modfunc'] )
+     && ! $_REQUEST['modfunc'] )
 {
 	$fees_total = 0;
 
@@ -154,21 +144,24 @@ if ( UserStudentID()
 		'COMMENTS' => '_makeFeesTextInput',
 		'AMOUNT' => '_makeFeesAmount',
 		'FILE_ATTACHED' => '_makeFeesFileInput',
+		'CREATED_AT' => 'ProperDateTime',
 	];
 
 	$waived_fees_RET = DBGet( "SELECT '' AS REMOVE,f.ID,f.TITLE,f.ASSIGNED_DATE,
-		f.DUE_DATE,f.COMMENTS,f.AMOUNT,f.WAIVED_FEE_ID,f.FILE_ATTACHED
+		f.DUE_DATE,f.COMMENTS,f.AMOUNT,f.WAIVED_FEE_ID,f.FILE_ATTACHED,
+		CREATED_BY,CREATED_AT
 		FROM billing_fees f
 		WHERE f.STUDENT_ID='" . UserStudentID() . "'
 		AND f.SYEAR='" . UserSyear() . "'
 		AND f.WAIVED_FEE_ID IS NOT NULL", $functions, [ 'WAIVED_FEE_ID' ] );
 
 	$fees_RET = DBGet( "SELECT '' AS REMOVE,f.ID,f.TITLE,f.ASSIGNED_DATE,
-		f.DUE_DATE,f.COMMENTS,f.AMOUNT,f.WAIVED_FEE_ID,f.FILE_ATTACHED
+		f.DUE_DATE,f.COMMENTS,f.AMOUNT,f.WAIVED_FEE_ID,f.FILE_ATTACHED,
+		CREATED_BY,CREATED_AT
 		FROM billing_fees f
 		WHERE f.STUDENT_ID='" . UserStudentID() . "'
 		AND f.SYEAR='" . UserSyear() . "'
-		AND (f.WAIVED_FEE_ID IS NULL OR f.WAIVED_FEE_ID='')
+		AND f.WAIVED_FEE_ID IS NULL
 		ORDER BY f.ASSIGNED_DATE", $functions );
 
 	$i = 1;
@@ -190,9 +183,9 @@ if ( UserStudentID()
 	$columns = [];
 
 	if ( ! empty( $RET )
-		&& empty( $_REQUEST['print_statements'] )
-		&& AllowEdit()
-		&& ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
+	     && empty( $_REQUEST['print_statements'] )
+	     && AllowEdit()
+	     && ! isset( $_REQUEST['_ROSARIO_PDF'] ) )
 	{
 		$columns = [ 'REMOVE' => '<span class="a11y-hidden">' . _( 'Delete' ) . '</span>' ];
 	}
@@ -208,6 +201,16 @@ if ( UserStudentID()
 	if ( empty( $_REQUEST['print_statements'] ) )
 	{
 		$columns += [ 'FILE_ATTACHED' => _( 'File Attached' ) ];
+	}
+
+	if ( isset( $_REQUEST['expanded_view'] )
+	     && $_REQUEST['expanded_view'] === 'true' )
+	{
+		// @since 11.2 Expanded View: Add Created by & Created at columns.
+		$columns += [
+			'CREATED_BY' => _( 'Created by' ),
+			'CREATED_AT' => _( 'Created at' ),
+		];
 	}
 
 	$link = [];
@@ -232,7 +235,19 @@ if ( UserStudentID()
 
 		if ( AllowEdit() )
 		{
-			DrawHeader( '', SubmitButton() );
+			if ( ! isset( $_REQUEST['expanded_view'] )
+			     || $_REQUEST['expanded_view'] !== 'true' )
+			{
+				$expanded_view_header = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'expanded_view' => 'true' ] ) . '">' .
+				                        _( 'Expanded View' ) . '</a>';
+			}
+			else
+			{
+				$expanded_view_header = '<a href="' . PreparePHP_SELF( $_REQUEST, [], [ 'expanded_view' => 'false' ] ) . '">' .
+				                        _( 'Original View' ) . '</a>';
+			}
+
+			DrawHeader( $expanded_view_header, SubmitButton() );
 		}
 
 		$options = [];
@@ -248,7 +263,7 @@ if ( UserStudentID()
 	ListOutput( $RET, $columns, 'Fee', 'Fees', $link, [], $options );
 
 	if ( empty( $_REQUEST['print_statements'] )
-		&& AllowEdit() )
+	     && AllowEdit() )
 	{
 		echo '<div class="center">' . SubmitButton() . '</div>';
 	}
@@ -268,7 +283,7 @@ if ( UserStudentID()
 
 		$table .= '<tr><td>' . _( 'Balance' ) . ': </td>
 			<td><b>' . Currency(  ( $fees_total - $payments_total ), 'CR' ) .
-			'</b></td></tr></table>';
+		          '</b></td></tr></table>';
 
 		DrawHeader( $table );
 

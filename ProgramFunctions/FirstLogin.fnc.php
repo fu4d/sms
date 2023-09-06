@@ -189,6 +189,7 @@ if ( ! function_exists( 'FirstLoginFormFields' ) )
 	 *
 	 * @since 4.0
 	 * @since 5.3 Add $mode param.
+	 * @since 11.1 Prevent using App name, username, or email in the password
 	 *
 	 * @param string $mode force_password_change|after_install.
 	 *
@@ -213,6 +214,12 @@ if ( ! function_exists( 'FirstLoginFormFields' ) )
 		{
 			$_ROSARIO['allow_edit'] = true;
 
+			// @since 11.1 Prevent using App name, username, or email in the password
+			$_ROSARIO['PasswordInput']['user_inputs'] = [
+				User( 'USERNAME' ),
+				User( 'EMAIL' ),
+			];
+
 			// Set password on first login.
 			$fields[] = PasswordInput(
 				'',
@@ -234,13 +241,16 @@ if ( ! function_exists( 'FirstLoginPoll' ) )
 	 *
 	 * @since 4.6
 	 * @since 5.2 Add Organization radio inputs.
+	 * @since 10.4.1 Add Database Type and Version, add PHP version.
 	 *
 	 * @return string Poll HTML array or empty string if not 'admin' user or if rosariosis.org not reachable.
 	 */
 	function FirstLoginPoll()
 	{
 		global $locale,
-			$_ROSARIO;
+			$_ROSARIO,
+			$DatabaseType,
+			$db_connection;
 
 		if ( User( 'STAFF_ID' ) !== '1' )
 		{
@@ -258,9 +268,37 @@ if ( ! function_exists( 'FirstLoginPoll' ) )
 
 		$fields = [];
 
-		$fields[] = '<input type="hidden" name="locale" value="' . AttrEscape( $locale ) . '" />';
+		$fields[] = '<input type="hidden" name="locale" value="' . AttrEscape( $locale ) . '">';
 
-		$fields[] = '<input type="hidden" name="version" value="' . AttrEscape( ROSARIO_VERSION ) . '" />';
+		$fields[] = '<input type="hidden" name="version" value="' . AttrEscape( ROSARIO_VERSION ) . '">';
+
+		$fields[] = '<input type="hidden" name="database" value="' . AttrEscape( $DatabaseType ) . '">';
+
+		if ( $DatabaseType === 'postgresql' )
+		{
+			$database_version = pg_version( $db_connection );
+
+			// i.e. 13.8 (Debian 13.8-0+deb11u1), get 13.8 back.
+			$database_version = (float) $database_version['server'];
+		}
+		else
+		{
+			// i.e. version 10.5.15 is 100515
+			$database_version = mysqli_get_server_version( $db_connection );
+
+			$main_version = (int) ( $database_version / 10000 );
+
+			// Get 10.5 back.
+			$database_version = $main_version . '.' .
+				(int) ( ( $database_version - ( $main_version * 10000 ) ) / 100 );
+		}
+
+		$fields[] = '<input type="hidden" name="database_version" value="' . AttrEscape( $database_version ) . '">';
+
+		// i.e. 8.1.3, get 8.1 back.
+		$php_version = (float) PHP_VERSION;
+
+		$fields[] = '<input type="hidden" name="php_version" value="' . AttrEscape( $php_version ) . '">';
 
 		$_ROSARIO['allow_edit'] = true;
 

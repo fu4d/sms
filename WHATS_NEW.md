@@ -2,6 +2,149 @@
 
 ## RosarioSIS Student Information System
 
+New in 11.2
+-----------
+
+School
+- Configuration, Attendance tab: Dynamic Daily Attendance calculation based on total course period minutes (when "Minutes in a Full School Day" is set to 0)
+
+Student Billing
+- Fees + Payments + Daily Transactions: Expanded View (Created by & Created at columns), sponsored by Rousseau International, Cameroon
+
+[Lesson Plan](https://www.rosariosis.org/modules/lesson-plan/) module, sponsored by Rousseau International, Cameroon
+
+[Class Diary Premium](https://www.rosariosis.org/modules/class-diary/#premium-module)
+- Attach multiple files, sponsored by Paris'Com Sup
+
+
+New in 11.1
+-----------
+
+Scheduling
+- Courses:
+    - Automatically update teacher: Fix the false "Missing attendance" portal alerts
+    - Automatically update credits (attempted and earned); will also recalculate GPA
+
+[Grades Import](https://www.rosariosis.org/modules/grades-import/)
+- Import Final Grades, sponsored by Univers Frère Raphaël, Haiti
+
+[Students Import Premium](https://www.rosariosis.org/modules/students-import/#premium-module)
+- Create Food Service Accounts (and assign a Barcode)
+
+[Billing Elements](https://www.rosariosis.org/modules/billing-elements/)
+- Mass Assign Elements: Assign Elements by Grade Level, sponsored by Rousseau International, Cameroon
+
+
+New in 11.0
+-----------
+
+Grades
+- Report Cards: Add Class Average & Class Rank (Course Period)
+- Progress Reports: move from Teacher Programs to Grades menu (admin)
+- Configuration: Add Weight Assignments option
+
+[Assignment Max Points](https://gitlab.com/francoisjacquet/Assignment_Max_Points) plugin
+
+The above enhancements are sponsored by École Étoile du Matin, France
+
+Accounting
+- Incomes: fiter by date, assign categories
+- Expenses: fiter by date, assign categories
+- Daily Transactions: filter by category
+- Add Categories
+
+Thanks to @0xD0M1M0 for the above enhancements
+
+Food Service
+- Accounts: Create missing Food Service Student Account
+
+
+New in 10.9
+-----------
+
+Add Portuguese (Brazil) translation, thanks to Emerson Barros
+
+Add Vietnamese (Vietnam) translation, thanks to Steven M. Haag & Trân Thi Kim Thanh
+
+Update German (Germany) translation, thanks to @0xD0M1M0
+
+Lists: add pagination if more than 1000 results. Deactivated by default, only activated for:
+- Grading Scales
+- Access Log
+
+Teacher Programs:
+- Prevent the following issue: If form is displayed for Course Period A, then Teacher opens a new browser tab and switches to Course Period B. Then teacher submits the form, data is saved for Course Period B.
+
+RosarioSIS can now be installed with [Softaculous](https://gitlab.com/francoisjacquet/rosariosis/-/wikis/How-to-install-RosarioSIS-with-Softaculous)
+
+
+New in 10.8
+-----------
+
+Resources
+- Resources: add Resource Visibility options, sponsored by @Hirama666
+
+
+New in 10.7
+-----------
+
+Use [Select2](https://select2.org/) instead of Chosen for enhanced select inputs
+
+Grades
+- Report Cards: add "Class average" option (Last row)
+- Report Cards: add "Student Photo" option, sponsored by Paris'Com Sup
+
+[Student Billing Premium](https://www.rosariosis.org/modules/student-billing-premium/)
+- Print Invoices/Receipts: add "Two per page" checkbox
+
+[Library Premium](https://www.rosariosis.org/modules/library/)
+- Library: limit document Category Visibility to selected User Profiles and Grade Levels, sponsored by @Hirama666
+
+
+New in 10.6
+-----------
+
+Files input: automatically resize & compress uploaded images (only if width > 1988px or height > 2810px)
+
+
+New in 10.5
+-----------
+
+[SMS Premium](https://www.rosariosis.org/modules/sms/): new gateway, WhatsApp Cloud API, sponsored by EspaceHitech.mg
+
+
+New in 10.4
+-----------
+
+[Hostel](https://www.rosariosis.org/modules/hostel/) module
+
+[Student Billing Premium](https://www.rosariosis.org/modules/student-billing-premium/)
+- Configuration: Add Payment Reminder to Portal, sponsored by @Hirama666
+
+Student Billing: Attach File to existing Fee/Payment
+
+Accounting: Attach File to existing Income/Expense or Salary/Staff Payment
+
+
+New in 10.3
+-----------
+
+School
+- Rollover: Add "Course Periods" checkbox
+
+Student Billing
+- Student Balances: Add "Cumulative Balance over school years" checkbox
+
+
+New in 10.2
+-----------
+
+Students
+- Student Info: Add "Enroll student for next school year" link to Rolling / Retention Options
+
+Student / User Listing: order by "Display Name" (was Last Name, First Name)
+
+
 New in 10.0
 -----------
 
@@ -15,7 +158,11 @@ config.inc.sample.php
 
 #### Breaking changes
 
-SQL table names were converted to lowercase. If you have any _custom_ CSS, JS (div IDs) or PHP code relying on UPPERCASE table names, please update.
+SQL table names were converted to lowercase. If you have any _custom_ CSS, JS (div or input ID and names) or PHP code relying on UPPERCASE table names, please update.
+
+#### Know more
+
+Know more about RosarioSIS version 10 and MySQL support in this [blog post](https://www.rosariosis.org/blog/#mysql-support).
 
 
 New in 9.1
@@ -63,14 +210,14 @@ New in 8.8
 
 Grades
 - Report Cards:
-  - Min. and Max. cumulative GPA
-  - Class Rank
+    - Min. and Max. cumulative GPA
+    - Class Rank
 
 [Email Students](https://www.rosariosis.org/modules/email-students/)
 - Automatically send Absence notifications, after X registered absences
 - Automatically send Birthday notifications
 - Automatically send Payment reminders (outstanding fees), X days before or after Due date
-Sponsored by Mr Marinsek, Argentina
+  Sponsored by Mr Marinsek, Argentina
 
 
 New in 8.7
@@ -93,12 +240,12 @@ Users
 [Email Parents](https://www.rosariosis.org/modules/email-parents/)
 - Automatically send (child's) Birthday notifications
 - Automatically send Payment reminders (outstanding fees), X days before or after Due date
-Sponsored by Rousseau International school
+  Sponsored by Rousseau International school
 
 [SMS Premium](https://www.rosariosis.org/modules/sms/#premium-module)
 - Automatically send (child's) Birthday Notifications to Parents
 - Automatically send Payment Reminders (outstanding fees) to Parents, X days before or after Due date
-Sponsored by Rousseau International school
+  Sponsored by Rousseau International school
 
 [Quiz Premium](https://www.rosariosis.org/modules/quiz/#premium-module) module, sponsored by Dzung Do
 
@@ -504,7 +651,7 @@ New in 4.5
 Grades
 
 - Gradebook Configuration: "Hide previous quarters assignment types" option, sponsored by Santa Cecilia school.
-Note: Will only work for newly created Assignment Types.
+  Note: Will only work for newly created Assignment Types.
 - Remove Teacher Programs (still available from Users menu)
 
 Attendance
@@ -669,11 +816,11 @@ New in 3.0
 School Setup
 - Access Log
 - Marking Periods
-	- Access granted to parents & students
+    - Access granted to parents & students
 
 Users
 - My Preferences
-	- Student Fields: search Username
+    - Student Fields: search Username
 
 Performance
 - 90% gain when updating Side menu
@@ -690,24 +837,24 @@ Students
 
 School Setup
 - Configuration
-	- Limit Existing Contacts & Addresses to current school
-	- Force Default Theme
+    - Limit Existing Contacts & Addresses to current school
+    - Force Default Theme
 
 Users
 - My Preferences
-	- Export Listings in XML format
-	- User Fields: search Email Address & Phone
+    - Export Listings in XML format
+    - User Fields: search Email Address & Phone
 
 Scheduling
 - Group Schedule
-	- Schedule multiple courses
+    - Schedule multiple courses
 
 Grades
 - Student Assignments
-	- Submit Assignment
+    - Submit Assignment
 
 - Grading Scales
-	- Minimum Passing Grade
+    - Minimum Passing Grade
 
 Student Billing & Accounting
 - Daily Totals
@@ -727,13 +874,13 @@ New in 2.8
 -----------
 School Setup
 - School Configuration
-	- Create User Account
-	- Create Student Account
+    - Create User Account
+    - Create Student Account
 
 Students
 - Group Assign Student Info
-	- Grade Level
-	- Attendance Start Date this School Year
+    - Grade Level
+    - Attendance Start Date this School Year
 
 Attendance
 - Course Period Absences Widget
@@ -749,9 +896,9 @@ New in 2.7
 -----------
 School Setup
 - School Configuration
-	- manage Modules & Plugins
-	- set Default Theme
-	- set Currency
+    - manage Modules & Plugins
+    - set Default Theme
+    - set Currency
 
 `config.inc.php`
 - No more Rosario Admins list

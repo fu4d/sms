@@ -47,8 +47,7 @@ if ( $_REQUEST['modfunc'] === 'save'
 						{
 							$seats = calcSeats0( $course_period_RET[1], $start_date );
 
-							if ( $seats != ''
-								&& $seats >= $course_period_RET[1]['TOTAL_SEATS'] )
+							if ( ( $seats + count( $_REQUEST['student'] ) ) > $course_period_RET[1]['TOTAL_SEATS'] )
 							{
 								$warnings[] = _( 'The number of selected students exceeds the available seats.' );
 							}
@@ -58,8 +57,7 @@ if ( $_REQUEST['modfunc'] === 'save'
 						if ( empty( $warnings )
 							|| Prompt(
 								'Confirm',
-								_( 'There is a conflict.' ) . ' ' .
-									sprintf( _( 'Are you sure you want to add %s?' ), $course_to_add['course_period_title'] ),
+								sprintf( _( 'Are you sure you want to add %s?' ), $course_to_add['course_period_title'] ),
 								ErrorMessage( $warnings, 'warning' )
 							) )
 						{
@@ -79,14 +77,19 @@ if ( $_REQUEST['modfunc'] === 'save'
 									continue;
 								}
 
-								DBQuery( "INSERT INTO schedule
-									(SYEAR,SCHOOL_ID,STUDENT_ID,COURSE_ID,COURSE_PERIOD_ID,MP,
-										MARKING_PERIOD_ID,START_DATE)
-									values('" . UserSyear() . "','" . UserSchool() . "',
-										'" . $student_id . "','" . $course_to_add['course_id'] . "',
-										'" . $course_to_add['course_period_id'] . "',
-										'" . $mp_table . "','" . $_REQUEST['marking_period_id'] . "',
-										'" . $start_date . "')" );
+								DBInsert(
+									'schedule',
+									[
+										'SYEAR' => UserSyear(),
+										'SCHOOL_ID' => UserSchool(),
+										'STUDENT_ID' => (int) $student_id,
+										'COURSE_ID' => (int) $course_to_add['course_id'],
+										'COURSE_PERIOD_ID' => (int) $course_to_add['course_period_id'],
+										'MP' => $mp_table,
+										'MARKING_PERIOD_ID' => (int) $_REQUEST['marking_period_id'],
+										'START_DATE' => $start_date,
+									]
+								);
 
 								// Hook.
 								do_action( 'Scheduling/MassSchedule.php|schedule_student' );
@@ -159,13 +162,22 @@ if ( ! $_REQUEST['modfunc'] )
 			false
 		) . '</td></tr>';
 
+		// @since 11.1 SQL Use GetFullYearMP() & GetChildrenMP() functions to limit Marking Periods
+		$fy_and_children_mp = "'" . GetFullYearMP() . "'";
+
+		if ( GetChildrenMP( 'FY' ) )
+		{
+			$fy_and_children_mp .= "," . GetChildrenMP( 'FY' );
+		}
+
 		$mp_RET = DBGet( "SELECT MARKING_PERIOD_ID,TITLE," .
 			db_case( [ 'MP', "'FY'", "'0'", "'SEM'", "'1'", "'QTR'", "'2'" ] ) . " AS TBL
 			FROM school_marking_periods
 			WHERE (MP='FY' OR MP='SEM' OR MP='QTR')
+			AND MARKING_PERIOD_ID IN(" . $fy_and_children_mp . ")
 			AND SCHOOL_ID='" . UserSchool() . "'
 			AND SYEAR='" . UserSyear() . "'
-			ORDER BY TBL,SORT_ORDER IS NULL,SORT_ORDER" );
+			ORDER BY TBL,SORT_ORDER IS NULL,SORT_ORDER,START_DATE" );
 
 		echo '<tr><td><select name="marking_period_id" id="marking_period_id">';
 

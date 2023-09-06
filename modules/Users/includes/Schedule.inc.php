@@ -7,20 +7,7 @@ $_REQUEST['all_schools'] = issetVal( $_REQUEST['all_schools'] );
 
 if ( GetTeacher( UserStaffID(), 'PROFILE', false ) === 'teacher' )
 {
-	if ( $PopTable_opened )
-	{
-		PopTable( 'footer' );
-	}
-
-	$all_schools_onclick_URL = ( $_REQUEST['all_schools'] == 'Y' ?
-		PreparePHP_SELF( $_REQUEST, [], [ 'all_schools' => '' ] ) :
-		PreparePHP_SELF( $_REQUEST, [], [ 'all_schools' => 'Y' ] ) );
-
-	$input_all_schools = '<input type="checkbox" name="all_schools" value="Y" onclick="' .
-		AttrEscape( 'ajaxLink(' . json_encode( $all_schools_onclick_URL ) . ');' ) . '"' .
-		( $_REQUEST['all_schools'] == 'Y' ? 'checked' : '' ) . ' />';
-
-	DrawHeader( '<label>' . $input_all_schools . ' ' . _( 'List Courses For All Schools' ) . '</label>' );
+	DrawHeader( CheckBoxOnclick( 'all_schools', _( 'List Courses For All Schools' ) ) );
 
 	if ( $_REQUEST['all_schools'] == 'Y' )
 	{
@@ -53,34 +40,25 @@ if ( GetTeacher( UserStaffID(), 'PROFILE', false ) === 'teacher' )
 	$schedule_RET = DBGet( "SELECT cp.TITLE AS COURSE_PERIOD,cp.ROOM,c.TITLE,cp.MARKING_PERIOD_ID,cp.SCHOOL_ID,s.TITLE AS SCHOOL
 	FROM course_periods cp,courses c,schools s
 	WHERE cp.COURSE_ID=c.COURSE_ID
-	AND cp.TEACHER_ID='" . UserStaffID() . "'
+	AND (cp.TEACHER_ID='" . UserStaffID() . "' OR cp.SECONDARY_TEACHER_ID='" . UserStaffID() . "')
 	AND cp.SYEAR='" . UserSyear() . "'" .
 		( $_REQUEST['all_schools'] == 'Y' ? '' : " AND cp.SCHOOL_ID='" . UserSchool() . "'" ) . "
 	AND s.ID=cp.SCHOOL_ID
 	AND s.SYEAR=cp.SYEAR
 	ORDER BY c.TITLE,cp.SHORT_NAME,cp.TITLE", [ 'MARKING_PERIOD_ID' => 'GetMP' ], $group );
 
-	if ( $_REQUEST['all_schools'] == 'Y' )
+	ListOutput(
+		$schedule_RET,
+		$columns,
+		'Course Period',
+		'Course Periods',
+		false,
+		$group
+	);
+
+	if ( $PopTable_opened )
 	{
-		ListOutput(
-			$schedule_RET,
-			$columns,
-			_( 'School' ),
-			_( 'Schools' ),
-			false,
-			$group
-		);
-	}
-	else
-	{
-		ListOutput(
-			$schedule_RET,
-			$columns,
-			'Course Period',
-			'Course Periods',
-			false,
-			$group
-		);
+		PopTable( 'footer' );
 	}
 
 	if ( isset( $_REQUEST['_ROSARIO_PDF'] ) )
@@ -88,10 +66,6 @@ if ( GetTeacher( UserStaffID(), 'PROFILE', false ) === 'teacher' )
 		echo '<div style="page-break-after: always;"></div>';
 
 		$_SESSION['orientation'] = 'landscape';
-	}
-	else
-	{
-		echo '<hr />';
 	}
 
 	if ( ! UserMP() )
@@ -137,7 +111,7 @@ if ( GetTeacher( UserStaffID(), 'PROFILE', false ) === 'teacher' )
 	$schedule_table_RET = DBGet( "SELECT cp.ROOM,cp.SHORT_NAME,c.TITLE,sp.TITLE AS SCHOOL_PERIOD,cpsp.DAYS
 	FROM course_periods cp,courses c,schools s,school_periods sp,course_period_school_periods cpsp
 	WHERE cp.COURSE_ID=c.COURSE_ID
-	AND cp.TEACHER_ID='" . UserStaffID() . "'
+	AND (cp.TEACHER_ID='" . UserStaffID() . "' OR cp.SECONDARY_TEACHER_ID='" . UserStaffID() . "')
 	AND cp.SYEAR='" . UserSyear() . "'
 	AND s.ID=cp.SCHOOL_ID
 	AND s.ID='" . UserSchool() . "'
@@ -145,11 +119,9 @@ if ( GetTeacher( UserStaffID(), 'PROFILE', false ) === 'teacher' )
 	AND sp.PERIOD_ID=cpsp.PERIOD_ID
 	AND cpsp.COURSE_PERIOD_ID=cp.COURSE_PERIOD_ID
 	AND cp.MARKING_PERIOD_ID IN (" . GetAllMP( 'QTR', UserMP() ) . ")
-	AND sp.LENGTH<=" . ( Config( 'ATTENDANCE_FULL_DAY_MINUTES' ) / 2 ) . "
 	ORDER BY sp.SORT_ORDER IS NULL,sp.SORT_ORDER", [ 'DAYS' => '_GetDays' ], [ 'SCHOOL_PERIOD' ] );
-	// FJ note the "sp.LENGTH<=(Config('ATTENDANCE_FULL_DAY_MINUTES') / 2)" condition to remove Full Day school periods from the schedule table!
 
-	$columns = [ 'SCHOOL_PERIOD' => _( 'Periods' ) ];
+	$columns = [ 'SCHOOL_PERIOD' => _( 'Period' ) ];
 
 	foreach ( $schedule_table_days as $day => $true )
 	{
@@ -168,12 +140,12 @@ if ( GetTeacher( UserStaffID(), 'PROFILE', false ) === 'teacher' )
 		'Periods',
 		false,
 		[],
-		[ 'save' => false ]
+		[ 'save' => false, 'search' => false ]
 	);
 
 	if ( $PopTable_opened )
 	{
-		echo '<table><tr><td>';
+		echo '<div><table><tr><td>';
 	}
 }
 
@@ -219,7 +191,12 @@ function _schedule_table_RET( $schedule_table_RET )
 					$schedule_table_body[$i][$course_period_day] = [];
 				}
 
-				$schedule_table_body[$i][$course_period_day][] = '<div style="display:table-cell;">' . $course_period['TITLE'] . ' ' . ( empty( $course_period['SHORT_NAME'] ) ? '' : '<span style="font-size:smaller;">(' . $course_period['SHORT_NAME'] ) . ')' . ( empty( $course_period['ROOM'] ) ? '' : ' ' . _( 'Room' ) . ': ' . $course_period['ROOM'] . '</span>' ) . '&nbsp;</div>';
+				$schedule_table_body[$i][$course_period_day][] = '<div style="display:table-cell;">' . $course_period['TITLE'] .
+					( empty( $course_period['SHORT_NAME'] ) ? '' :
+						'<br /><span class="size-1">' . $course_period['SHORT_NAME'] . '</span>' ) .
+					( empty( $course_period['ROOM'] ) ? '' :
+						'<br /><span class="size-1">' . _( 'Room' ) . ': ' . $course_period['ROOM'] . '</span>' ) .
+					'&nbsp;</div>';
 			}
 		}
 

@@ -67,21 +67,16 @@ if ( $_REQUEST['modfunc'] === 'update'
 
 			if ( isset( $columns['CONTENT'] ) )
 			{
-				$columns['CONTENT'] = SanitizeMarkDown( $_POST['values'][$id]['CONTENT'] );
+				$columns['CONTENT'] = DBEscapeString( SanitizeMarkDown( $_POST['values'][$id]['CONTENT'] ) );
 			}
 
 			if ( $id !== 'new' )
 			{
-				$sql = "UPDATE portal_notes SET ";
-
-				foreach ( (array) $columns as $column => $value )
-				{
-					$sql .= DBEscapeIdentifier( $column ) . "='" . $value . "',";
-				}
-
-				$sql = mb_substr( $sql, 0, -1 ) . " WHERE ID='" . (int) $id . "'";
-
-				DBQuery( $sql );
+				DBUpdate(
+					'portal_notes',
+					$columns,
+					[ 'ID' => (int) $id ]
+				);
 
 				//hook
 				do_action( 'School_Setup/PortalNotes.php|update_portal_note' );
@@ -116,21 +111,20 @@ if ( $_REQUEST['modfunc'] === 'update'
 				',' . $_REQUEST['values']['new']['PUBLISHED_PROFILES'] :
 				'';
 
-				$sql = "INSERT INTO portal_notes ";
-
-				//FJ file attached to portal notes
-				$fields = 'SCHOOL_ID,SYEAR,PUBLISHED_DATE,PUBLISHED_USER,';
-
-				$values = "'" . UserSchool() . "','" . UserSyear() . "',CURRENT_TIMESTAMP,'" . User( 'STAFF_ID' ) . "',";
+				// @since 10.9 Fix security issue, unset any FILE_ATTACHED column first.
+				$columns['FILE_ATTACHED'] = '';
 
 				if ( isset( $_FILES['FILE_ATTACHED_FILE'] ) )
 				{
+					// File attached to portal notes
 					$columns['FILE_ATTACHED'] = FileUpload(
 						'FILE_ATTACHED_FILE',
 						$PortalNotesFilesPath,
 						FileExtensionWhiteList(),
 						0,
-						$error
+						$error,
+						'',
+						FileNameTimestamp( $_FILES['FILE_ATTACHED_FILE']['name'] )
 					);
 
 					// @since 6.8 Fix SQL error when quote in uploaded file name.
@@ -143,26 +137,20 @@ if ( $_REQUEST['modfunc'] === 'update'
 
 				unset( $columns['FILE_ATTACHED_EMBED'] );
 
-				$go = 0;
+				$insert_columns = [
+					'SCHOOL_ID' => UserSchool(),
+					'SYEAR' => UserSyear(),
+					'PUBLISHED_USER' => User( 'STAFF_ID' ),
+				];
 
-				foreach ( (array) $columns as $column => $value )
+				if ( empty( $error ) )
 				{
-					if ( ! empty( $value ) || $value == '0' )
-					{
-						$fields .= DBEscapeIdentifier( $column ) . ',';
-						$values .= "'" . $value . "',";
-						$go = true;
-					}
-				}
-
-				$sql .= '(' . mb_substr( $fields, 0, -1 ) . ') values(' . mb_substr( $values, 0, -1 ) . ')';
-
-				if ( $go && empty( $error ) )
-				{
-					DBQuery( $sql );
-
 					// Global var used by Moodle plugin.
-					$portal_note_id = DBLastInsertID();
+					$portal_note_id = DBInsert(
+						'portal_notes',
+						$insert_columns + $columns,
+						'id'
+					);
 
 					//hook
 					do_action( 'School_Setup/PortalNotes.php|create_portal_note' );
@@ -215,7 +203,7 @@ if ( ! $_REQUEST['modfunc'] )
 	FROM portal_notes
 	WHERE SCHOOL_ID='" . UserSchool() . "'
 	AND SYEAR='" . UserSyear() . "'
-	ORDER BY EXPIRED DESC,SORT_ORDER IS NULL,SORT_ORDER,PUBLISHED_DATE DESC", [
+	ORDER BY EXPIRED DESC,SORT_ORDER IS NULL,SORT_ORDER,CREATED_AT DESC", [
 		'TITLE' => '_makeTextInput',
 		'CONTENT' => '_makeContentInput',
 		'SORT_ORDER' => '_makeTextInput',

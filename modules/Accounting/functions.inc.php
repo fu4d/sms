@@ -5,8 +5,8 @@ function _makeIncomesRemove( $value, $column )
 
 	return button(
 		'remove',
-		_( 'Delete' ),
-		'"' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=remove&id=' . $THIS_RET['ID'] ) . '"'
+		'',
+		URLEscape( 'Modules.php?modname=' . $_REQUEST['modname'] . '&modfunc=remove&id=' . $THIS_RET['ID'] )
 	);
 }
 
@@ -49,6 +49,16 @@ function _makeIncomesTextInput( $value, $column )
 	return TextInput( $value, 'values[' . $id . '][' . $column . ']', '', $extra, $div );
 }
 
+function _makePaymentsTextInput( $value, $column )
+{
+	return _makeIncomesTextInput( $value, $column );
+}
+
+function _makeSalariesTextInput( $value, $name )
+{
+	return _makeIncomesTextInput( $value, $name );
+}
+
 
 function _makeIncomesDateInput( $value, $column )
 {
@@ -69,11 +79,6 @@ function _makePaymentsDateInput( $value, $name )
 	return _makeIncomesDateInput( $value, $name );
 }
 
-function _makeSalariesTextInput( $value, $name )
-{
-	return _makeIncomesTextInput( $value, $name );
-}
-
 function _makeSalariesDateInput( $value, $name )
 {	global $THIS_RET;
 
@@ -89,31 +94,6 @@ function _makeSalariesDateInput( $value, $name )
 	$name = 'values[' . $id . '][' . $name . ']';
 
 	return DateInput( $value, $name );
-}
-
-function _makePaymentsTextInput( $value, $name )
-{
-	global $THIS_RET;
-
-	if ( ! empty( $THIS_RET['ID'] ) )
-	{
-		$id = $THIS_RET['ID'];
-	}
-	else
-		$id = 'new';
-
-	$extra = 'maxlength=255';
-
-	if ( $name === 'AMOUNT' )
-	{
-		$extra = ' type="number" step="0.01" max="999999999999" min="-999999999999"';
-	}
-	elseif ( ! $value )
-	{
-		$extra .= ' size=15';
-	}
-
-	return TextInput( $value, 'values[' . $id . '][' . $name . ']', '', $extra );
 }
 
 
@@ -153,7 +133,7 @@ function _makePaymentsCommentsInput( $value, $name )
 			WHERE STAFF_ID='" . UserStaffID() . "'
 			AND SYEAR='" . UserSyear() . "'
 			AND AMOUNT=sal.AMOUNT
-			AND (COMMENTS=sal.TITLE OR COMMENTS LIKE '%' || sal.TITLE OR COMMENTS LIKE sal.TITLE || '%')
+			AND (COMMENTS=sal.TITLE OR COMMENTS LIKE CONCAT('%',sal.TITLE) OR COMMENTS LIKE CONCAT(sal.TITLE,'%'))
 			AND PAYMENT_DATE>=sal.ASSIGNED_DATE)
 		ORDER BY ASSIGNED_DATE DESC
 		LIMIT 20" );
@@ -232,6 +212,7 @@ function _makePaymentsAmount( $value, $column )
  * Make Salaries File Attached Input
  *
  * @since 8.1
+ * @since 10.4 Add File Attached Input for existing Salaries
  *
  * @param  string $value File path value.
  * @param  string $name  Column name, 'FILE_ATTACHED'.
@@ -244,31 +225,48 @@ function _makeSalariesFileInput( $value, $column )
 
 	if ( empty( $THIS_RET['ID'] ) )
 	{
-		return FileInput(
-			'FILE_ATTACHED'
+		return InputDivOnclick(
+			'FILE_ATTACHED',
+			FileInput( 'FILE_ATTACHED' ),
+			button( 'add' ),
+			''
 		);
 	}
 
 	if ( empty( $value )
 		|| ! file_exists( $value ) )
 	{
-		return '';
+		if ( isset( $_REQUEST['_ROSARIO_PDF'] )
+			|| ! AllowEdit() )
+		{
+			return '';
+		}
+
+		// Add hidden FILE_ATTACHED input so it gets saved even if no other columns to save.
+		return '<input type="hidden" name="values[' . $THIS_RET['ID'] . '][FILE_ATTACHED]" value="" />' .
+			InputDivOnclick(
+				'FILE_ATTACHED_' . $THIS_RET['ID'],
+				FileInput( 'FILE_ATTACHED_' . $THIS_RET['ID'] ),
+				button( 'add' ),
+				''
+			);
+	}
+
+	if ( ! empty( $_REQUEST['LO_save'] ) )
+	{
+		// Export list.
+		return $value;
 	}
 
 	$file_path = $value;
 
-	$file_name = mb_substr( mb_strrchr( $file_path, '/' ), 1 );
+	$file_name = basename( $file_path );
 
 	$file_size = HumanFilesize( filesize( $file_path ) );
 
-	// Truncate file name if > 36 chars.
-	$file_name_display = mb_strlen( $file_name ) <= 36 ?
-		$file_name :
-		mb_substr( $file_name, 0, 30 ) . '..' . mb_strrchr( $file_name, '.' );
-
 	$file = button(
 		'download',
-		$file_name_display,
+		'',
 		'"' . URLEscape( $file_path ) . '" target="_blank" title="' . AttrEscape( $file_name . ' (' . $file_size . ')' ) . '"',
 		'bigger'
 	);
@@ -304,4 +302,216 @@ function _makePaymentsFileInput( $value, $column )
 function _makeIncomesFileInput( $value, $column )
 {
 	return _makeSalariesFileInput( $value, $column );
+}
+
+/**
+ * Make Payments Category Select Input
+ *
+ * @since 11.0
+ *
+ * @param  string $value  Category ID.
+ * @param  string $column Column name, 'CATEGORY_ID'.
+ *
+ * @return string         Select Input HTML.
+ */
+function _makePaymentsCategory( $value, $column )
+{
+	global $THIS_RET;
+
+	$id = 'new';
+
+	$div = false;
+
+	if ( ! empty( $THIS_RET['ID'] ) )
+	{
+		$id = $THIS_RET['ID'];
+
+		$div = true;
+	}
+
+	// Types: common, incomes, expenses
+	$category_RET = DBGet( "SELECT ID,TITLE,SHORT_NAME
+		FROM accounting_categories
+		WHERE SCHOOL_ID='" . UserSchool() . "'
+		AND (TYPE='common' OR TYPE='expenses')
+		ORDER BY SORT_ORDER IS NULL,SORT_ORDER,SHORT_NAME" );
+
+	$options = [ '0' => _( 'N/A' ) ];
+
+	foreach ( (array) $category_RET as $category )
+	{
+		$options[$category['ID']] = $category['SHORT_NAME'];
+	}
+
+	if ( empty( $value ) )
+	{
+		// Set N/A value to 0 to enable $div param & search list by Category.
+		$value = '0';
+	}
+
+	return SelectInput(
+		$value,
+		'values[' . $id . '][' . $column . ']',
+		'',
+		$options,
+		false,
+		'',
+		$div
+	);
+}
+
+/**
+ * Make Incomes Category Select Input
+ *
+ * @since 11.0
+ *
+ * @param  string $value  Category ID.
+ * @param  string $column Column name, 'CATEGORY_ID'.
+ *
+ * @return string         Select Input HTML.
+ */
+function _makeIncomesCategory( $value, $column )
+{
+	global $THIS_RET;
+
+	$id = 'new';
+
+	$div = false;
+
+	if ( ! empty( $THIS_RET['ID'] ) )
+	{
+		$id = $THIS_RET['ID'];
+
+		$div = true;
+	}
+
+	// Types: common, incomes, expenses
+	$category_RET = DBGet( "SELECT ID,TITLE,SHORT_NAME
+		FROM accounting_categories
+		WHERE SCHOOL_ID='" . UserSchool() . "'
+		AND (TYPE='common' OR TYPE='incomes')
+		ORDER BY SORT_ORDER IS NULL,SORT_ORDER,SHORT_NAME" );
+
+	$options = [ '0' => _( 'N/A' ) ];
+
+	foreach ( (array) $category_RET as $category )
+	{
+		$options[$category['ID']] = $category['SHORT_NAME'];
+	}
+
+	if ( empty( $value ) )
+	{
+		// Set N/A value to 0 to enable $div param & search list by Category.
+		$value = '0';
+	}
+
+	return SelectInput(
+		$value,
+		'values[' . $id . '][' . $column . ']',
+		'',
+		$options,
+		false,
+		'',
+		$div
+	);
+}
+
+/**
+ * Save Salaries File
+ *
+ * @since 10.4
+ * @since 10.8.2 Add datetime to filename to make it harder to predict
+ *
+ * @param  int|string $id Salary ID or 'new'.
+ *
+ * @return string     File path or empty.
+ */
+function _saveSalariesFile( $id )
+{
+	global $error,
+		$FileUploadsPath;
+
+	$input = $id === 'new' ? 'FILE_ATTACHED' : 'FILE_ATTACHED_' . $id;
+
+	if ( ! isset( $_FILES[ $input ] ) )
+	{
+		return '';
+	}
+
+	$file_attached = FileUpload(
+		$input,
+		$FileUploadsPath . UserSyear() . '/staff_' . UserStaffID() . '/',
+		FileExtensionWhiteList(),
+		0,
+		$error,
+		'',
+		FileNameTimestamp( $_FILES[ $input ]['name'] )
+	);
+
+	// Fix SQL error when quote in uploaded file name.
+	return DBEscapeString( $file_attached );
+}
+
+/**
+ * Save Payments File
+ *
+ * @since 10.4
+ *
+ * @param  int|string $id Payment ID or 'new'.
+ *
+ * @return string     File path or empty.
+ */
+function _savePaymentsFile( $id )
+{
+	return _saveSalariesFile( $id );
+}
+
+/**
+ * Save Incomes File
+ *
+ * @since 10.4
+ * @since 10.8.2 Add datetime to filename to make it harder to predict
+ *
+ * @param  int|string $id Income ID or 'new'.
+ *
+ * @return string     File path or empty.
+ */
+function _saveIncomesFile( $id )
+{
+	global $error,
+		$FileUploadsPath;
+
+	$input = $id === 'new' ? 'FILE_ATTACHED' : 'FILE_ATTACHED_' . $id;
+
+	if ( ! isset( $_FILES[ $input ] ) )
+	{
+		return '';
+	}
+
+	$file_attached = FileUpload(
+		$input,
+		$FileUploadsPath . UserSyear() . '/staff_' . User( 'STAFF_ID' ) . '/',
+		FileExtensionWhiteList(),
+		0,
+		$error,
+		'',
+		FileNameTimestamp( $_FILES[ $input ]['name'] )
+	);
+
+	// Fix SQL error when quote in uploaded file name.
+	return DBEscapeString( $file_attached );
+}
+
+/**
+ * Save Expenses File
+ *
+ * @since 10.4
+ *
+ * @param  int|string $id Expense ID or 'new'.
+ *
+ * @return string     File path or empty.
+ */
+function _saveExpensesFile( $id )
+{
+	return _saveIncomesFile( $id );
 }

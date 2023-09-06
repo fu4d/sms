@@ -43,13 +43,13 @@ if ( empty( $email_column ) )
 	echo '<form action="' . URLEscape( 'Modules.php?modname=' . $_REQUEST['modname']  ) . '" method="POST">';
 
 	//get Student / Address fields
-	$student_columns = DBGet( "SELECT 's.CUSTOM_' || f.ID AS COLUMN_NAME, f.TITLE, c.TITLE AS CATEGORY
+	$student_columns = DBGet( "SELECT CONCAT('s.CUSTOM_',f.ID) AS COLUMN_NAME, f.TITLE, c.TITLE AS CATEGORY
 		FROM custom_fields f, student_field_categories c
 		WHERE f.TYPE='text'
 		AND c.ID=f.CATEGORY_ID
 		ORDER BY f.CATEGORY_ID, f.SORT_ORDER" );
 
-	$address_columns = DBGet( "SELECT 'a.CUSTOM_' || f.ID AS COLUMN_NAME, f.TITLE, c.TITLE AS CATEGORY
+	$address_columns = DBGet( "SELECT CONCAT('a.CUSTOM_',f.ID) AS COLUMN_NAME, f.TITLE, c.TITLE AS CATEGORY
 		FROM address_fields f, address_field_categories c
 		WHERE f.TYPE='text'
 		AND c.ID=f.CATEGORY_ID
@@ -199,19 +199,21 @@ if ( $_REQUEST['modfunc'] === 'save'
 					{
 						$password_encrypted = encrypt_password( $password );
 
-						$sql = "INSERT INTO staff (SYEAR,PROFILE,PROFILE_ID,
-							FIRST_NAME,MIDDLE_NAME,LAST_NAME,USERNAME,PASSWORD,EMAIL) values (
-							'" . UserSyear() . "','parent','" . $profile_id . "',
-							'" . DBEscapeString( $user['FIRST_NAME'] ) . "',
-							'" . DBEscapeString( $user['MIDDLE_NAME'] ) . "',
-							'" . DBEscapeString( $user['LAST_NAME'] ) . "',
-							'" . $username . "','" . $password_encrypted . "',
-							'" . $students[1]['EMAIL'] . "')";
-
-						DBQuery( $sql );
-
-						// Get Staff ID.
-						$id = DBLastInsertID();
+						$id = DBInsert(
+							'staff',
+							[
+								'SYEAR' => UserSyear(),
+								'PROFILE' => 'parent',
+								'PROFILE_ID' => (int) $profile_id,
+								'FIRST_NAME' => DBEscapeString( $user['FIRST_NAME'] ),
+								'MIDDLE_NAME' => DBEscapeString( $user['MIDDLE_NAME'] ),
+								'LAST_NAME' => DBEscapeString( $user['LAST_NAME'] ),
+								'USERNAME' => DBEscapeString( $username ),
+								'PASSWORD' => $password_encrypted,
+								'EMAIL' => DBEscapeString( $students[1]['EMAIL'] ),
+							],
+							'id'
+						);
 
 						// Hook.
 						do_action( 'Custom/CreateParents.php|create_user' );
@@ -272,8 +274,13 @@ if ( $_REQUEST['modfunc'] === 'save'
 					&& ! $parent_associated_to_student_RET )
 				{
 					// Join user to student.
-					DBQuery( "INSERT INTO students_join_users (STAFF_ID,STUDENT_ID)
-						VALUES ('" . $id . "','" . $student['STUDENT_ID'] . "')" );
+					DBInsert(
+						'students_join_users',
+						[
+							'STAFF_ID' => (int) $id,
+							'STUDENT_ID' => (int) $student['STUDENT_ID'],
+						]
+					);
 
 					// Hook.
 					do_action( 'Custom/CreateParents.php|user_assign_role' );
@@ -397,14 +404,14 @@ if ( ! $_REQUEST['modfunc'] && ! empty( $email_column ) )
 
 		$extra['extra_header_left'] .= '<tr class="st"><td class="valign-top">' .
 			SubstitutionsInput( $substitutions ) .
-		'<hr /></td></tr>';
+		'<hr></td></tr>';
 
 		$extra['extra_header_left'] .= '<tr class="st"><td>' . _( 'Test Mode' ) . ':<br />' .
 		TextInput(
 			'',
 			'test_email',
 			_( 'Email' ),
-			'type="email" pattern="[^ @]*@[^ @]*" placeholder="' . AttrEscape( _( 'Email' ) ) . '" size="24"',
+			'maxlength=255 type="email" placeholder="' . AttrEscape( _( 'Email' ) ) . '" size="24"',
 			false
 		) . '</td></tr>';
 
@@ -412,12 +419,15 @@ if ( ! $_REQUEST['modfunc'] && ! empty( $email_column ) )
 	}
 
 	$extra['SELECT'] = ",s.STUDENT_ID AS CHECKBOX,trim(lower(" . $email_column . ")) AS EMAIL,s.STUDENT_ID AS CONTACT";
+	// @todo SQL performance: really slow subquery.
+	// But DO NOT use LEFT OUTER JOIN, cannot LIMIT 1...
 	$extra['SELECT'] .= ",(SELECT STAFF_ID
 		FROM staff
 		WHERE trim(lower(EMAIL))=trim(lower(" . $email_column . "))
 		AND PROFILE='parent'
 		AND SYEAR=ssm.SYEAR
 		LIMIT 1) AS STAFF_ID";
+
 	$extra['SELECT'] .= ",(SELECT 1
 		FROM students_join_users sju,staff st
 		WHERE sju.STUDENT_ID=s.STUDENT_ID
